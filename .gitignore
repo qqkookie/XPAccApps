@@ -2,6 +2,13 @@
 .vs/
 out/
 
+*.orig
+resource.aps
+*.vcxproj.user
+*.vcxproj.filters
+# garbage
+/RC[a-z][0-9][0-9]*
+
 #--------------
 
 # Prerequisites

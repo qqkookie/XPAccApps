@@ -46,6 +46,8 @@ void apply_int_mask(calc_number_t *r)
     r->i &= mask;
 }
 
+#ifdef MATH_NO_HYP
+// Use if <math.h> has no asinh, acosh, atanh
 double asinh(double x)
 {
     return log(x+sqrt(x*x+1));
@@ -67,6 +69,7 @@ double atanh(double x)
 
     return log((1.0+x)/(1.0-x))/2.0;
 }
+#endif
 
 static double validate_rad2angle(double a)
 {

@@ -1,3 +1,13 @@
+# App slave CMakeList.txt
+
+set(xapp xcalc)
+
+# define app version resources
+add_compile_definitions( VER_PRODUCTNAME_STR="XCalc")
+add_compile_definitions( VER_PRODUCTVERSION=0,0,1,0)
+add_compile_definitions( VER_FILEVERSION=0,0,1,1)
+add_compile_definitions( VER_FILEDESCRIPTION_STR="Calculator accessory app")
+add_compile_definitions( VER_ORIGINALFILENAME_STR="${xapp}.exe")
 
 list(APPEND SOURCE
     convert.c
@@ -9,15 +19,19 @@ list(APPEND SOURCE
     theme.c
     calc.h)
 
-file(GLOB calc_rc_deps res/*.*)
-add_rc_deps(resource.rc ${calc_rc_deps})
-add_executable(calc ${SOURCE} resource.rc)
-set_module_type(calc win32gui UNICODE)
-add_importlibs(calc advapi32 comctl32 user32 shell32 gdi32 msvcrt kernel32)
+file(GLOB calc_rc_deps res/*.* lang/*.*)
+# add_rc_deps(resource.rc ${calc_rc_deps})
+include_directories(rc)
+add_executable(${xapp} ${SOURCE} resource.rc)
+
+# set_module_type(calc win32gui UNICODE)
+# add_importlibs(calc advapi32 comctl32 user32 shell32 gdi32 msvcrt kernel32)
+link_libraries(comctl32 advapi32 user32 shell32 gdi32 msvcrt kernel32)
 
 if(MSVC)
-    add_importlibs(calc ntdll)
+#     add_importlibs(calc ntdll)
+    target_link_libraries(${xapp} comctl32)
 endif()
 
-add_pch(calc calc.h SOURCE)
-add_cd_file(TARGET calc DESTINATION reactos/system32 FOR all)
+# add_pch(calc calc.h SOURCE)
+# add_cd_file(TARGET calc DESTINATION reactos/system32 FOR all)
