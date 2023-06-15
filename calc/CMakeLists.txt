@@ -1,4 +1,4 @@
-# App slave CMakeList.txt
+# Calc app slave CMakeList.txt
 
 set(xapp xcalc)
 
@@ -19,9 +19,9 @@ list(APPEND SOURCE
     theme.c
     calc.h)
 
-file(GLOB calc_rc_deps res/*.* lang/*.*)
+# file(GLOB calc_rc_deps res/*.*)
 # add_rc_deps(resource.rc ${calc_rc_deps})
-include_directories(rc)
+include_directories(res)
 add_executable(${xapp} ${SOURCE} resource.rc)
 
 # set_module_type(calc win32gui UNICODE)
