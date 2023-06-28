@@ -23,7 +23,11 @@ Author:
 // Dependencies
 //
 #include <umtypes.h>
-#include <arch/mmtypes.h>
+// #include <arch/mmtypes.h>
+#if  defined(_M_AMD64)
+#include "amd64_mmtypes.h"
+#endif
+
 #include <extypes.h>
 
 #ifdef __cplusplus

@@ -90,13 +90,13 @@ AffinityDialogWndProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
             /*
              * Enable a checkbox for each processor present in the system
              */
-            if (dwSystemAffinityMask & (1 << nCpu))
+            if (dwSystemAffinityMask & (1ULL << nCpu))
                 EnableWindow(GetDlgItem(hDlg, dwCpuTable[nCpu]), TRUE);
             /*
              * Check each checkbox that the current process
              * has affinity with
              */
-            if (dwProcessAffinityMask & (1 << nCpu))
+            if (dwProcessAffinityMask & (1ULL << nCpu))
                 CheckDlgButton(hDlg, dwCpuTable[nCpu], BST_CHECKED);
         }
 
@@ -124,7 +124,7 @@ AffinityDialogWndProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
                  * checkbox that the user checked.
                  */
                 if (IsDlgButtonChecked(hDlg, dwCpuTable[nCpu]))
-                    dwProcessAffinityMask |= (1 << nCpu);
+                    dwProcessAffinityMask |= (1ULL << nCpu);
             }
 
             /*

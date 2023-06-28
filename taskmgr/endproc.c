@@ -25,7 +25,8 @@
 #include "precomp.h"
 
 #define NTOS_MODE_USER
-#include <ndk/psfuncs.h>
+// #include "sdk/psfuncs.h"
+#include <winternl.h>
 
 void ProcessPage_OnEndProcess(void)
 {

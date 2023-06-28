@@ -1350,14 +1350,15 @@ typedef struct _RTL_BSD_DATA
 } RTL_BSD_DATA, *PRTL_BSD_DATA;
 
 #ifdef NTOS_MODE_USER
-//
+/*
 // Exception Record
 //
 typedef struct _EXCEPTION_REGISTRATION_RECORD
 {
     struct _EXCEPTION_REGISTRATION_RECORD *Next;
     PEXCEPTION_ROUTINE Handler;
-} EXCEPTION_REGISTRATION_RECORD, *PEXCEPTION_REGISTRATION_RECORD;
+ } EXCEPTION_REGISTRATION_RECORD, *PEXCEPTION_REGISTRATION_RECORD;
+*/
 #endif /* NTOS_MODE_USER */
 
 //
@@ -1575,12 +1576,14 @@ typedef struct _RTL_USER_PROCESS_INFORMATION
 
 #if (NTDDI_VERSION >= NTDDI_WIN7)
 
+/*
 typedef enum _RTL_UMS_SCHEDULER_REASON
 {
     UmsSchedulerStartup = 0,
     UmsSchedulerThreadBlocked = 1,
     UmsSchedulerThreadYield = 2,
 } RTL_UMS_SCHEDULER_REASON, *PRTL_UMS_SCHEDULER_REASON;
+*/
 
 typedef enum _RTL_UMSCTX_FLAGS
 {

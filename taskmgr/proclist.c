@@ -22,6 +22,10 @@
 
 #include "precomp.h"
 
+#ifdef _WIN64
+#define GCL_HBRBACKGROUND GCLP_HBRBACKGROUND
+#endif
+
 INT_PTR CALLBACK    ProcessListWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 WNDPROC             OldProcessListWndProc;

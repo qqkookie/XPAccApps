@@ -4,21 +4,28 @@
 
 #include "resource.h"
 
-#define REACTOS_STR_FILE_DESCRIPTION  "ReactOS Task Manager"
-#define REACTOS_STR_INTERNAL_NAME     "taskmgr"
-#define REACTOS_STR_ORIGINAL_FILENAME "taskmgr.exe"
-#include <reactos/version.rc>
-
 IDI_TASKMANAGER ICON "res/taskmgr.ico"
 IDI_WINDOW ICON "res/window.ico"
 IDI_WINDOWSM ICON "res/windowsm.ico"
 IDB_TRAYMASK BITMAP "res/traymask.bmp"
 IDB_TRAYICON BITMAP "res/trayicon.bmp"
 
-#include <reactos/manifest_exe.rc>
+// #include <reactos/manifest_exe.rc>
+/* Manifest */
+// CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "../manifest.xml"
 
 /* UTF-8 */
 #pragma code_page(65001)
+
+#define APP_PRODUCTNAME		"XTaskMgr"
+#define APP_PRODUCTVERSION	0,0,1,0
+#define APP_FILEVERSION		0,0,1,1
+#define APP_FILEDESCRIPTION	"Task Manager accessory app"
+#define APP_INTERNALNAME	"taskmgr"
+#define APP_ORIGINALFILENAME	"xtaskmgr.exe"
+
+// app version info resouce
+#include "../version.rc"
 
 #ifdef LANGUAGE_BG_BG
     #include "lang/bg-BG.rc"

@@ -28,7 +28,11 @@
 
 #include <strsafe.h>
 
-#include <ndk/psfuncs.h>
+// #include "sdk/psfuncs.h"
+#undef WIN32_NO_STATUS
+
+#include <ntstatus.h>
+#include <winternl.h>
 
 #define CMP(x1, x2)\
     (x1 < x2 ? -1 : (x1 > x2 ? 1 : 0))

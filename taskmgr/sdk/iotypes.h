@@ -1088,6 +1088,10 @@ typedef VOID
 
 #define SYMLINK_FLAG_RELATIVE   1
 
+#ifdef _MSC_VER
+#define _ANONYMOUS_UNION
+#endif
+
 typedef struct _REPARSE_DATA_BUFFER {
   ULONG ReparseTag;
   USHORT ReparseDataLength;

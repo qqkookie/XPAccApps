@@ -24,6 +24,11 @@
 
 #include "precomp.h"
 
+#ifdef _WIN64
+#define GCL_HICON       GCLP_HICON
+#define GCL_HICONSM     GCLP_HICON
+#endif
+
 typedef struct
 {
     HWND    hWnd;

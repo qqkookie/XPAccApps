@@ -36,8 +36,14 @@ IDI_CALC ICON DISCARDABLE "res/calc.ico"
 /* UTF-8 */
 #pragma code_page(65001)
 
+#define APP_PRODUCTNAME		"XCalc"
+#define APP_PRODUCTVERSION	0,0,1,0
+#define APP_FILEVERSION		0,0,1,1
+#define APP_FILEDESCRIPTION	"Calculator accessory app"
+#define APP_ORIGINALFILENAME	"xcalc.exe"
+
 // app version info resouce
-#include "../appver.rc"
+#include "../version.rc"
 
 #ifdef LANGUAGE_BG_BG
     #include "lang/bg-BG.rc"

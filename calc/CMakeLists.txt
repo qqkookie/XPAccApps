@@ -2,13 +2,6 @@
 
 set(xapp xcalc)
 
-# define app version resources
-add_compile_definitions( VER_PRODUCTNAME_STR="XCalc")
-add_compile_definitions( VER_PRODUCTVERSION=0,0,1,0)
-add_compile_definitions( VER_FILEVERSION=0,0,1,1)
-add_compile_definitions( VER_FILEDESCRIPTION_STR="Calculator accessory app")
-add_compile_definitions( VER_ORIGINALFILENAME_STR="${xapp}.exe")
-
 list(APPEND SOURCE
     convert.c
     fun_ieee.c
@@ -22,7 +15,7 @@ list(APPEND SOURCE
 # file(GLOB calc_rc_deps res/*.*)
 # add_rc_deps(resource.rc ${calc_rc_deps})
 include_directories(res)
-add_executable(${xapp} ${SOURCE} resource.rc)
+add_executable(${xapp} ${SOURCE} resource.rc CMakeLists.txt)
 
 # set_module_type(calc win32gui UNICODE)
 # add_importlibs(calc advapi32 comctl32 user32 shell32 gdi32 msvcrt kernel32)

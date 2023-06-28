@@ -1,0 +1,74 @@
+/*
+ * Global common version info
+ * This version resource file should be included bin main resource.rc file of each app.
+ * Rresource.rc of each app should define consts below. Examnple:
+ * 
+ * #define APP_PRODUCTNAME	"XExam"
+ * #define APP_PRODUCTVERSION	0,1,0,0
+ * #define APP_FILEVERSION	0,1,349,0
+ * #define APP_FILEDESCRIPTION	"Desktop accessory app"
+ * #define APP_ORIGINALFILENAME "xexam.exe"
+ */
+
+// ---- Begin configuration section ----
+#define PROJECT_VERSION		0,1,0,0
+
+// For localized versions.
+// Define message resouce language here.
+#define				LANGUAGE_KO_KR
+// see https://learn.microsoft.com/en-us/windows/win32/menurc/versioninfo-resource
+#define APP_TRANSLATION		0x0412,03B5
+// ---- End configuratio ---
+
+#ifndef APP_TRANSLATION
+#define	LANGUAGE_EN_US
+#define APP_TRANSLATION 0x409, 1252
+#endif
+
+#define APP_LEGALCOPYRIGHT "© 2023 Kookie. All Rights Reserved\0"
+#if !defined(APP_PRODUCTVERSION) && defined(PROJECT_VERSION)
+#define APP_PRODUCTVERSION PROJECT_VERSION
+#endif
+
+#define MKSTR(s) #s
+
+#include <verrsrc.h>
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     APP_FILEVERSION
+PRODUCTVERSION  APP_PRODUCTVERSION
+FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+#ifndef DEBUG
+FILEFLAGS       0
+#else
+FILEFLAGS       (VS_FF_PRIVATEBUILD | VS_FF_PRERELEAS | VS_FF_DEBUG)
+#endif
+FILEOS          VOS__WINDOWS32
+FILETYPE        VFT_APP
+FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904E4"
+        BEGIN
+ //           VALUE "CompanyName",      VER_COMPANYNAME_STR
+            VALUE "FileDescription",  APP_FILEDESCRIPTION
+            VALUE "FileVersion",      MKSTR(APP_FILEVERSION) "\0" 
+//            VALUE "InternalName",     VER_INTERNALNAME_STR
+            VALUE "LegalCopyright",   APP_LEGALCOPYRIGHT
+//            VALUE "LegalTrademarks1", VER_LEGALTRADEMARKS1_STR
+//            VALUE "LegalTrademarks2", VER_LEGALTRADEMARKS2_STR
+            VALUE "OriginalFilename", APP_ORIGINALFILENAME
+            VALUE "ProductName",      APP_PRODUCTNAME
+            VALUE "ProductVersion",   MKSTR(APP_PRODUCTVERSION) "\0"
+        END
+    END
+
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", APP_TRANSLATION
+    END
+END
+
+/* Manifest */
+// CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "../manifest.xml"

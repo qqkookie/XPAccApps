@@ -27,8 +27,8 @@
 #include <aclapi.h>
 
 #define NTOS_MODE_USER
-#include <ndk/psfuncs.h>
-#include <ndk/exfuncs.h>
+#include "sdk/psfuncs.h"
+#include "sdk/exfuncs.h"
 
 CRITICAL_SECTION                           PerfDataCriticalSection;
 PPERFDATA                                  pPerfDataOld = NULL;    /* Older perf data (saved to establish delta values) */

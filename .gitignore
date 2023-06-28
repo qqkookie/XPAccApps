@@ -1,6 +1,7 @@
 # Project Setting
 .vs/
 out/
+CMakeFiles/
 
 *.orig
 resource.aps

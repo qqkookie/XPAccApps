@@ -31,6 +31,8 @@
 
 #define STATUS_WINDOW   2001
 
+#define STATUS_WAIT_0 ((DWORD)0x00000000L)
+
 /* Global Variables: */
 HINSTANCE hInst;                 /* current instance */
 

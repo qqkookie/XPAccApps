@@ -24,7 +24,7 @@
  * use the type below to declare a function pointer
  *
  * Information taken from http://www.geocities.com/SiliconValley/4942/
- * Copyright © 1998-1999 James Holderness. All Rights Reserved.
+ * Copyright Â©1998-1999 James Holderness. All Rights Reserved.
  * jholderness@geocities.com
  */
 
