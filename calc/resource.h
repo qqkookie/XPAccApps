@@ -110,6 +110,8 @@
 #define IDC_BUTTON_RSH                  1093
 #define IDC_BUTTON_XrY                  1094
 
+#define IDC_BUTTON_MM                   1101
+
 /* TYPES OF CONVERSIONS */
 #define IDS_CONV_ANGLE                  2000
 #define IDS_CONV_AREA                   2001

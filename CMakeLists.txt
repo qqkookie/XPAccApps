@@ -7,6 +7,8 @@ set(PROJVER ../version.rc ../manifest.xml)
 
 add_compile_definitions(_AMD64_ _WIN64)
 add_compile_definitions(_UNICODE UNICODE)
+# common setting ini file in ~/AppData/Local
+add_compile_definitions( PRIVATEPROFILE_INI="XPAccApp.ini")
 
 if(MSVC)
 #     add_importlibs(calc ntdll)
@@ -21,3 +23,5 @@ endif()
 add_subdirectory(calc)
 # add_subdirectory(notepad)
 add_subdirectory(taskmgr)
+
+set( CMAKE_RUNTIME_OUTPUT_DIRECTORY out )

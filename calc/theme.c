@@ -125,3 +125,74 @@ void Theme_Stop(void)
     FreeLibrary(hUxTheme);
     hUxTheme = NULL;
 }
+
+HWND MoveControl(HWND hDlg, int item, int dx, int dy, int dw, int dh, BOOL bReaint)
+{
+    HWND hctr = GetDlgItem(hDlg, item);
+    RECT r;
+    GetWindowRect(hctr, &r);
+    POINT coord = {r.left, r.top};
+    ScreenToClient(hDlg, &coord);
+    MoveWindow(hctr, coord.x + dx, coord.y + dy, r.right - r.left + dw,
+        r.bottom - r.top + dh, bReaint);
+    return hctr;
+}
+
+void AdjustLayout(HWND hDlg, DWORD dwLayout)
+{
+#define MOVE(iid, dx, dy) MoveControl(hDlg, iid, dx, dy, 0, 0, TRUE)
+    if (dwLayout != IDD_DIALOG_STANDARD)
+        return;
+    int RH = 30;    // button row height 
+
+    MOVE(IDC_TEXT_PARENT, -1000, -1000); // remove spurious residue
+    MoveControl(hDlg, IDC_BUTTON_SQRT, -1000, -1000, 0, RH, TRUE); // Remove button
+
+    RECT r;
+    GetWindowRect(hDlg, &r);
+    MoveWindow(hDlg, r.left, r.top, r.right - r.left + 0,
+        r.bottom - r.top + RH, TRUE);
+
+    MOVE(IDC_TEXT_PARENT, 1000, 1000);
+
+    MOVE( IDC_BUTTON_7, 0, RH);
+    MOVE( IDC_BUTTON_4, 0, RH);
+    MOVE( IDC_BUTTON_1, 0, RH);
+    MOVE( IDC_BUTTON_0, 0, RH);
+
+    MOVE( IDC_BUTTON_8, 0, RH);
+    MOVE( IDC_BUTTON_5, 0, RH);
+    MOVE( IDC_BUTTON_2, 0, RH);
+    MOVE( IDC_BUTTON_SIGN, 0, RH);
+
+    MOVE( IDC_BUTTON_9, 0, RH);
+    MOVE( IDC_BUTTON_6, 0, RH);
+    MOVE( IDC_BUTTON_3, 0, RH);
+    MOVE( IDC_BUTTON_DOT, 0, RH);
+
+    MoveControl(hDlg, IDC_BUTTON_ADD, 0, 0, 0, RH, TRUE); // enlarge
+    MoveControl(hDlg, IDC_BUTTON_EQU, 0, 0, 0, RH, TRUE);
+    MOVE(IDC_BUTTON_MP, 0, RH);
+
+    HWND display = MoveControl(hDlg, IDC_TEXT_OUTPUT, 0, 0, 0, 5, TRUE);
+    SendMessage(display, WM_SETFONT, 0, MAKELPARAM(FALSE, 0));
+    SendMessage(display, WM_SETTEXT, 0, (LPARAM) _T("Hello"));
+
+/*
+    HWND hmem = GetDlgItem(hDlg, IDC_BUTTON_7);
+    HWND htt = CreateWindowEx(NULL, TOOLTIPS_CLASS, NULL, WS_POPUP | TTS_ALWAYSTIP | TTS_BALLOON,
+        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, hDlg, NULL, calc.hInstance, NULL);
+
+    SetWindowPos(htt, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+
+    // Associate the tooltip with the tool.
+    TOOLINFO tti = {0};
+    tti.cbSize = sizeof(tti);
+    tti.hwnd = hDlg;
+    tti.uFlags = TTF_IDISHWND | TTF_SUBCLASS;
+    tti.uId = (UINT_PTR)hmem;
+    // tti.hinst = calc.hInstance;
+    tti.lpszText = _T("pszTextTEST");
+    SendMessage(htt, TTM_ADDTOOL, 0, (LPARAM)&tti);
+*/
+}

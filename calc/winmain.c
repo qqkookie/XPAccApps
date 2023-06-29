@@ -78,6 +78,7 @@ typedef struct {
 #define CTRL_T  (0x0001+'T'-'A')
 #define CTRL_V  (0x0001+'V'-'A')
 #define CTRL_Z  (0x0001+'Z'-'A')
+#define CTRL_Q  (0x0001+'Q'-'A')
 
 static const key3code_t key2code[] = {
     /* CONTROL-ID          Key                    asc sta ctl hex dec oct bin */
@@ -88,6 +89,7 @@ static const key3code_t key2code[] = {
     { IDC_BUTTON_MS,       CTRL_M,  MAKE_BITMASK5(  1,  0,  1,  1,  1,  1,  1), CALC_CLR_RED,  },
     { IDC_BUTTON_MR,       CTRL_R,  MAKE_BITMASK5(  1,  0,  1,  1,  1,  1,  1), CALC_CLR_RED,  },
     { IDC_BUTTON_MP,       CTRL_P,  MAKE_BITMASK5(  1,  0,  1,  1,  1,  1,  1), CALC_CLR_RED,  },
+    { IDC_BUTTON_MM,       CTRL_Q,  MAKE_BITMASK5(  1,  0,  1,  1,  1,  1,  1), CALC_CLR_RED,  },
     { IDC_BUTTON_MC,       CTRL_L,  MAKE_BITMASK5(  1,  0,  1,  1,  1,  1,  1), CALC_CLR_RED,  },
     { IDC_BUTTON_0,        '0',     MAKE_BITMASK5(  1,  0,  0,  1,  1,  1,  1), CALC_CLR_BLUE, },
     { IDC_BUTTON_1,        '1',     MAKE_BITMASK5(  1,  0,  0,  1,  1,  1,  1), CALC_CLR_BLUE, },
@@ -227,6 +229,7 @@ static const function_table_t function_table[] = {
     { IDC_BUTTON_FE,   0,                         1, run_fe,      NULL,        NULL,     NULL      },
     { IDC_BUTTON_DAT,  0,                         1, run_dat_sta, NULL,        NULL,     NULL,     },
     { IDC_BUTTON_MP,   MODIFIER_INV|NO_CHAIN,     1, run_mp,      run_mm,      NULL,     NULL,     },
+    { IDC_BUTTON_MM,   MODIFIER_INV|NO_CHAIN,     1, run_mm,      run_mp,      NULL,     NULL,     },
     { IDC_BUTTON_MS,   MODIFIER_INV|NO_CHAIN,     1, run_ms,      run_mw,      NULL,     NULL,     },
     { IDC_BUTTON_CANC, NO_CHAIN,                  0, run_canc,    NULL,        NULL,     NULL,     },
     { IDC_BUTTON_RIGHTPAR, NO_CHAIN,              1, run_rpar,    NULL,        NULL,     NULL,     },
@@ -298,8 +301,26 @@ static void SaveRegInt(LPCTSTR lpszApp, LPCTSTR lpszKey, int iValue)
     }
 }
 
+#ifdef PRIVATEPROFILE_INI
+#include <Shlobj.h>
+
+TCHAR ProfilePath[MAX_PATH] = {0};
+#define PSECTION _T("XCalc")
+#endif
+
 static void load_config(void)
 {
+#ifdef PRIVATEPROFILE_INI
+    if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, ProfilePath))) {
+        _tcscat_s(ProfilePath, MAX_PATH, _T("\\") _T(PRIVATEPROFILE_INI) );
+        calc.layout = GetPrivateProfileInt(PSECTION, _T("Layout"), CALC_LAYOUT_STANDARD, ProfilePath);
+        calc.usesep = (BOOL)GetPrivateProfileInt(PSECTION, _T("UseSep"), FALSE, ProfilePath);
+        /* Restore window position */
+        calc.x_coord = GetPrivateProfileInt(PSECTION, _T("StartX"), -1, ProfilePath);
+        calc.y_coord = GetPrivateProfileInt(PSECTION, _T("StartY"), -1, ProfilePath);
+        goto load_done;
+    }
+#endif
     OSVERSIONINFO osvi;
 
     osvi.dwOSVersionInfoSize = sizeof(osvi);
@@ -324,8 +345,12 @@ static void load_config(void)
         break;
     }
 
+#ifdef PRIVATEPROFILE_INI
+load_done:
+#endif
     /* memory is empty at startup */
     calc.is_memory = FALSE;
+    calc.memory.base = calc.base = IDC_RADIO_DEC;
 
     /* Get locale info for numbers */
     UpdateNumberIntl();
@@ -333,6 +358,20 @@ static void load_config(void)
 
 static void save_config(void)
 {
+#ifdef PRIVATEPROFILE_INI
+    if (_taccess(ProfilePath, 06) == 0) {
+        TCHAR buf[256];
+        _itot_s(calc.layout, buf, 255, 10);
+        WritePrivateProfileString(PSECTION, _T("Layout"), buf, ProfilePath);
+        _itot_s(calc.usesep, buf, 255, 10);
+        WritePrivateProfileString(PSECTION, _T("UseSep"), buf, ProfilePath);
+        _itot_s(calc.x_coord, buf, 255, 10);
+        WritePrivateProfileString(PSECTION, _T("StartX"), buf, ProfilePath);
+        _itot_s(calc.y_coord, buf, 255, 10);
+        WritePrivateProfileString(PSECTION, _T("StartY"), buf, ProfilePath);
+        return;
+    }
+#else
     TCHAR buf[32];
     OSVERSIONINFO osvi;
 
@@ -352,6 +391,7 @@ static void save_config(void)
         SaveRegInt(_T("SOFTWARE\\Microsoft\\Calc"), _T("UseSep"), calc.usesep);
         break;
     }
+#endif
 }
 
 static LRESULT post_key_press(LPARAM lParam, WORD idc)
@@ -1773,6 +1813,7 @@ static INT_PTR CALLBACK DlgMainProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
         case IDC_BUTTON_LEFTPAR:
         case IDC_BUTTON_CANC:
         case IDC_BUTTON_MP:
+        case IDC_BUTTON_MM:
         case IDC_BUTTON_DAT:
         case IDC_BUTTON_FE:
         case IDC_BUTTON_DMS:
@@ -1917,6 +1958,17 @@ static INT_PTR CALLBACK DlgMainProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
     return FALSE;
 }
 
+static HANDLE GhMutex; // To avoid race condition by multiple button press.
+
+static INT_PTR CALLBACK
+_DlgMainProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
+{
+    WaitForSingleObject(GhMutex, 1000);
+    INT_PTR rr = DlgMainProc(hWnd, msg, wp, lp);
+    ReleaseMutex(GhMutex);
+    return rr;
+}
+
 #if defined(__GNUC__) && !defined(__REACTOS__)
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 #else
@@ -1957,6 +2009,8 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdL
                     GetSystemMetrics(SM_CYSMICON),
                     0);
 
+    GhMutex = CreateMutex(NULL, FALSE, NULL);   // Create a mutex with no initial owner
+
     do {
         /* ignore hwnd: dialogs are already visible! */
         if (calc.layout == CALC_LAYOUT_SCIENTIFIC)
@@ -1968,8 +2022,12 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdL
             dwLayout = IDD_DIALOG_STANDARD;
 
         /* This call will always fail if UNICODE for Win9x */
-        if (NULL == CreateDialog(hInstance, MAKEINTRESOURCE(dwLayout), NULL, DlgMainProc))
+        HWND hDlg = CreateDialog(hInstance, MAKEINTRESOURCE(dwLayout), NULL, _DlgMainProc);
+        if (hDlg == NULL)
             break;
+
+        extern void Adjustlayout(HWND hDlg, DWORD dwLayout);
+        AdjustLayout(hDlg, dwLayout);
 
         while (GetMessage(&msg, NULL, 0, 0)) {
 #ifndef USE_KEYBOARD_HOOK

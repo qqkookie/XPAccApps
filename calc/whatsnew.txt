@@ -1,3 +1,14 @@
+1.12-Kookie-1 (20230629)
+=======================
+* Fixed uninitialized calc total memory base ([M+]) bug.
+* Expanded Standard Calc layout:
+   - Add total memory minus ([M-]) button.
+   - Add parenthsis buttons.
+   - Change [Sqrt] button to [x^y] button.
+   - Enlarge [+] and [=] buttons.
+* Saves setting in "~/AppData/XPAccApp.ini" file, not registry.
+   - Save window position.
+
 1.12 (20181104)
 =======================
 * Fixed bug 12.37 13/06/2009 into multiprecision display (unicode only).

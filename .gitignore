@@ -8,7 +8,8 @@ resource.aps
 *.vcxproj.user
 *.vcxproj.filters
 # garbage
-/RC[a-z][0-9][0-9]*
+RC[a-z][0-9][0-9]*
+*.tmp
 
 #--------------
 
