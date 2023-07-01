@@ -2026,7 +2026,7 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdL
         if (hDlg == NULL)
             break;
 
-        extern void Adjustlayout(HWND hDlg, DWORD dwLayout);
+        extern void AdjustLayout(HWND hDlg, DWORD dwLayout);
         AdjustLayout(hDlg, dwLayout);
 
         while (GetMessage(&msg, NULL, 0, 0)) {

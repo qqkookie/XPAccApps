@@ -1,4 +1,4 @@
-1.12-Kookie-1 (20230629)
+1.12-Kookie-1 (20230701)
 =======================
 * Fixed uninitialized calc total memory base ([M+]) bug.
 * Expanded Standard Calc layout:
@@ -8,6 +8,12 @@
    - Enlarge [+] and [=] buttons.
 * Saves setting in "~/AppData/XPAccApp.ini" file, not registry.
    - Save window position.
+* Adjust unit conversion menu order.
+* Add force units (newton, pound-force etc) in unit conversion.
+* Removed old EU currencies like Deuche Mark.
+* Add 18 major currencies (USD, GBP, JPY,...,BTC) in currency conversions.
+* Online FX currency exchange rate update lookup.
+* TODO: tooltip on M+ memory.
 
 1.12 (20181104)
 =======================

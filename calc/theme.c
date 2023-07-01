@@ -140,9 +140,10 @@ HWND MoveControl(HWND hDlg, int item, int dx, int dy, int dw, int dh, BOOL bReai
 
 void AdjustLayout(HWND hDlg, DWORD dwLayout)
 {
-#define MOVE(iid, dx, dy) MoveControl(hDlg, iid, dx, dy, 0, 0, TRUE)
-    if (dwLayout != IDD_DIALOG_STANDARD)
+    if (dwLayout != IDD_DIALOG_STANDARD || !GetDlgItem(hDlg, IDC_BUTTON_LEFTPAR))
         return;
+
+#define MOVE(iid, dx, dy) MoveControl(hDlg, iid, dx, dy, 0, 0, TRUE)
     int RH = 30;    // button row height 
 
     MOVE(IDC_TEXT_PARENT, -1000, -1000); // remove spurious residue
@@ -153,7 +154,7 @@ void AdjustLayout(HWND hDlg, DWORD dwLayout)
     MoveWindow(hDlg, r.left, r.top, r.right - r.left + 0,
         r.bottom - r.top + RH, TRUE);
 
-    MOVE(IDC_TEXT_PARENT, 1000, 1000);
+    MOVE( IDC_TEXT_PARENT, 1000, 1000);
 
     MOVE( IDC_BUTTON_7, 0, RH);
     MOVE( IDC_BUTTON_4, 0, RH);
@@ -172,7 +173,9 @@ void AdjustLayout(HWND hDlg, DWORD dwLayout)
 
     MoveControl(hDlg, IDC_BUTTON_ADD, 0, 0, 0, RH, TRUE); // enlarge
     MoveControl(hDlg, IDC_BUTTON_EQU, 0, 0, 0, RH, TRUE);
-    MOVE(IDC_BUTTON_MP, 0, RH);
+    MOVE( IDC_BUTTON_PERCENT, 0, RH);
+    MOVE( IDC_BUTTON_RX, 0, -2*RH);
+    MOVE( IDC_BUTTON_MP, 0, RH);
 
     HWND display = MoveControl(hDlg, IDC_TEXT_OUTPUT, 0, 0, 0, 5, TRUE);
     SendMessage(display, WM_SETFONT, 0, MAKELPARAM(FALSE, 0));

@@ -25,7 +25,7 @@ link_libraries(comctl32 advapi32 user32 shell32 gdi32 msvcrt kernel32 )
 
 if(MSVC)
 #     add_importlibs(calc ntdll)
-    target_link_libraries(${xapp} comctl32)
+    target_link_libraries(${xapp} comctl32 winhttp)
 endif()
 
 # add_pch(calc calc.h SOURCE)

@@ -30,8 +30,9 @@
     ANGLE..........degrees
     AREA...........square meters
     CONSUMPTION....kilometers per liter
-    CURRENCY.......Euro
+    CURRENCY.......US dollar
     ENERGY.........joule
+    FORCE..........newton
     LENGTHS........meters
     POWER..........Watt
     PRESSURE.......Pascal
@@ -165,6 +166,7 @@ static const conv_t conv_CONSUMPTION[] = {
 };
 
 static const conv_t conv_CURRENCY[] = {
+/*
     DECLARE_CONV_UNIT(CURRENCY, AUSTRIAN_SCHILLING, "$/13,7603", "$*13,7603")
     DECLARE_CONV_UNIT(CURRENCY, BELGIAN_FRANC,      "$/40,3399", "$*40,3399")
     DECLARE_CONV_UNIT(CURRENCY, CYPRIOT_POUND,      "$/0,585274","$*0,585274")
@@ -185,6 +187,26 @@ static const conv_t conv_CURRENCY[] = {
     DECLARE_CONV_UNIT(CURRENCY, SLOVAK_KORUNA,      "$/30,126",  "$*30,126")
     DECLARE_CONV_UNIT(CURRENCY, SLOVENIAN_TOLAR,    "$/239,640", "$*239,640")
     DECLARE_CONV_UNIT(CURRENCY, SPANISH_PESETA,     "$/166,386", "$*166,386")
+*/
+
+    DECLARE_CONV_UNIT(CURRENCY, US_DOLLAR,          "$",            "$")
+    DECLARE_CONV_UNIT(CURRENCY, KOREAN_WON,         "$/1318.86",    "$*1318.86")
+    DECLARE_CONV_UNIT(CURRENCY, EU_EURO,            "$*1.08625",    "$/1.08625")
+    DECLARE_CONV_UNIT(CURRENCY, JAPANESE_YEN,       "$/144.538",    "$*144.538")
+    DECLARE_CONV_UNIT(CURRENCY, BRITISH_POUND,      "$*1.261975",   "$/1.261975")
+    DECLARE_CONV_UNIT(CURRENCY, CHINESE_RMB,        "$/7.25240",    "$*7.25240")
+    DECLARE_CONV_UNIT(CURRENCY, SWISS_FRANC,        "$*1.112336",   "$/1.112336")
+    DECLARE_CONV_UNIT(CURRENCY, AUSTARALIAN_DOLLAR, "$*0.662610",   "$/0.662610")
+    DECLARE_CONV_UNIT(CURRENCY, CANADIAN_DOLLAR,    "$*0.7540654",  "$/0.7540654")
+    DECLARE_CONV_UNIT(CURRENCY, HONGKONG_DOLLAR,    "$/7.835120",   "$*7.835120")
+    DECLARE_CONV_UNIT(CURRENCY, SINGAPORE_DOLLAR,   "$*0.7374278",  "$/0.7374278")
+    DECLARE_CONV_UNIT(CURRENCY, INDIAN_RUPEE,       "$/82.0484",    "$*82.0484")
+    DECLARE_CONV_UNIT(CURRENCY, RUSSIAN_RUBBLE,     "$/88.1025",    "$*88.1025")
+    DECLARE_CONV_UNIT(CURRENCY, MEXICAN_PESO,       "$/17.11384",   "$*17.11384")
+    DECLARE_CONV_UNIT(CURRENCY, SWEDISH_KRONA,      "$/10.86518",   "$*10.86518")
+    DECLARE_CONV_UNIT(CURRENCY, NORWEGIAN_KRONE,    "$/10.77609",   "$*10.77609")
+    DECLARE_CONV_UNIT(CURRENCY, CRYPTO_BITCOIN,      "$*307316.",    "$/307316.")
+    DECLARE_CONV_UNIT(CURRENCY, CRYPTO_ETHEREUM,     "$*1880.39",    "$/1880.39")
     DECLARE_CONV_END
 };
 
@@ -214,6 +236,24 @@ static const conv_t conv_ENERGY[] = {
     DECLARE_CONV_UNIT(ENERGY, KILOWATT_HOURS,       "$*3600",     "$/3600")
     DECLARE_CONV_UNIT(ENERGY, NUTRITION_CALORIES,   "$*4.182",    "$/4.182")
     DECLARE_CONV_UNIT(ENERGY, TH_CALORIES,          "$*4.184",    "$/4.184")
+    DECLARE_CONV_END
+};
+
+/*
+    1 newton ....... = 1 kg*m/sec^2
+    1 kilonewton ... = 1000 newton
+    1 dyne.......... = 0.00001 newton
+    1 kilogram-force = 9.80665 newton
+    1 tonne-force .. = 9806.65 newton
+    1 pound-force .. = 4.44822 newton
+*/
+static const conv_t conv_FORCE[] = {
+    DECLARE_CONV_UNIT(FORCE, NEWTONS,               "$",            "$")
+    DECLARE_CONV_UNIT(FORCE, KILONEWTONS,           "$*1000",       "$/1000")
+    DECLARE_CONV_UNIT(FORCE, DYNES,                 "$/100000",     "$*100000")
+    DECLARE_CONV_UNIT(FORCE, KILOGRAMS_FORCE,       "$*9.80665",    "$/9.80665")
+    DECLARE_CONV_UNIT(FORCE, TONNES_FORCE,          "$*9806.65",    "$/9806.65")
+    DECLARE_CONV_UNIT(FORCE, POUNDS_FORCE,          "$*4.44822",    "$/4.44822")
     DECLARE_CONV_END
 };
 
@@ -550,20 +590,23 @@ static const conv_t conv_WEIGHT[] = {
 };
 
 static const conv_category_t conv_table[] = {
-    DECLARE_CONV_CAT(ANGLE)
-    DECLARE_CONV_CAT(AREA)
-    DECLARE_CONV_CAT(CONSUMPTION)
     DECLARE_CONV_CAT(CURRENCY)
-    DECLARE_CONV_CAT(ENERGY)
-    DECLARE_CONV_CAT(LENGTH)
-    DECLARE_CONV_CAT(POWER)
-    DECLARE_CONV_CAT(PRESSURE)
-    DECLARE_CONV_CAT(TIME)
     DECLARE_CONV_CAT(TEMPERATURE)
-    DECLARE_CONV_CAT(VELOCITY)
+    DECLARE_CONV_CAT(LENGTH)
+    DECLARE_CONV_CAT(AREA)
     DECLARE_CONV_CAT(VOLUME)
     DECLARE_CONV_CAT(WEIGHT)
+    DECLARE_CONV_CAT(TIME)
+    DECLARE_CONV_CAT(VELOCITY)
+    DECLARE_CONV_CAT(FORCE)
+    DECLARE_CONV_CAT(PRESSURE)
+    DECLARE_CONV_CAT(ANGLE)
+    DECLARE_CONV_CAT(ENERGY)
+    DECLARE_CONV_CAT(POWER)
+    DECLARE_CONV_CAT(CONSUMPTION)
 };
+
+static double CURRENCY_rate = -1.0;     // cache FX rate
 
 void ConvExecute(HWND hWnd)
 {
@@ -611,8 +654,37 @@ void ConvExecute(HWND hWnd)
         item++;
     }
 
-    calc.Convert[0].data = (char *)items[from].formula_from;
-    calc.Convert[1].data = (char *)items[to].formula_to;
+    static const wchar_t *symbol_CURRENCY[] = {
+        // symbol number and order must match with conv_CURRENCY[]
+        L"USD",  L"KRW", L"EUR", L"JPY", L"GBP", L"CNY", L"CHF", L"AUD", L"CAD",
+        L"HKD", L"SGD", L"INR", L"RUB", L"MXN", L"SEK", L"NOK", L"BTC", L"ETH",
+    };
+    static double LookupFXRate(const wchar_t *from_sym, const wchar_t *to_sym);
+    static char static_formula_to [30];
+    static DWORD fx_from = -1, fx_to = -1; 
+
+    if ( conv_table[c_cat].category == IDS_CONV_CURRENCY ) {
+        if ( CURRENCY_rate <= 0.0 || from != fx_from || to != fx_to ) {
+            CURRENCY_rate = LookupFXRate(symbol_CURRENCY[from], symbol_CURRENCY[to] );
+            if ( CURRENCY_rate > 0) {
+                fx_from = from ;  fx_to = to;
+            }
+        }
+        if ( CURRENCY_rate > 0) {
+            if (CURRENCY_rate > 0.5 )
+                sprintf_s(static_formula_to, 30, "$*%f", CURRENCY_rate);
+            else
+                sprintf_s(static_formula_to, 30, "$/%f", 1/CURRENCY_rate);
+
+            calc.Convert[0].data = "$";
+            calc.Convert[1].data = static_formula_to;
+        }
+    }
+
+    if ( CURRENCY_rate <= 0 ) {
+        calc.Convert[0].data = (char *)items[from].formula_from;
+        calc.Convert[1].data = (char *)items[to].formula_to;
+    }
     calc.Convert[0].wm_msg = WM_HANDLE_FROM;
     calc.Convert[1].wm_msg = WM_HANDLE_TO;
     PostMessage(hWnd, WM_START_CONV, 0, MAKELPARAM(0, WM_HANDLE_FROM));
@@ -660,5 +732,108 @@ void ConvInit(HWND hWnd)
     }
     SendMessage(hCatWnd, CB_SETCURSEL, 0, 0);
     ConvAdjust(hWnd, 0);
+
+    CURRENCY_rate = -1.0;
 }
 
+
+#include <winhttp.h>
+
+#pragma comment (lib, "winhttp.lib")
+
+// Get short, single HTTP GET response. Not for long data.
+// Returns actual received data length. 0 on error.
+unsigned HttpRequest(wchar_t *server, wchar_t *path, char response[], unsigned bufmax )
+{
+    HINTERNET  hSession, hConnect, hRequest;
+    hSession = hConnect = hRequest = NULL;
+    unsigned dataLen = 0;
+
+    do {
+        hSession = WinHttpOpen( L"XCalc/1.0",  WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+                        WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0 );
+        if( !hSession ) break;
+
+        hConnect = WinHttpConnect( hSession, server, INTERNET_DEFAULT_HTTPS_PORT, 0 );
+        if( !hConnect ) break;
+
+        hRequest = WinHttpOpenRequest( hConnect, L"GET", path, NULL, WINHTTP_NO_REFERER, 
+                        WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE );
+        if( !hRequest ) break;
+
+        if ( ! WinHttpSendRequest( hRequest, WINHTTP_NO_ADDITIONAL_HEADERS,
+                        0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0 )) break;
+   
+        if ( ! WinHttpReceiveResponse( hRequest, NULL )) break;
+
+        DWORD dwSize=0, dwDownloaded=0;
+        // discard "motd" preamable garbage. This is ugly HACK!
+        if ( !WinHttpQueryDataAvailable( hRequest, &dwSize )) break;
+        WinHttpReadData( hRequest, (LPVOID)response, dwSize, &dwDownloaded );
+
+        if ( !WinHttpQueryDataAvailable( hRequest, &dwSize )) break;
+        if ( dwSize >= bufmax )
+            dwSize = bufmax -1;
+        ZeroMemory(response, dwSize+1 );
+
+        if (WinHttpReadData( hRequest, (LPVOID)response, dwSize, &dwDownloaded ))
+            dataLen = dwDownloaded;
+
+    } while(0);
+
+	if (hRequest) WinHttpCloseHandle(hRequest);
+	if (hConnect) WinHttpCloseHandle(hConnect);
+	if (hSession) WinHttpCloseHandle(hSession);
+    return dataLen;
+}
+
+// round with significant n-digits
+// works with x < 100,000 and x > 0.000001 for n = 6.
+double round_digits(double x, int ndig)
+{
+    double factor = 0.001;
+    for ( int scale = floor(log10(x))-2; scale < ndig; scale++ )
+        factor *= 10.0;
+
+   return(round(x*factor)/factor);
+}
+
+// Get FX rate from internet FX rate API service.
+// Return rate as double, 0.0 on error.
+static double LookupFXRate(const wchar_t *from_sym, const wchar_t *to_sym)
+{
+    do {
+        wchar_t request[256];
+        char response[1024];
+        const amount = 100000;
+
+        swprintf_s( request, 255, L"/convert?from=%s&to=%s&amount=%d", from_sym, to_sym, amount );
+
+        unsigned len = HttpRequest( L"api.exchangerate.host", request, response, sizeof response-1);
+        response[len] = '\0';
+
+// {"motd":{"msg":"......."},"success":true,"query":{"from":"EUR","to":"USD","amount":100000},
+// "info":{"rate":1.087336},"historical":false,"date":"2023-06-30","result":108733.5554}
+#define NAME_RATE "\"rate\":"
+#define NAME_RESULT "\"result\":"
+
+        char *look; 
+        if (len < 50 || !( look = strstr(response, "\"success\":true")))
+            break;
+
+        look = strstr(look, NAME_RATE);
+        if (!look)  break;
+
+        double rate = 0.0, result = 0.0;
+        rate = atof(look + strlen(NAME_RATE));
+
+        if ((look = strstr(look, NAME_RESULT))) 
+            result = atof(look + strlen(NAME_RESULT));
+
+        rate = ( rate > 0.5 || result == 0.0) ? rate: (result / amount);
+        return round_digits(rate, 6);
+
+    } while (0);
+
+    return 0.0;
+}

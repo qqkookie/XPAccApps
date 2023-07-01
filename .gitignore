@@ -3,7 +3,6 @@
 out/
 CMakeFiles/
 
-*.orig
 resource.aps
 *.vcxproj.user
 *.vcxproj.filters
