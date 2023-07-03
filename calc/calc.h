@@ -16,6 +16,7 @@
 #include <htmlhelp.h>
 #endif
 #include <limits.h>
+#include <assert.h>
 
 /* RESOURCES */
 #include "resource.h"
@@ -202,6 +203,7 @@ typedef struct {
     unsigned int  sThousand_len;
     signed int    x_coord;
     signed int    y_coord;
+    TOOLINFO      *memory_ToolTip;
 } calc_t;
 
 extern calc_t calc;

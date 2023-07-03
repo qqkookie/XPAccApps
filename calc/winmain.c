@@ -888,6 +888,15 @@ static void update_memory_flag(HWND hWnd, BOOL mem_flag)
 {
     calc.is_memory = mem_flag;
     SetDlgItemText(hWnd, IDC_TEXT_MEMORY, mem_flag ? _T("M") : _T(""));
+
+    EnableWindow(GetDlgItem(hWnd, IDC_BUTTON_MR), mem_flag);
+    if (!calc.memory_ToolTip)
+        return;
+
+    extern TCHAR *string_double(double fval);
+    calc.memory_ToolTip->lpszText =  mem_flag ? string_double(calc.memory.number.f): L"";
+    SendMessage((HWND) calc.memory_ToolTip->lParam, TTM_UPDATETIPTEXT, 0,
+                    (LPARAM) calc.memory_ToolTip);;
 }
 
 static void update_n_stats_items(HWND hWnd, TCHAR *buffer)
@@ -1899,6 +1908,7 @@ static INT_PTR CALLBACK DlgMainProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
         return TRUE;
     case WM_START_CONV:
         x = LOWORD(lp);
+        assert(calc.Convert[x].data);
         calc.Convert[x].data = ReadConversion(calc.Convert[x].data);
         if (calc.Convert[x].data != NULL) {
             calc.Convert[x].ptr = calc.Convert[x].data;
@@ -1954,6 +1964,8 @@ static INT_PTR CALLBACK DlgMainProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
     case WM_THEMECHANGED:
         InvalidateRect(hWnd, NULL, FALSE);
         break;
+
+    default:;
     }
     return FALSE;
 }

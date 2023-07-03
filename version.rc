@@ -5,6 +5,7 @@
  * 
  * #define APP_PRODUCTNAME	"XExam"
  * #define APP_PRODUCTVERSION	0,1,0,0
+ * #define APP_PRODUCTVERSION_STR	"0.1.0.0"
  * #define APP_FILEVERSION	0,1,349,0
  * #define APP_FILEDESCRIPTION	"Desktop accessory app"
  * #define APP_ORIGINALFILENAME "xexam.exe"
@@ -26,9 +27,6 @@
 #endif
 
 #define APP_LEGALCOPYRIGHT "© 2023 Kookie. All Rights Reserved\0"
-#if !defined(APP_PRODUCTVERSION) && defined(PROJECT_VERSION)
-#define APP_PRODUCTVERSION PROJECT_VERSION
-#endif
 
 #define MKSTR(s) #s
 
@@ -60,7 +58,7 @@ BEGIN
 //            VALUE "LegalTrademarks2", VER_LEGALTRADEMARKS2_STR
             VALUE "OriginalFilename", APP_ORIGINALFILENAME
             VALUE "ProductName",      APP_PRODUCTNAME
-            VALUE "ProductVersion",   MKSTR(APP_PRODUCTVERSION) "\0"
+            VALUE "ProductVersion",   APP_PRODUCTVERSION_STR
         END
     END
 
@@ -71,4 +69,5 @@ BEGIN
 END
 
 /* Manifest */
-// CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "../manifest.xml"
+// Link .exe file with /MANIFEST:NO linker option
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "../manifest.xml"

@@ -13,7 +13,18 @@
 * Removed old EU currencies like Deuche Mark.
 * Add 18 major currencies (USD, GBP, JPY,...,BTC) in currency conversions.
 * Online FX currency exchange rate update lookup.
-* TODO: tooltip on M+ memory.
+* Tootip on [M] indicator shows memory value.
+* [MR] button is disabled on empty memory.
+* Added Chinese character on various CJK unit names
+* Some unused ancient conversion units removed. 
+	Area: RAI, VA
+	Length: BARLEYCORNS, CHAINS_UK, CHOU, HUNH, KABIET, KEUB, 
+		LINKS_UK, NIEU, SAWK, SEN, VA, YOTE
+	Volume: BUN, GOU, KWIAN, TANANLOUN, TANG, TO,
+	Volume units added: Doe(Shou), Hop(Gou), Mal(To)
+	Weight: BAHT
+
+* TODO: History tape window? Make HTMLHELP work. make mpfr work.
 
 1.12 (20181104)
 =======================

@@ -130,7 +130,7 @@ static const conv_t conv_AREA[] = {
 //    DECLARE_CONV_UNIT(AREA, PING,                   "$", "$")
     DECLARE_CONV_UNIT(AREA, PYEONG,                 "$*400/121",         "$*121/400")
 //    DECLARE_CONV_UNIT(AREA, PYEONGBANGJA,           "$", "$")
-    DECLARE_CONV_UNIT(AREA, RAI,                    "$*1600",            "$/1600")
+//    DECLARE_CONV_UNIT(AREA, RAI,                    "$*1600",            "$/1600")
     DECLARE_CONV_UNIT(AREA, SE,                     "$*108000/1089",     "$*1089/108000")
     DECLARE_CONV_UNIT(AREA, SQUARE_CENTIMETERS,     "$*0,0001",          "$/0,0001")
 //    DECLARE_CONV_UNIT(AREA, SQUARE_CHR,             "$", "$")
@@ -145,7 +145,7 @@ static const conv_t conv_AREA[] = {
     DECLARE_CONV_UNIT(AREA, SQUARE_MILLIMETERS,     "$*1000000",         "$/1000000")
     DECLARE_CONV_UNIT(AREA, SQUARE_SHAKU,           "$*100/1089",        "$/1089*100")
 //    DECLARE_CONV_UNIT(AREA, SQUARE_TSUEN,           "$", "$")
-    DECLARE_CONV_UNIT(AREA, SQUARE_VA,              "$*4",               "$/4")
+//    DECLARE_CONV_UNIT(AREA, SQUARE_VA,              "$*4",               "$/4")
     DECLARE_CONV_UNIT(AREA, SQUARE_YARD,            "$*0,83612736",      "$/0,83612736")
     DECLARE_CONV_UNIT(AREA, TAN,                    "$*1080000/1089",    "$*1089/1080000")
     DECLARE_CONV_UNIT(AREA, TSUBO,                  "$*1188/1089",       "$*1089/1188")
@@ -190,9 +190,9 @@ static const conv_t conv_CURRENCY[] = {
 */
 
     DECLARE_CONV_UNIT(CURRENCY, US_DOLLAR,          "$",            "$")
-    DECLARE_CONV_UNIT(CURRENCY, KOREAN_WON,         "$/1318.86",    "$*1318.86")
     DECLARE_CONV_UNIT(CURRENCY, EU_EURO,            "$*1.08625",    "$/1.08625")
     DECLARE_CONV_UNIT(CURRENCY, JAPANESE_YEN,       "$/144.538",    "$*144.538")
+    DECLARE_CONV_UNIT(CURRENCY, KOREAN_WON,         "$/1318.86", "$*1318.86")
     DECLARE_CONV_UNIT(CURRENCY, BRITISH_POUND,      "$*1.261975",   "$/1.261975")
     DECLARE_CONV_UNIT(CURRENCY, CHINESE_RMB,        "$/7.25240",    "$*7.25240")
     DECLARE_CONV_UNIT(CURRENCY, SWISS_FRANC,        "$*1.112336",   "$/1.112336")
@@ -205,9 +205,15 @@ static const conv_t conv_CURRENCY[] = {
     DECLARE_CONV_UNIT(CURRENCY, MEXICAN_PESO,       "$/17.11384",   "$*17.11384")
     DECLARE_CONV_UNIT(CURRENCY, SWEDISH_KRONA,      "$/10.86518",   "$*10.86518")
     DECLARE_CONV_UNIT(CURRENCY, NORWEGIAN_KRONE,    "$/10.77609",   "$*10.77609")
-    DECLARE_CONV_UNIT(CURRENCY, CRYPTO_BITCOIN,      "$*307316.",    "$/307316.")
-    DECLARE_CONV_UNIT(CURRENCY, CRYPTO_ETHEREUM,     "$*1880.39",    "$/1880.39")
+    DECLARE_CONV_UNIT(CURRENCY, CRYPTO_BITCOIN,     "$*307316.",    "$/307316.")
+    DECLARE_CONV_UNIT(CURRENCY, CRYPTO_ETHEREUM,    "$*1880.39",    "$/1880.39")
     DECLARE_CONV_END
+};
+
+static const wchar_t *symbol_CURRENCY[] = {
+    // symbol number and order must match with conv_CURRENCY[]
+    L"USD", L"EUR", L"JPY", L"KRW", L"GBP", L"CNY", L"CHF", L"AUD", L"CAD",
+    L"HKD", L"SGD", L"INR", L"RUB", L"MXN", L"SEK", L"NOK", L"BTC", L"ETH",
 };
 
 /*
@@ -308,11 +314,11 @@ static const conv_t conv_FORCE[] = {
 static const conv_t conv_LENGTH[] = {
     DECLARE_CONV_UNIT(LENGTH, ANGSTROMS,            "$/1X10",           "$*1X10")
     DECLARE_CONV_UNIT(LENGTH, ASTRONOMICAL_UNITS,   "$*149598000000",   "$/149598000000")
-    DECLARE_CONV_UNIT(LENGTH, BARLEYCORNS,          "$*0.9144/108",     "$/0.9144*108")
+//    DECLARE_CONV_UNIT(LENGTH, BARLEYCORNS,          "$*0.9144/108",     "$/0.9144*108")
     DECLARE_CONV_UNIT(LENGTH, CENTIMETERS,          "$/100",            "$*100")
-    DECLARE_CONV_UNIT(LENGTH, CHAINS_UK,            "$*20.1168",        "$/20.1168")
+//    DECLARE_CONV_UNIT(LENGTH, CHAINS_UK,            "$*20.1168",        "$/20.1168")
     DECLARE_CONV_UNIT(LENGTH, CHI,                  "$/3",              "$*3")
-    DECLARE_CONV_UNIT(LENGTH, CHOU,                 "$*3600/33",        "$*33/3600")
+//    DECLARE_CONV_UNIT(LENGTH, CHOU,                 "$*3600/33",        "$*33/3600")
 //    DECLARE_CONV_UNIT(LENGTH, CHR,                  "$", "$")
     DECLARE_CONV_UNIT(LENGTH, CUN,                  "$/30",             "$*30")
     DECLARE_CONV_UNIT(LENGTH, FATHOMS,              "$*1.8288",         "$/1.8288")
@@ -321,37 +327,37 @@ static const conv_t conv_LENGTH[] = {
     DECLARE_CONV_UNIT(LENGTH, FURLONGS,             "$*201.168",        "$/201.168")
 //    DECLARE_CONV_UNIT(LENGTH, GAN,                  "$", "$")
     DECLARE_CONV_UNIT(LENGTH, HANDS,                "$*0,1016",         "$/0,1016")
-    DECLARE_CONV_UNIT(LENGTH, HUNH,                 "$*9.144/3456",     "$/9.144*3456")
+//    DECLARE_CONV_UNIT(LENGTH, HUNH,                 "$*9.144/3456",     "$/9.144*3456")
     DECLARE_CONV_UNIT(LENGTH, INCHES,               "$*0.0254",         "$/0.0254")
 //    DECLARE_CONV_UNIT(LENGTH, JA,                   "$", "$")
 //    DECLARE_CONV_UNIT(LENGTH, JEONG,                "$", "$")
-    DECLARE_CONV_UNIT(LENGTH, KABIET,               "$*9.144/1728",     "$/9.144*1728")
+//    DECLARE_CONV_UNIT(LENGTH, KABIET,               "$*9.144/1728",     "$/9.144*1728")
     DECLARE_CONV_UNIT(LENGTH, KEN,                  "$*60/33",          "$*33/60")
-    DECLARE_CONV_UNIT(LENGTH, KEUB,                 "$*9.144/36",       "$/9.144*36")
+//    DECLARE_CONV_UNIT(LENGTH, KEUB,                 "$*9.144/36",       "$/9.144*36")
     DECLARE_CONV_UNIT(LENGTH, KILOMETERS,           "$*1000",           "$/1000")
 //    DECLARE_CONV_UNIT(LENGTH, LAR,                  "$", "$")
     DECLARE_CONV_UNIT(LENGTH, LIGHT_YEARS,          "$*9460730472580800", "$/9460730472580800")
-    DECLARE_CONV_UNIT(LENGTH, LINKS_UK,             "$*0.201168",       "$/0.201168")
+//    DECLARE_CONV_UNIT(LENGTH, LINKS_UK,             "$*0.201168",       "$/0.201168")
     DECLARE_CONV_UNIT(LENGTH, METERS,               "$",                "$")
     DECLARE_CONV_UNIT(LENGTH, MICRONS,              "$*0.000001",       "$/0.000001")
     DECLARE_CONV_UNIT(LENGTH, MILES,                "$*1609.344",       "$/1609.344")
     DECLARE_CONV_UNIT(LENGTH, MILLIMETERS,          "$/1000",           "$*1000")
     DECLARE_CONV_UNIT(LENGTH, NAUTICAL_MILES,       "$*1852",           "$/1852")
-    DECLARE_CONV_UNIT(LENGTH, NIEU,                 "$*9.144/432",      "$/9.144*432")
+ //   DECLARE_CONV_UNIT(LENGTH, NIEU,                 "$*9.144/432",      "$/9.144*432")
     DECLARE_CONV_UNIT(LENGTH, PARSECS,              "$*3.085678X16",    "$/3.085678X16")
     DECLARE_CONV_UNIT(LENGTH, PICAS,                "$*0.9144/216",     "$/0.9144*216")
     DECLARE_CONV_UNIT(LENGTH, RODS,                 "$*5.0292",         "$/5.0292")
     DECLARE_CONV_UNIT(LENGTH, RI_JAPAN,             "$*129600/33",      "$*33/129600")
     DECLARE_CONV_UNIT(LENGTH, RI_KOREA,             "$*12960/33",       "$*33/12960")
-    DECLARE_CONV_UNIT(LENGTH, SAWK,                 "$*9.144/18",       "$/9.144*18")
-    DECLARE_CONV_UNIT(LENGTH, SEN,                  "$*40.64",          "$/40.64")
+//    DECLARE_CONV_UNIT(LENGTH, SAWK,                 "$*9.144/18",       "$/9.144*18")
+//    DECLARE_CONV_UNIT(LENGTH, SEN,                  "$*40.64",          "$/40.64")
     DECLARE_CONV_UNIT(LENGTH, SHAKU,                "$*10/33",          "$*33/10")
     DECLARE_CONV_UNIT(LENGTH, SPAN,                 "$*0.9144/4",       "$*4/0.9144")
     DECLARE_CONV_UNIT(LENGTH, SUN,                  "$*1/33",            "$*33")
 //    DECLARE_CONV_UNIT(LENGTH, TSUEN,                "$", "$")
-    DECLARE_CONV_UNIT(LENGTH, VA,                   "$*2.032",          "$/2.032")
+//    DECLARE_CONV_UNIT(LENGTH, VA,                   "$*2.032",          "$/2.032")
     DECLARE_CONV_UNIT(LENGTH, YARDS,                "$*0.9144",         "$/0.9144")
-    DECLARE_CONV_UNIT(LENGTH, YOTE,                 "$*16256",          "$/16256")
+//    DECLARE_CONV_UNIT(LENGTH, YOTE,                 "$*16256",          "$/16256")
     DECLARE_CONV_UNIT(LENGTH, ZHANG,                "$/0.3",            "$*0.3")
     DECLARE_CONV_END
 };
@@ -459,7 +465,7 @@ static const conv_t conv_VELOCITY[] = {
     1 cubic inch ..... = 0.016387064 l
     1 cubic meter .... = 1000 l
     1 cubic yard ..... = 764.554857 l
-    1 doe ............ =
+    1 doe ............ = 1.804 l
     1 fluid ounce uk   = 0.0284130625 l
     1 fluid ounce us   = 0.0295735295625 l
     1 gallon uk ...... = 4.54609 l
@@ -469,7 +475,7 @@ static const conv_t conv_VELOCITY[] = {
     1 hop ............ =
     1 icce ........... =
     1 kwian .......... = 2000 l
-    1 mal ............ =
+    1 mal ............ = 18.04 l
     1 milliliter ..... = 0.001 l
     1 pint uk ........ = 0.56826125 l
     1 pint dry us .... = 0.5506104713575 l
@@ -486,7 +492,7 @@ static const conv_t conv_VELOCITY[] = {
 static const conv_t conv_VOLUME[] = {
     DECLARE_CONV_UNIT(VOLUME, BARRELS_UK,           "$*163.65924",       "$/163.65924")
     DECLARE_CONV_UNIT(VOLUME, BARRELS_OIL,          "$*158.987295",      "$/158.987295")
-    DECLARE_CONV_UNIT(VOLUME, BUN,                  "$*1000",            "$/1000")
+//    DECLARE_CONV_UNIT(VOLUME, BUN,                  "$*1000",            "$/1000")
     DECLARE_CONV_UNIT(VOLUME, BUSHELS_UK,           "$*36.36872",        "$/36.36872")
     DECLARE_CONV_UNIT(VOLUME, BUSHELS_US,           "$*35.23907017",     "$/35.23907017")
     DECLARE_CONV_UNIT(VOLUME, CUBIC_CENTIMETERS,    "$*0.001",           "$/0.001")
@@ -494,18 +500,18 @@ static const conv_t conv_VOLUME[] = {
     DECLARE_CONV_UNIT(VOLUME, CUBIC_INCHES,         "$*0.016387064",     "$/0.016387064")
     DECLARE_CONV_UNIT(VOLUME, CUBIC_METERS,         "$*1000",            "$/1000")
     DECLARE_CONV_UNIT(VOLUME, CUBIC_YARDS,          "$*764.554857",      "$/764.554857")
-//    DECLARE_CONV_UNIT(VOLUME, DOE,                  "$", "$")
+    DECLARE_CONV_UNIT(VOLUME, DOE,                  "$*1.804",           "$/1.804")
     DECLARE_CONV_UNIT(VOLUME, FLUID_OUNCES_UK,      "$*0.0284130625",    "$/0.0284130625")
     DECLARE_CONV_UNIT(VOLUME, FLUID_OUNCES_US,      "$*0.0295735295625", "$/0.0295735295625")
     DECLARE_CONV_UNIT(VOLUME, GALLONS_UK,           "$*4.54609",         "$/4.54609")
     DECLARE_CONV_UNIT(VOLUME, GALLONS_DRY_US,       "$*4.40488377086",   "$/4.40488377086")
     DECLARE_CONV_UNIT(VOLUME, GALLONS_LIQUID_US,    "$*3.785411784",     "$/3.785411784")
-    DECLARE_CONV_UNIT(VOLUME, GOU,                  "$*0.1809",          "$/0.1809")
-//    DECLARE_CONV_UNIT(VOLUME, HOP,                  "$", "$")
+//    DECLARE_CONV_UNIT(VOLUME, GOU,                  "$*0.1809",          "$/0.1809")
+    DECLARE_CONV_UNIT(VOLUME, HOP,                  "$0.1804",           "$/0.1804")
 //    DECLARE_CONV_UNIT(VOLUME, ICCE,                 "$", "$")
-    DECLARE_CONV_UNIT(VOLUME, KWIAN,                "$*2000",            "$/2000")
+//    DECLARE_CONV_UNIT(VOLUME, KWIAN,                "$*2000",            "$/2000")
     DECLARE_CONV_UNIT(VOLUME, LITERS,               "$",                 "$")
-//    DECLARE_CONV_UNIT(VOLUME, MAL,                  "$", "$")
+    DECLARE_CONV_UNIT(VOLUME, MAL,                  "$*18.04",           "$/18.04")
     DECLARE_CONV_UNIT(VOLUME, MILLILITERS,          "$*0.001",           "$/0.001")
     DECLARE_CONV_UNIT(VOLUME, PINTS_UK,             "$*0.56826125",      "$/0.56826125")
     DECLARE_CONV_UNIT(VOLUME, PINTS_DRY_US,         "$*0.5506104713575", "$/0.5506104713575")
@@ -515,9 +521,9 @@ static const conv_t conv_VOLUME[] = {
     DECLARE_CONV_UNIT(VOLUME, QUARTS_LIQUID_US,     "$*0.946352946",     "$/0.946352946")
 //    DECLARE_CONV_UNIT(VOLUME, SEKI,                 "$", "$")
 //    DECLARE_CONV_UNIT(VOLUME, SYOU,                 "$", "$")
-    DECLARE_CONV_UNIT(VOLUME, TANANLOUNG,           "$",                 "$")
-    DECLARE_CONV_UNIT(VOLUME, TANG,                 "$*20",              "$/20")
-    DECLARE_CONV_UNIT(VOLUME, TO,                   "$*18040",           "$/18040")
+//    DECLARE_CONV_UNIT(VOLUME, TANANLOUNG,           "$",                 "$")
+//    DECLARE_CONV_UNIT(VOLUME, TANG,                 "$*20",              "$/20")
+//    DECLARE_CONV_UNIT(VOLUME, TO,                   "$*18040",           "$/18040")
     DECLARE_CONV_END
 };
 
@@ -525,7 +531,7 @@ static const conv_t conv_VOLUME[] = {
     1 baht ............ = 12.244 g
     1 carat ........... = 0.2 g
     1 chung ........... =
-    1 don ............. =
+    1 don ............. = 3.75 g
     1 geun ............ =
     1 gwan ............ =
     1 harb ............ =
@@ -560,10 +566,10 @@ static const conv_t conv_VOLUME[] = {
 1 saloung = 1/4 bath = 15/4 g
 */
 static const conv_t conv_WEIGHT[] = {
-    DECLARE_CONV_UNIT(WEIGHT, BAHT,                 "$*12.244",       "$/12.244")
+//    DECLARE_CONV_UNIT(WEIGHT, BAHT,                 "$*12.244",       "$/12.244")
     DECLARE_CONV_UNIT(WEIGHT, CARATS,               "$*0.2",          "$/0.2")
 //    DECLARE_CONV_UNIT(WEIGHT, CHUNG,                "$", "$")
-//    DECLARE_CONV_UNIT(WEIGHT, DON,                  "$", "$")
+//    DECLARE_CONV_UNIT(WEIGHT, DON,                  "$*3.75", "$/3.75")
 //    DECLARE_CONV_UNIT(WEIGHT, GEUN,                 "$", "$")
     DECLARE_CONV_UNIT(WEIGHT, GRAMS,                "$",              "$")
 //    DECLARE_CONV_UNIT(WEIGHT, GWAN,                 "$", "$")
@@ -591,7 +597,6 @@ static const conv_t conv_WEIGHT[] = {
 
 static const conv_category_t conv_table[] = {
     DECLARE_CONV_CAT(CURRENCY)
-    DECLARE_CONV_CAT(TEMPERATURE)
     DECLARE_CONV_CAT(LENGTH)
     DECLARE_CONV_CAT(AREA)
     DECLARE_CONV_CAT(VOLUME)
@@ -600,10 +605,11 @@ static const conv_category_t conv_table[] = {
     DECLARE_CONV_CAT(VELOCITY)
     DECLARE_CONV_CAT(FORCE)
     DECLARE_CONV_CAT(PRESSURE)
-    DECLARE_CONV_CAT(ANGLE)
     DECLARE_CONV_CAT(ENERGY)
     DECLARE_CONV_CAT(POWER)
     DECLARE_CONV_CAT(CONSUMPTION)
+    DECLARE_CONV_CAT(ANGLE)
+    DECLARE_CONV_CAT(TEMPERATURE)
 };
 
 static double CURRENCY_rate = -1.0;     // cache FX rate
@@ -654,15 +660,11 @@ void ConvExecute(HWND hWnd)
         item++;
     }
 
-    static const wchar_t *symbol_CURRENCY[] = {
-        // symbol number and order must match with conv_CURRENCY[]
-        L"USD",  L"KRW", L"EUR", L"JPY", L"GBP", L"CNY", L"CHF", L"AUD", L"CAD",
-        L"HKD", L"SGD", L"INR", L"RUB", L"MXN", L"SEK", L"NOK", L"BTC", L"ETH",
-    };
     static double LookupFXRate(const wchar_t *from_sym, const wchar_t *to_sym);
-    static char static_formula_to [30];
+    static char fx_formular [32];
     static DWORD fx_from = -1, fx_to = -1; 
 
+    fx_formular[0] = '\0';
     if ( conv_table[c_cat].category == IDS_CONV_CURRENCY ) {
         if ( CURRENCY_rate <= 0.0 || from != fx_from || to != fx_to ) {
             CURRENCY_rate = LookupFXRate(symbol_CURRENCY[from], symbol_CURRENCY[to] );
@@ -672,16 +674,17 @@ void ConvExecute(HWND hWnd)
         }
         if ( CURRENCY_rate > 0) {
             if (CURRENCY_rate > 0.5 )
-                sprintf_s(static_formula_to, 30, "$*%f", CURRENCY_rate);
+                sprintf_s(fx_formular, 30, "$*%f", CURRENCY_rate);
             else
-                sprintf_s(static_formula_to, 30, "$/%f", 1/CURRENCY_rate);
-
-            calc.Convert[0].data = "$";
-            calc.Convert[1].data = static_formula_to;
+                sprintf_s(fx_formular, 30, "$/%f", 1/CURRENCY_rate);
         }
     }
 
-    if ( CURRENCY_rate <= 0 ) {
+    if (fx_formular[0]) {
+         calc.Convert[0].data = "$";
+         calc.Convert[1].data = fx_formular;
+    }
+    else {
         calc.Convert[0].data = (char *)items[from].formula_from;
         calc.Convert[1].data = (char *)items[to].formula_to;
     }

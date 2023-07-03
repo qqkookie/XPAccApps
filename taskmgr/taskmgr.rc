@@ -19,6 +19,7 @@ IDB_TRAYICON BITMAP "res/trayicon.bmp"
 
 #define APP_PRODUCTNAME		"XTaskMgr"
 #define APP_PRODUCTVERSION	0,0,1,0
+#define APP_PRODUCTVERSION_STR	"0.0.1.0"
 #define APP_FILEVERSION		0,0,1,1
 #define APP_FILEDESCRIPTION	"Task Manager accessory app"
 #define APP_INTERNALNAME	"taskmgr"

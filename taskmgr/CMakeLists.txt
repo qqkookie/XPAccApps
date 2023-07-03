@@ -37,4 +37,3 @@ add_executable(${xapp} ${SOURCE} taskmgr.rc CMakeLists.txt)
 
 link_libraries(comctl32 advapi32 user32 gdi32 shell32 shlwapi msvcrt kernel32 ntdll)
 target_link_libraries(${xapp} comctl32 ntdll Shlwapi)
-

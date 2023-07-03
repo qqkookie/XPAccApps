@@ -1,7 +1,9 @@
 # Project Setting
 .vs/
+.vscode/
 out/
 CMakeFiles/
+CppProperties.json
 
 resource.aps
 *.vcxproj.user

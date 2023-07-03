@@ -3,8 +3,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(XPApps)
 
-set(PROJVER ../version.rc ../manifest.xml)
-
 add_compile_definitions(_AMD64_ _WIN64)
 add_compile_definitions(_UNICODE UNICODE)
 # common setting ini file in ~/AppData/Local
@@ -16,7 +14,8 @@ if(MSVC)
     # warning C4996: 'xxx': This function or variable may be unsafe. Consider using xxx_s instead. 
     # add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
     add_compile_options(/nologo /wd4244 /wd4267 /wd4996 )
-    add_link_options(/SUBSYSTEM:WINDOWS)
+
+    add_link_options(/SUBSYSTEM:WINDOWS /MANIFEST:NO)
 endif()
 
 # add_subdirectory(docs)
