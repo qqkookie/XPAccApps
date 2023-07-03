@@ -1,18 +1,21 @@
 /*
  * Global common version info
  * This version resource file should be included bin main resource.rc file of each app.
- * Rresource.rc of each app should define consts below. Examnple:
+ * Resource.rc of each app should define consts below. Examnple:
  * 
- * #define APP_PRODUCTNAME	"XExam"
- * #define APP_PRODUCTVERSION	0,1,0,0
- * #define APP_PRODUCTVERSION_STR	"0.1.0.0"
- * #define APP_FILEVERSION	0,1,349,0
- * #define APP_FILEDESCRIPTION	"Desktop accessory app"
- * #define APP_ORIGINALFILENAME "xexam.exe"
+ * #define APP_PRODUCTNAME		"XExam"
+ * #define APP_PRODVERMINOR		3,1
+ * #define APP_PRODVERMINOR_STR		"3.1-beta"
+ * #define APP_FILEVERMINOR		3,344
+ * #define APP_FILEDESCRIPTION		"Example desktop accessory app"
+ * #define APP_ORIGINALFILENAME		"xexam.exe"
+ * 
+ * PROJECT_VERSION number in "version.rc" is prefixed as major version number. 
  */
 
 // ---- Begin configuration section ----
-#define PROJECT_VERSION		0,1,0,0
+#define PROJECT_VERSION		0,1
+#define PROJECT_VERSION_STR	"0.1"
 
 // For localized versions.
 // Define message resouce language here.
@@ -28,6 +31,9 @@
 
 #define APP_LEGALCOPYRIGHT "© 2023 Kookie. All Rights Reserved\0"
 
+#define APP_FILEVERSION			PROJECT_VERSION,APP_FILEVERMINOR
+#define APP_PRODUCTVERSION		PROJECT_VERSION,APP_PRODVERMINOR
+#define APP_PRODUCTVERSION_STR		PROJECT_VERSION_STR "." APP_PRODVERMINOR_STR
 #define MKSTR(s) #s
 
 #include <verrsrc.h>

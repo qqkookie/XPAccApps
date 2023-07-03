@@ -180,7 +180,8 @@ static HWND MoveControl(HWND hDlg, int item, int dx, int dy, int dw, int dh, BOO
     GetWindowRect(hctr, &cr);
     POINT coord = {cr.left, cr.top};
     ScreenToClient(hDlg, &coord);
-    MoveWindow(hctr, coord.x + dx, coord.y + dy, cr.right - cr.left + dw, cr.bottom - cr.top + dh, bReaint);
+    MoveWindow(hctr, coord.x + dx, coord.y + dy,
+                cr.right - cr.left + dw, cr.bottom - cr.top + dh, bReaint);
     return hctr;
 }
 
