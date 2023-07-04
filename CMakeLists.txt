@@ -3,6 +3,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(XPApps)
 
+
 add_compile_definitions(_AMD64_ _WIN64)
 add_compile_definitions(_UNICODE UNICODE)
 # common setting ini file in ~/AppData/Local

@@ -19,7 +19,7 @@
 
 // For localized versions.
 // Define message resouce language here.
-#define				LANGUAGE_KO_KR
+#define	LANGUAGE_KO_KR
 // see https://learn.microsoft.com/en-us/windows/win32/menurc/versioninfo-resource
 #define APP_TRANSLATION		0x0412,03B5
 // ---- End configuratio ---

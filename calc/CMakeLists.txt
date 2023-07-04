@@ -2,31 +2,47 @@
 
 set(xapp xcalc)
 
+set(ENABLE_MULTI_PRECISION 1)
+
 list(APPEND SOURCE
-    convert.c
-    fun_ieee.c
-    rpn_ieee.c
-    utl_ieee.c
-    winmain.c
-    htmlhelp.c
-    theme.c
     calc.h
+    winmain.c
+    convert.c
+    theme.c
+    htmlhelp.c
     resource.rc
 )
 
-# file(GLOB calc_rc_deps res/*.*)
-# add_rc_deps(resource.rc ${calc_rc_deps})
 include_directories(res)
-add_executable(${xapp} ${SOURCE} resource.rc CMakeLists.txt)
 
-# set_module_type(calc win32gui UNICODE)
-# add_importlibs(calc advapi32 comctl32 user32 shell32 gdi32 msvcrt kernel32)
-link_libraries(comctl32 advapi32 user32 shell32 gdi32 msvcrt kernel32 )
+if ( NOT ENABLE_MULTI_PRECISION)
+#----------------------------------------------
+	list(APPEND SOURCE
+        fun_ieee.c
+        rpn_ieee.c
+        utl_ieee.c
+    )
 
-if(MSVC)
-#     add_importlibs(calc ntdll)
-    target_link_libraries(${xapp} comctl32 winhttp)
+	add_executable(${xapp} ${SOURCE})
+	target_link_libraries(${xapp} comctl32 winhttp )
+
+else()
+#----------------------------------------------	
+	# To use MPFR/GMP lib
+
+	list(APPEND SOURCE
+        fun_mpfr.c
+        rpn_mpfr.c
+        utl_mpfr.c
+    )
+
+	add_compile_definitions(ENABLE_MULTI_PRECISION)
+
+	find_package(PkgConfig)
+	pkg_check_modules(mpfr REQUIRED IMPORTED_TARGET mpfr)
+
+	add_executable(${xapp} ${SOURCE})
+	target_link_libraries(${xapp}  PRIVATE PkgConfig::mpfr comctl32 winhttp )
+
 endif()
-
-# add_pch(calc calc.h SOURCE)
-# add_cd_file(TARGET calc DESTINATION reactos/system32 FOR all)
+#----------------------------------------------

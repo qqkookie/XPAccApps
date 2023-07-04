@@ -131,8 +131,7 @@ static unsigned int get_prec(unsigned int opc)
 }
 */
 
-typedef void (*exec_call_t)
-__GMP_PROTO ((mpz_ptr, mpz_srcptr, mpz_srcptr));
+typedef void (*exec_call_t) (mpz_ptr, mpz_srcptr, mpz_srcptr);
 
 static void rpn_exec_int(calc_number_t *r, calc_number_t *a, calc_number_t *b, exec_call_t cb)
 {

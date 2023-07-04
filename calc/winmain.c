@@ -828,6 +828,8 @@ static void enable_allowed_controls(HWND hwnd, DWORD base)
                 EnableWindow(hCtlWnd, current);
         }
     }
+    static void update_memory_flag(HWND hWnd, BOOL mem_flag);
+    update_memory_flag(hwnd, calc.is_memory);
 }
 
 static void update_radio(HWND hwnd, unsigned int base)
@@ -890,11 +892,18 @@ static void update_memory_flag(HWND hWnd, BOOL mem_flag)
     SetDlgItemText(hWnd, IDC_TEXT_MEMORY, mem_flag ? _T("M") : _T(""));
 
     EnableWindow(GetDlgItem(hWnd, IDC_BUTTON_MR), mem_flag);
+    EnableWindow(GetDlgItem(hWnd, IDC_BUTTON_MC), mem_flag);
+
     if (!calc.memory_ToolTip)
         return;
 
-    extern TCHAR *string_double(double fval);
-    calc.memory_ToolTip->lpszText =  mem_flag ? string_double(calc.memory.number.f): L"";
+    static TCHAR sbuf[100];
+    if ( mem_flag ) 
+        string_number(sbuf, &calc.memory.number);
+    else
+        _tcscpy(sbuf, L"");
+    
+    calc.memory_ToolTip->lpszText = sbuf;
     SendMessage((HWND) calc.memory_ToolTip->lParam, TTM_UPDATETIPTEXT, 0,
                     (LPARAM) calc.memory_ToolTip);;
 }

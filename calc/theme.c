@@ -157,19 +157,43 @@ static HWND CreateToolTip(TOOLINFO *pToolInfo, HINSTANCE hInst)
     return hwTip;
 }
 
-// Pretty print doublue: returns static string. Used to format memory tooltip.
-TCHAR *string_double(double fval)
+#include <stdlib.h>
+
+// Pretty print calc_num: Used to format memory tooltip.
+int string_number(TCHAR sbuff[], calc_number_t *pnum)
 {
-    static TCHAR buff[50];
-    TCHAR *fmt = ( abs(fval) < 1.0e+14 && abs(fval) > 1.0e-6 )
+#ifdef ENABLE_MULTI_PRECISION
+
+    calc_number_t copy;
+    mpfr_init(&copy.mf[0]);
+    rpn_copy(&copy, pnum);
+
+    char mbuff[100];
+    strcpy( mbuff, "0x");
+    if (calc.base == IDC_RADIO_DEC)
+        mpfr_get_str( mbuff, &copy.mf[0]._mpfr_exp, 10, 50, copy.mf, MPFR_RNDA );
+    else
+        mpfr_get_str( mbuff+2, &copy.mf[0]._mpfr_exp, 16, 50, copy.mf, MPFR_RNDA );
+
+    mbstowcs(sbuff, mbuff, 50);
+
+#else
+
+    if ( calc.memory.base == IDC_RADIO_DEC ) {
+        TCHAR *fmt = ( abs(pnum->f) < 1.0e+14 && abs(pnum->f) > 1.0e-6 )
                 ? L"%-35.15f" : L"%-30.15g";
-    swprintf_s( buff, 40, fmt, fval );
+        swprintf_s( sbuff, 40, fmt, pnum->f );
+    }
+    else 
+        swprintf_s(sbuff, 40, L"0x%-llx", pnum->u);
+#endif
 
     // remove trailing zeros
-    TCHAR *pt = buff + _tcslen(buff) - 1;
+    TCHAR *pt = sbuff + _tcslen(sbuff) - 1;
     while ( *pt == L' ' || *pt == L'0' ) pt--;
     pt[1] = L'\0';
-    return  buff;
+
+    return _tcslen(sbuff);
 }
 
 // Move/resize control 
@@ -190,22 +214,26 @@ void AdjustLayout(HWND hDlg, DWORD dwLayout)
 {
 #define MOVE(iid, dx, dy) MoveControl(hDlg, iid, (dx), (dy), 0, 0, TRUE)
     int RH = 30;    // button row height
-    RECT dwr;
-    GetWindowRect(hDlg, &dwr);
 
-    HWND display = MoveControl(hDlg, IDC_TEXT_OUTPUT, 0, 0, 0, 5, TRUE);
-    SendMessage(display, WM_SETFONT, 0, MAKELPARAM(FALSE, 0));
-    SendMessage(display, WM_SETTEXT, 0, (LPARAM) _T("Hello"));
+    if (dwLayout == IDD_DIALOG_SCIENTIFIC) {
+        MOVE( IDC_BUTTON_Xe3,-1000, -1000);
+        MOVE( IDC_BUTTON_XeY, 0, 2*RH);
+    }
+    else if (dwLayout == IDD_DIALOG_CONVERSION) {
+        MOVE( IDC_BUTTON_PERCENT, 0, RH-2);
+        MOVE( IDC_BUTTON_RX, 0, -2*RH+3);
+        MOVE( IDC_BUTTON_SQRT, 0, RH-1);
+    }
+    else if (GetDlgItem(hDlg, IDC_BUTTON_LEFTPAR)) { // IDD_DIALOG_STANDARD
 
-    if (dwLayout == IDD_DIALOG_STANDARD && GetDlgItem(hDlg, IDC_BUTTON_LEFTPAR)) {
-
-        MOVE(IDC_TEXT_PARENT, -1000, -1000); // remove spurious residue
-        MoveControl(hDlg, IDC_BUTTON_SQRT, -1000, -1000, 0, RH, TRUE); // Remove button
-
+        RECT dwr;
+        GetWindowRect(hDlg, &dwr);
         MoveWindow(hDlg, dwr.left, dwr.top, dwr.right - dwr.left + 0,
             dwr.bottom - dwr.top + RH, TRUE);
 
+        MOVE( IDC_TEXT_PARENT, -1000, -1000); // remove spurious residue
         MOVE( IDC_TEXT_PARENT, 1000, 1000);
+        MOVE( IDC_BUTTON_SQRT, -1000, -1000); // Remove button
 
         MOVE( IDC_BUTTON_7, 0, RH);
         MOVE( IDC_BUTTON_4, 0, RH);
@@ -222,37 +250,49 @@ void AdjustLayout(HWND hDlg, DWORD dwLayout)
         MOVE( IDC_BUTTON_3, 0, RH);
         MOVE( IDC_BUTTON_DOT, 0, RH);
 
-        MoveControl(hDlg, IDC_BUTTON_ADD, 0, 0, 0, RH, TRUE); // enlarge
-        MoveControl(hDlg, IDC_BUTTON_EQU, 0, 0, 0, RH, TRUE);
         MOVE( IDC_BUTTON_PERCENT, 0, RH);
         MOVE( IDC_BUTTON_RX, 0, -2*RH);
         MOVE( IDC_BUTTON_MP, 0, RH);
-    }
-    else if (dwLayout == IDD_DIALOG_CONVERSION) {
-        MOVE( IDC_BUTTON_PERCENT, 0, RH-2);
-        MOVE( IDC_BUTTON_RX, 0, -2*RH+3);
-        MOVE( IDC_BUTTON_SQRT, 0, RH-1);
+
+        MoveControl(hDlg, IDC_BUTTON_ADD, 0, 0, 0, RH, TRUE); // enlarge
+        MoveControl(hDlg, IDC_BUTTON_EQU, 0, 0, 0, RH, TRUE);
     }
 
-    HWND hwmem = GetDlgItem(hDlg, IDC_TEXT_MEMORY);
+    HWND display = MoveControl(hDlg, IDC_TEXT_OUTPUT, 0, 0, 0, 5, TRUE);
+    SendMessage(display, WM_SETFONT, 0, MAKELPARAM(FALSE, 0));
+    SendMessage(display, WM_SETTEXT, 0, (LPARAM) _T("Hello"));
+
+    MoveControl(hDlg, IDC_TEXT_MEMORY, -1000, -1000, 0, RH, TRUE); // Remove M indicator
+
+    HWND hwmem = GetDlgItem(hDlg, IDC_BUTTON_MR);
     long style = GetWindowLong(hwmem, GWL_STYLE);
-    SetWindowLong(hwmem, GWL_STYLE, style | SS_NOTIFY);
+    SetWindowLong(hwmem, GWL_STYLE, style | BS_NOTIFY);
 
-     // Associate the tooltip with the control.
+    // Associate the tooltip with the control.
     static TOOLINFO mem_ti;
+    HWND hwTip;
+    TCHAR tip_text[128];
+    _tcscpy(tip_text, L"Memory tooltip");
+
+    if ( mem_ti.lParam ){
+        // Copy out existing tooltip text from old Tooltip and destroy it;
+        SendMessage((HWND) mem_ti.lParam, TTM_GETTEXT, 100, (LPARAM) &mem_ti);
+        _tcscpy(tip_text, mem_ti.lpszText);
+        DestroyWindow((HWND) mem_ti.lParam );
+    }
+
     mem_ti = (TOOLINFO){0};
     mem_ti.cbSize = sizeof(TOOLINFO);
     mem_ti.hwnd = hDlg;
     mem_ti.uFlags = TTF_IDISHWND | TTF_SUBCLASS;
     mem_ti.uId = (UINT_PTR)hwmem;
-    mem_ti.lpszText = L"Memory tooltip";
-    mem_ti.lParam = (LPARAM) NULL;
+    mem_ti.lpszText = tip_text;
 
-    HWND hwTip = CreateToolTip(&mem_ti, calc.hInstance);
+    hwTip = CreateToolTip(&mem_ti, calc.hInstance);
+    mem_ti.lParam = (LPARAM) hwTip; // save tooltip handle.
 
     if (hwTip) {
-        SendMessage(hwTip, TTM_ACTIVATE, TRUE, 0);
-        mem_ti.lParam = (LPARAM) hwTip;
         calc.memory_ToolTip = &mem_ti;
+        SendMessage(hwTip, TTM_ACTIVATE, TRUE, 0);
     }
 }

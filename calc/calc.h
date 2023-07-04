@@ -283,4 +283,6 @@ void ConvExecute(HWND hWnd);
 void ConvAdjust(HWND hWnd, int n_cat);
 void ConvInit(HWND hWnd);
 
+extern   int string_number(TCHAR sbuff[], calc_number_t *pnum);
+
 #endif /* __CALC_H__ */
