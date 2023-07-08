@@ -26,6 +26,29 @@
 
 #include "resource.h"
 
+typedef   struct { TCHAR *name; int codepage; } cp_ent;
+
+static cp_ent CP_table[] = {
+    { L"utf-8",         65001 },
+    { L"windows-1252",  1252 },
+    { L"oem-us",        437 },
+    { L"dos-ibm",       850 },
+    { L"euc-kr",        949 },
+    { L"shift-jis",     932 },
+    { L"big5",          950 },
+    { L"iso-8859-1",    28591 },
+    { L"iso-8859-2",    28592 },
+    { L"iso-8859-3",    28593 },
+    { L"iso-8859-4",    28594 },
+    { L"iso-8859-5",    28595 },
+    { L"iso-8859-6",    28596 },
+    { L"iso-8859-7",    28597 },
+    { L"iso-8859-8",    28598 },
+    { L"iso-8859-9",    28598 },
+    { L"iso-8859-13",   28603 },
+    { L"iso-8859-15",   28605 },
+};
+
 // INT CommandChcp(LPTSTR cmd, LPTSTR param)
 int wmain(int argc, WCHAR* argv[])
 {
@@ -59,8 +82,18 @@ int wmain(int argc, WCHAR* argv[])
 
     if (uNewCodePage == 0)
     {
-        ConResPrintf(StdErr, STRING_ERROR_INVALID_PARAM_FORMAT, argv[1]);
-        return 1;
+        for ( int ii = 0; ii < sizeof(CP_table)/sizeof(cp_ent) ; ii++) {
+            if ( !wcsicmp(argv[1], CP_table[ii].name))
+            {
+                uNewCodePage = CP_table[ii].codepage;
+                break;
+            }
+        }
+        if (uNewCodePage == 0)
+        {
+            ConResPrintf(StdErr, STRING_ERROR_INVALID_PARAM_FORMAT, argv[1]);
+            return 1;
+        }
     }
 
 /**

@@ -24,8 +24,10 @@
 // #define USE_CRT
 
 /* FIXME: Temporary HACK before we cleanly support UNICODE functions */
+#ifndef UNICODE
 #define UNICODE
 #define _UNICODE
+#endif
 
 #ifdef USE_CRT
 #include <fcntl.h>

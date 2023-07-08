@@ -23,17 +23,11 @@ list(APPEND SOURCE
     trayicon.c
     precomp.h)
 
-# file(GLOB taskmgr_rc_deps res/*.*)
-# add_rc_deps(taskmgr.rc ${taskmgr_rc_deps})
-# add_executable(taskmgr ${SOURCE} taskmgr.rc)
-# set_module_type(taskmgr win32gui UNICODE)
-# add_importlibs(taskmgr advapi32 user32 gdi32 shell32 shlwapi comctl32 msvcrt kernel32 ntdll)
-# add_pch(taskmgr precomp.h SOURCE)
-# add_cd_file(TARGET taskmgr DESTINATION reactos/system32 FOR all)
+add_link_options(/SUBSYSTEM:WINDOWS /MANIFEST:NO)
 
 include_directories(res)
 include_directories(sdk)
-add_executable(${xapp} ${SOURCE} taskmgr.rc CMakeLists.txt)
+add_executable(${xapp} ${SOURCE} taskmgr.rc)
 
 link_libraries(comctl32 advapi32 user32 gdi32 shell32 shlwapi msvcrt kernel32 ntdll)
 target_link_libraries(${xapp} comctl32 ntdll Shlwapi)

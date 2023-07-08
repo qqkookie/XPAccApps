@@ -1,3 +1,4 @@
+# conutils.lib Console Utility Library CMakeList.txt
 
 list(APPEND SOURCE
     # instream.c
@@ -11,6 +12,6 @@ list(APPEND SOURCE
 
 add_library(conutils ${SOURCE})
 # add_pch(conutils conutils.h SOURCE)
-add_dependencies(conutils xdk)
+# add_dependencies(conutils xdk)
 target_link_libraries(conutils ${PSEH_LIB})
-add_importlibs(conutils msvcrt kernel32)
+# add_importlibs(conutils msvcrt kernel32)

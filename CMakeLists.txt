@@ -15,13 +15,13 @@ if(MSVC)
     # warning C4996: 'xxx': This function or variable may be unsafe. Consider using xxx_s instead. 
     # add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
     add_compile_options(/nologo /wd4244 /wd4267 /wd4996 )
-
-    add_link_options(/SUBSYSTEM:WINDOWS /MANIFEST:NO)
 endif()
 
 # add_subdirectory(docs)
+add_subdirectory(conutils)
+add_subdirectory(chcp)
 add_subdirectory(calc)
-# add_subdirectory(notepad)
 add_subdirectory(taskmgr)
+# add_subdirectory(notepad)
 
 set( CMAKE_RUNTIME_OUTPUT_DIRECTORY out )

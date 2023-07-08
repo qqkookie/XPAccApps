@@ -14,6 +14,7 @@ list(APPEND SOURCE
 )
 
 include_directories(res)
+add_link_options(/SUBSYSTEM:WINDOWS /MANIFEST:NO)
 
 if ( NOT ENABLE_MULTI_PRECISION)
 #----------------------------------------------

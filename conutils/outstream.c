@@ -24,8 +24,10 @@
 // #define USE_CRT
 
 /* FIXME: Temporary HACK before we cleanly support UNICODE functions */
+#ifndef UNICODE
 #define UNICODE
 #define _UNICODE
+#endif
 
 #ifdef USE_CRT
 #include <fcntl.h>
@@ -42,7 +44,7 @@
 #include <strsafe.h>
 
 /* PSEH for SEH Support */
-#include <pseh/pseh2.h>
+#include "pseh.h"
 
 #include "conutils.h"
 #include "stream.h"
@@ -611,7 +613,7 @@ ConResPuts(
     IN PCON_STREAM Stream,
     IN UINT uID)
 {
-    return ConResPutsEx(Stream, NULL /*GetModuleHandleW(NULL)*/,
+     return ConResPutsEx(Stream, NULL /*GetModuleHandleW(NULL)*/,
                         uID, MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL));
 }
 

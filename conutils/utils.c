@@ -16,8 +16,10 @@
  **/
 
 /* FIXME: Temporary HACK before we cleanly support UNICODE functions */
+#ifndef UNICODE
 #define UNICODE
 #define _UNICODE
+#endif
 
 #include <windef.h>
 #include <winbase.h>
@@ -27,7 +29,7 @@
 #include <strsafe.h>
 
 /* PSEH for SEH Support */
-#include <pseh/pseh2.h>
+#include "pseh.h"
 
 // #include "conutils.h"
 #include "utils.h"
