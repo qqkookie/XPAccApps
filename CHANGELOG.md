@@ -40,3 +40,7 @@ CHANGELOG
  * MPFR build OK, "CMakeLists.txt" ENABLE_MULTI_PRECISION
  * [MS], [MR] works correctly on MPFR + hexa moode.
  * TODO: History tape window? Make HTMLHELP work.
+
+### Add xchcp
+Winodws chcp.com replacement.
+Added charmap, clipbrd, mspaint, notepad, wordpad source.
