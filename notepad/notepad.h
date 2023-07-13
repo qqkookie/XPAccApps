@@ -15,20 +15,25 @@
     #define STRSAFE_NO_DEPRECATE
 #endif
 
+/*
 #include <windef.h>
 #include <winbase.h>
 #include <winuser.h>
 #include <winnls.h>
 #include <wingdi.h>
+*/
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #include <shellapi.h>
 #include <commdlg.h>
 #include <tchar.h>
 #include <stdlib.h>
-#include <malloc.h>
+
 #ifdef _DEBUG
     #define _CRTDBG_MAP_ALLOC
     #include <crtdbg.h>
 #endif
+#include <malloc.h>
 
 #include "dialog.h"
 #include "notepad_res.h"
@@ -90,6 +95,8 @@ typedef struct
     WNDPROC EditProc;
     RECT main_rect;
     BOOL bWasModified;
+
+    HWND hwTabCtrl;
 } NOTEPAD_GLOBALS;
 
 extern NOTEPAD_GLOBALS Globals;
@@ -103,3 +110,11 @@ void NOTEPAD_SaveSettingsToRegistry(void);
 BOOL NOTEPAD_FindNext(FINDREPLACE *pFindReplace, BOOL bReplace, BOOL bShowAlert);
 VOID NOTEPAD_EnableSearchMenu(VOID);
 VOID SetFileName(LPCTSTR szFileName);
+
+typedef struct
+{
+    HWND hwTab;
+    HWND hEdit;
+
+} TABDATA;
+

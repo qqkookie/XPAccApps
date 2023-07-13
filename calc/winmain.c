@@ -313,11 +313,12 @@ static void load_config(void)
 #ifdef PRIVATEPROFILE_INI
     if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, ProfilePath))) {
         _tcscat_s(ProfilePath, MAX_PATH, _T("\\") _T(PRIVATEPROFILE_INI) );
+
         calc.layout = GetPrivateProfileInt(PSECTION, _T("Layout"), CALC_LAYOUT_STANDARD, ProfilePath);
         calc.usesep = (BOOL)GetPrivateProfileInt(PSECTION, _T("UseSep"), FALSE, ProfilePath);
         /* Restore window position */
-        calc.x_coord = GetPrivateProfileInt(PSECTION, _T("StartX"), -1, ProfilePath);
-        calc.y_coord = GetPrivateProfileInt(PSECTION, _T("StartY"), -1, ProfilePath);
+        calc.x_coord = GetPrivateProfileInt(PSECTION, _T("WinPosX"), -1, ProfilePath);
+        calc.y_coord = GetPrivateProfileInt(PSECTION, _T("WinPosY"), -1, ProfilePath);
         goto load_done;
     }
 #endif
@@ -366,9 +367,9 @@ static void save_config(void)
         _itot_s(calc.usesep, buf, 255, 10);
         WritePrivateProfileString(PSECTION, _T("UseSep"), buf, ProfilePath);
         _itot_s(calc.x_coord, buf, 255, 10);
-        WritePrivateProfileString(PSECTION, _T("StartX"), buf, ProfilePath);
+        WritePrivateProfileString(PSECTION, _T("WinPosX"), buf, ProfilePath);
         _itot_s(calc.y_coord, buf, 255, 10);
-        WritePrivateProfileString(PSECTION, _T("StartY"), buf, ProfilePath);
+        WritePrivateProfileString(PSECTION, _T("WinPosY"), buf, ProfilePath);
         return;
     }
 #else

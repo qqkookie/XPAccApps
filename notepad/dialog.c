@@ -16,6 +16,9 @@
 
 LRESULT CALLBACK EDIT_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+#define MAX_TAB     10
+TABDATA TabData[MAX_TAB];
+
 static const TCHAR helpfile[] = _T("notepad.hlp");
 static const TCHAR empty_str[] = _T("");
 static const TCHAR szDefaultExt[] = _T("txt");
@@ -608,7 +611,7 @@ VOID DoShowHideStatusBar(VOID)
     DIALOG_StatusBarUpdateAll();
 }
 
-VOID DoCreateEditWindow(VOID)
+VOID DoCreateEditWindow(HWND hWnd)
 {
     DWORD dwStyle;
     int iSize;
@@ -658,7 +661,7 @@ VOID DoCreateEditWindow(VOID)
                                    CW_USEDEFAULT,
                                    CW_USEDEFAULT,
                                    CW_USEDEFAULT,
-                                   Globals.hMainWnd,
+                                   hWnd,
                                    NULL,
                                    Globals.hInstance,
                                    NULL);
@@ -705,7 +708,8 @@ VOID DIALOG_EditWrap(VOID)
 
     EnableMenuItem(Globals.hMenu, CMD_GOTO, (Globals.bWrapLongLines ? MF_GRAYED : MF_ENABLED));
 
-    DoCreateEditWindow();
+    //DoCreateEditWindow();
+    AddNewEditorTab(L"");
     DoShowHideStatusBar();
 }
 
@@ -905,4 +909,166 @@ VOID DIALOG_HelpAboutNotepad(VOID)
 
     ShellAbout(Globals.hMainWnd, szNotepad, szNotepadAuthors,
                LoadIcon(Globals.hInstance, MAKEINTRESOURCE(IDI_NPICON)));
+}
+
+#include <windowsx.h>
+
+static int TH_Height;
+#define TH_SLACK    5
+
+static HFONT TH_font;
+
+// Creates a tab control, sized to fit the specified parent window's client
+//   area, and adds some tabs. 
+// Returns the handle to the tab control. 
+// hwndParent - parent window (the application's main window). 
+// 
+BOOL DoCreateTabControl(VOID)
+{
+    RECT rcClient, rcTab; 
+    INITCOMMONCONTROLSEX icex;
+ 
+    // Initialize common controls.
+    icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
+    icex.dwICC = ICC_TAB_CLASSES;
+    InitCommonControlsEx(&icex);
+    
+    // Get the dimensions of the parent window's client area,
+    //  and create a tab control child window of that size.
+    GetClientRect(Globals.hMainWnd, &rcClient); 
+    Globals.hwTabCtrl = CreateWindow(WC_TABCONTROL, L"", 
+        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE, 
+        0, 0, rcClient.right, rcClient.bottom, 
+        Globals.hMainWnd, NULL, Globals.hInstance, NULL);
+
+    NONCLIENTMETRICS ncmet = {0};
+	ncmet.cbSize = sizeof(NONCLIENTMETRICS);
+    SystemParametersInfo(SPI_GETNONCLIENTMETRICS, ncmet.cbSize, &ncmet, 0);
+
+    ncmet.lfMenuFont.lfHeight = (ncmet.lfMenuFont.lfHeight) *130/100;
+    TH_font  = CreateFontIndirect(&ncmet.lfMenuFont);
+    SendMessage(Globals.hwTabCtrl, WM_SETFONT, (WPARAM)TH_font, TRUE);
+    
+    TabCtrl_GetItemRect(Globals.hwTabCtrl, 0, &rcTab);
+    TH_Height = rcTab.bottom - rcTab.top;
+    return Globals.hwTabCtrl != NULL;
+}
+
+
+
+BOOL AddNewEditorTab(TCHAR fn[])
+{
+    _ASSERT(Globals.hwTabCtrl);
+
+    HWND hwndStatic = CreateWindow(WC_STATIC, L"", 
+        WS_CHILD | WS_VISIBLE | WS_BORDER, 
+        TH_SLACK, TH_Height+TH_SLACK, 10000, 10000,
+        Globals.hwTabCtrl, NULL, Globals.hInstance, NULL); 
+
+    TCITEM tie = {0};
+    tie.mask = TCIF_TEXT | TCIF_IMAGE| TCIF_PARAM; 
+    tie.iImage = -1; 
+    tie.pszText = L"XXXXXXXXXXXXXXXX";
+
+    if ( TabCtrl_InsertItem(Globals.hwTabCtrl, 0, &tie) == -1)
+        return FALSE;
+
+    DoCreateEditWindow(hwndStatic);
+    tie.lParam = (LPARAM) Globals.hEdit;
+    SendMessage(hwndStatic, TCM_SETITEM, 0, (LPARAM) &tie);
+    return TRUE;
+}
+
+/*
+int test()
+{
+    if (hwndTab == NULL)
+    { 
+        return NULL; 
+    }
+ 
+
+ 
+    for (i = 0; i < DAYS_IN_WEEK; i++) 
+    { 
+        // Load the day string from the string resources. Note that
+        // g_hInst is the global instance handle.
+        //LoadString(Globals.hInstance, IDS_SUNDAY + i, 
+        //        achTemp, sizeof(achTemp) / sizeof(achTemp[0]));
+        _tcscpy(achTemp, _T("Test"));
+        if (TabCtrl_InsertItem(hwndTab, i, &tie) == -1) 
+        { 
+            DestroyWindow(hwndTab); 
+            return NULL; 
+        } 
+    } 
+    return hwndTab; 
+}
+
+*/
+
+// Creates a child window (a static control) to occupy the tab control's 
+//   display area. 
+// Returns the handle to the static control. 
+// hwndTab - handle of the tab control. 
+// 
+HWND DoCreateDisplayWindow(HWND hwndTab) 
+{ 
+
+}
+
+// Handles the WM_SIZE message for the main window by resizing the 
+//   tab control. 
+// hwndTab - handle of the tab control.
+// lParam - the lParam parameter of the WM_SIZE message.
+//
+HRESULT OnSize(HWND hwndTab, LPARAM lParam)
+{
+    RECT rc; 
+
+    if (hwndTab == NULL)
+        return E_INVALIDARG;
+
+    // Resize the tab control to fit the client are of main window.
+     if (!SetWindowPos(hwndTab, HWND_TOP, 0, 0, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), SWP_SHOWWINDOW))
+        return E_FAIL;
+
+    return S_OK;
+}
+
+// Handles notifications from the tab control, as follows: 
+//   TCN_SELCHANGING - always returns FALSE to allow the user to select a 
+//     different tab.  
+//   TCN_SELCHANGE - loads a string resource and displays it in a static 
+//     control on the selected tab.
+// hwndTab - handle of the tab control.
+// hwndDisplay - handle of the static control. 
+// lParam - the lParam parameter of the WM_NOTIFY message.
+//
+BOOL OnNotify(HWND hwndTab, HWND hwndDisplay, LPARAM lParam)
+{
+    TCHAR achTemp[256]; // temporary buffer for strings
+
+    switch (((LPNMHDR)lParam)->code)
+        {
+            case TCN_SELCHANGING:
+                {
+                    // Return FALSE to allow the selection to change.
+                    return FALSE;
+                }
+
+            case TCN_SELCHANGE:
+                { 
+                    int iPage = TabCtrl_GetCurSel(hwndTab); 
+
+                    // Note that g_hInst is the global instance handle.
+                    //LoadString(Globals.hInstance, IDS_SUNDAY + iPage, achTemp,
+                    //    sizeof(achTemp) / sizeof(achTemp[0]));
+                    _tcscpy(achTemp, _T("Test"));
+                    LRESULT result = SendMessage(hwndDisplay, WM_SETTEXT, 0,
+                        (LPARAM) achTemp); 
+                    break;
+                } 
+        }
+        return TRUE;
 }

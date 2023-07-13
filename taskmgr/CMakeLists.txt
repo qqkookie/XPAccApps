@@ -29,5 +29,5 @@ include_directories(res)
 include_directories(sdk)
 add_executable(${xapp} ${SOURCE} taskmgr.rc)
 
-link_libraries(comctl32 advapi32 user32 gdi32 shell32 shlwapi msvcrt kernel32 ntdll)
+link_libraries(comctl32 shell32 shlwapi)
 target_link_libraries(${xapp} comctl32 ntdll Shlwapi)

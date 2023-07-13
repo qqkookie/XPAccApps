@@ -22,6 +22,6 @@ add_subdirectory(conutils)
 add_subdirectory(chcp)
 add_subdirectory(calc)
 add_subdirectory(taskmgr)
-# add_subdirectory(notepad)
+add_subdirectory(notepad)
 
 set( CMAKE_RUNTIME_OUTPUT_DIRECTORY out )

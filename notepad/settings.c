@@ -97,6 +97,14 @@ static BOOL QueryString(HKEY hKey, LPCTSTR pszValueName, LPTSTR pszResult, DWORD
     return TRUE;
 }
 
+#ifdef PRIVATEPROFILE_INI
+#include <Shlobj.h>
+
+TCHAR ProfilePath[MAX_PATH] = {0};
+TCHAR _savebuf[256];
+#define PSECTION _T("XNotepad")
+#endif
+
 /***********************************************************************
  *           NOTEPAD_LoadSettingsFromRegistry
  *
@@ -129,6 +137,53 @@ void NOTEPAD_LoadSettingsFromRegistry(void)
     /* Open the target registry key */
     if (RegOpenKey(HKEY_CURRENT_USER, s_szRegistryKey, &hKey) != ERROR_SUCCESS)
         hKey = NULL;
+
+#ifdef PRIVATEPROFILE_INI
+    if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, ProfilePath))) {
+        _tcscat_s(ProfilePath, MAX_PATH, _T("\\") _T(PRIVATEPROFILE_INI) );
+
+#define LOADSETTINGINT(name, var) Globals.var = GetPrivateProfileInt(PSECTION, _T(name), 0, ProfilePath)
+#define LOADSETTINGSTR(name, var) GetPrivateProfileString(PSECTION, _T(name), _T(""), Globals.var, _countof(Globals.var), ProfilePath)
+
+        LOADSETTINGINT("lfCharSet", lfFont.lfCharSet );
+        LOADSETTINGINT("lfClipPrecision", lfFont.lfClipPrecision );
+        LOADSETTINGINT("lfEscapement", lfFont.lfEscapement );
+        LOADSETTINGINT("lfItalic", lfFont.lfItalic );
+        LOADSETTINGINT("lfOrientation", lfFont.lfOrientation );
+
+        LOADSETTINGINT("lfOutPrecision", lfFont.lfOutPrecision  );
+        LOADSETTINGINT("lfPitchAndFamily", lfFont.lfPitchAndFamily );
+        LOADSETTINGINT("lfQuality", lfFont.lfQuality );
+        LOADSETTINGINT("lfStrikeOut", lfFont.lfStrikeOut );
+        LOADSETTINGINT("lfUnderline", lfFont.lfStrikeOut );
+        LOADSETTINGINT("lfWeight", lfFont.lfWeight );
+        dwPointSize = GetPrivateProfileInt(PSECTION, _T("iPointSize"), 0, ProfilePath);
+
+        LOADSETTINGINT("fWrap", bWrapLongLines );
+        LOADSETTINGINT("fStatusBar", bShowStatusBar );
+        LOADSETTINGINT("iMarginLeft", lMargins.left);
+        LOADSETTINGINT("iMarginTop", lMargins.top );
+        LOADSETTINGINT("iMarginRight", lMargins.right );
+        LOADSETTINGINT("iMarginBottom", lMargins.bottom );
+
+        LOADSETTINGINT("iWindowPosX", main_rect.left );
+        LOADSETTINGINT("iWindowPosY", main_rect.top );
+        cx = GetPrivateProfileInt(PSECTION, _T("iWindowPosDX"), 0, ProfilePath);
+        cy = GetPrivateProfileInt(PSECTION, _T("iWindowPosDY"), 0, ProfilePath);
+
+        LOADSETTINGSTR("searchString", szFindText );
+        LOADSETTINGSTR("replaceString", szReplaceText );
+
+        LOADSETTINGSTR("lfFaceName", lfFont.lfFaceName );
+        LOADSETTINGSTR("szHeader", szHeader );
+        LOADSETTINGSTR("szTrailer", szFooter );
+
+        if (hKey) {
+            RegCloseKey(hKey);
+            hKey = NULL;
+        }
+    }
+#endif
 
     /* Load the values from registry */
     if (hKey)
@@ -167,20 +222,23 @@ void NOTEPAD_LoadSettingsFromRegistry(void)
     Globals.main_rect.right = Globals.main_rect.left + cx;
     Globals.main_rect.bottom = Globals.main_rect.top + cy;
 
-    if (!hKey || !QueryString(hKey, _T("lfFaceName"),
+    if ((!hKey || !QueryString(hKey, _T("lfFaceName"),
                               Globals.lfFont.lfFaceName, _countof(Globals.lfFont.lfFaceName)))
+            && !Globals.lfFont.lfFaceName[0] )
     {
         LoadString(Globals.hInstance, STRING_DEFAULTFONT, Globals.lfFont.lfFaceName,
                    _countof(Globals.lfFont.lfFaceName));
     }
 
-    if (!hKey || !QueryString(hKey, _T("szHeader"), Globals.szHeader, _countof(Globals.szHeader)))
+    if ((!hKey || !QueryString(hKey, _T("szHeader"), Globals.szHeader, _countof(Globals.szHeader)))
+            && !Globals.szHeader[0] )
     {
         LoadString(Globals.hInstance, STRING_PAGESETUP_HEADERVALUE, Globals.szHeader,
                    _countof(Globals.szHeader));
     }
 
-    if (!hKey || !QueryString(hKey, _T("szTrailer"), Globals.szFooter, _countof(Globals.szFooter)))
+    if ((!hKey || !QueryString(hKey, _T("szTrailer"), Globals.szFooter, _countof(Globals.szFooter)))
+            && !Globals.szFooter[0] )
     {
         LoadString(Globals.hInstance, STRING_PAGESETUP_FOOTERVALUE, Globals.szFooter,
                    _countof(Globals.szFooter));
@@ -226,10 +284,47 @@ static BOOL SaveString(HKEY hKey, LPCTSTR pszValueNameT, LPCTSTR pszValue)
  */
 void NOTEPAD_SaveSettingsToRegistry(void)
 {
-    HKEY hKey;
-    DWORD dwDisposition;
+     HKEY hKey;
+     DWORD dwDisposition;
 
     GetWindowRect(Globals.hMainWnd, &Globals.main_rect);
+
+#ifdef PRIVATEPROFILE_INI
+    if (_taccess(ProfilePath, 06) == 0) {
+#define SAVESETTINGINT(name, value)   _itot_s( Globals.value, _savebuf, 255, 10),\
+            WritePrivateProfileString(PSECTION, _T(name), _savebuf, ProfilePath)
+
+        SAVESETTINGINT("lfCharSet", lfFont.lfCharSet );
+        SAVESETTINGINT("lfClipPrecision", lfFont.lfClipPrecision );
+        SAVESETTINGINT("lfEscapement", lfFont.lfEscapement );
+        WritePrivateProfileString(PSECTION, _T("lfFaceName"), Globals.lfFont.lfFaceName, ProfilePath );
+        SAVESETTINGINT("lfItalic", lfFont.lfItalic );
+        SAVESETTINGINT("lfOrientation", lfFont.lfOrientation );
+        SAVESETTINGINT("lfOutPrecision", lfFont.lfOutPrecision );
+        SAVESETTINGINT("lfPitchAndFamily", lfFont.lfPitchAndFamily );
+        SAVESETTINGINT("lfQuality", lfFont.lfQuality );
+        SAVESETTINGINT("lfStrikeOut", lfFont.lfStrikeOut );
+        SAVESETTINGINT("lfUnderline", lfFont.lfUnderline );
+        SAVESETTINGINT("lfWeight", lfFont.lfWeight);
+        _itot_s( PointSizeFromHeight(Globals.lfFont.lfHeight), _savebuf, 255, 10);
+        WritePrivateProfileString(PSECTION, _T("iPointSize"), _savebuf, ProfilePath);
+        SAVESETTINGINT("fWrap", bWrapLongLines ? 1 : 0);
+        SAVESETTINGINT("fStatusBar", bShowStatusBar ? 1 : 0);
+        WritePrivateProfileString(PSECTION, _T("szHeader"), Globals.szHeader, ProfilePath);
+        WritePrivateProfileString(PSECTION, _T("szTrailer"), Globals.szFooter, ProfilePath);
+        SAVESETTINGINT("iMarginLeft", lMargins.left);
+        SAVESETTINGINT("iMarginTop", lMargins.top);
+        SAVESETTINGINT("iMarginRight", lMargins.right);
+        SAVESETTINGINT("iMarginBottom", lMargins.bottom);
+        SAVESETTINGINT("iWindowPosX", main_rect.left);
+        SAVESETTINGINT("iWindowPosY", main_rect.top);
+        SAVESETTINGINT("iWindowPosDX", main_rect.right - Globals.main_rect.left);
+        SAVESETTINGINT("iWindowPosDY", main_rect.bottom - Globals.main_rect.top);
+        WritePrivateProfileString(PSECTION, _T("searchString"), Globals.szFindText, ProfilePath);
+        WritePrivateProfileString(PSECTION, _T("replaceString"), Globals.szReplaceText, ProfilePath);
+        return;
+    }
+#endif
 
     if (RegCreateKeyEx(HKEY_CURRENT_USER, s_szRegistryKey,
                        0, NULL, 0, KEY_SET_VALUE, NULL,
