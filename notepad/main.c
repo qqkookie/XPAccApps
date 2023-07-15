@@ -33,7 +33,8 @@ VOID NOTEPAD_EnableSearchMenu()
  */
 VOID SetFileName(LPCTSTR szFileName)
 {
-    StringCchCopy(Globals.szFileName, _countof(Globals.szFileName), szFileName);
+    StringCchCopy(Globals.szFileName, _countof(Globals.szFileName),
+            szFileName && szFileName[0] ? szFileName : Globals.szUntitled);
     Globals.szFileTitle[0] = 0;
     GetFileTitle(szFileName, Globals.szFileTitle, _countof(Globals.szFileTitle));
 
@@ -263,6 +264,16 @@ static VOID NOTEPAD_InitData(HINSTANCE hInstance)
 
     Globals.hDevMode = NULL;
     Globals.hDevNames = NULL;
+
+    // Initialize common controls.
+    INITCOMMONCONTROLSEX iccx;
+    iccx.dwSize = sizeof(iccx);
+    iccx.dwICC = ICC_STANDARD_CLASSES | ICC_TAB_CLASSES;
+    InitCommonControlsEx(&iccx);
+
+    LoadString(Globals.hInstance, STRING_UNTITLED,
+        Globals.szUntitled, _countof(Globals.szUntitled));
+    StringCchCopy(Globals.szFileTitle, _countof(Globals.szFileTitle), Globals.szUntitled);
 }
 
 /***********************************************************************
@@ -338,10 +349,9 @@ NOTEPAD_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         DragAcceptFiles(hWnd, TRUE); /* Accept Drag & Drop */
 
         /* Create controls */
-        DoCreateTabControl();
-        //DoCreateEditWindow();
-        AddNewEditorTab(L"Untitled.txt");
+        // DoCreateEditWindow();
         DoShowHideStatusBar();
+        DoCreateTabControl();
 
         DIALOG_FileNew(); /* Initialize file info */
 
@@ -393,7 +403,8 @@ NOTEPAD_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             rc.bottom -= rcStatus.bottom - rcStatus.top;
         }
 
-        MoveWindow(Globals.hEdit, 0, 0, rc.right, rc.bottom, TRUE);
+        // MoveWindow(Globals.hEdit, 0, 0, rc.right, rc.bottom, TRUE);
+        UpdateEditSize();
 
         if (Globals.bShowStatusBar)
         {
@@ -427,6 +438,20 @@ NOTEPAD_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     case WM_INITMENUPOPUP:
         NOTEPAD_InitMenuPopup((HMENU)wParam, lParam);
         break;
+
+    case WM_NOTIFY:
+        {
+            UINT nmc = ((LPNMHDR)lParam)->code;
+
+            if ( nmc == TCN_SELCHANGE ) {
+                OnTabChange();
+                return TRUE;
+            }
+            else if ( nmc == TCN_SELCHANGING )
+                // Return FALSE to allow the selection to change.
+                return FALSE;
+        }
+        /*FALLTHRU*/
 
     default:
         if (msg == aFINDMSGSTRING)

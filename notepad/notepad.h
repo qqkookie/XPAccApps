@@ -64,6 +64,15 @@ typedef enum
     EOLN_CR   = 2  /* "\r" */
 } EOLN; /* End of line (NewLine) type */
 
+// Extra info for each Edit control saved for eacn Tab.
+typedef struct {
+    UINT    cbSize;
+    HWND    hwEDIT;
+    // BOOL    modified;
+    BOOL    pathOK;
+    TCHAR   filePath[MAX_PATH];
+} EDITINFO;
+
 typedef struct
 {
     HINSTANCE hInstance;
@@ -97,6 +106,8 @@ typedef struct
     BOOL bWasModified;
 
     HWND hwTabCtrl;
+    EDITINFO *pEditInfo;
+    TCHAR szUntitled[MAX_PATH];
 } NOTEPAD_GLOBALS;
 
 extern NOTEPAD_GLOBALS Globals;
@@ -110,11 +121,3 @@ void NOTEPAD_SaveSettingsToRegistry(void);
 BOOL NOTEPAD_FindNext(FINDREPLACE *pFindReplace, BOOL bReplace, BOOL bShowAlert);
 VOID NOTEPAD_EnableSearchMenu(VOID);
 VOID SetFileName(LPCTSTR szFileName);
-
-typedef struct
-{
-    HWND hwTab;
-    HWND hEdit;
-
-} TABDATA;
-

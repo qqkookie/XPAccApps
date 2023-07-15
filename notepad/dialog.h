@@ -55,9 +55,10 @@ BOOL HasFileExtension(LPCTSTR szFilename);
 BOOL DoCloseFile(VOID);
 VOID DoOpenFile(LPCTSTR szFileName);
 VOID DoShowHideStatusBar(VOID);
-VOID DoCreateEditWindow(HWND hWnd);
-// VOID DoCreateEditWindow(VOID);
+VOID DoCreateEditWindow(VOID);
 void UpdateWindowCaption(BOOL clearModifyAlert);
 
 BOOL DoCreateTabControl(VOID);
-BOOL AddNewEditorTab(TCHAR fn[]);
+BOOL AddNewEditTab(VOID);
+void OnTabChange(VOID);
+void UpdateEditSize(VOID);

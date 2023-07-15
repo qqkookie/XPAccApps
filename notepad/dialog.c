@@ -16,9 +16,6 @@
 
 LRESULT CALLBACK EDIT_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-#define MAX_TAB     10
-TABDATA TabData[MAX_TAB];
-
 static const TCHAR helpfile[] = _T("notepad.hlp");
 static const TCHAR empty_str[] = _T("");
 static const TCHAR szDefaultExt[] = _T("txt");
@@ -102,10 +99,14 @@ void UpdateWindowCaption(BOOL clearModifyAlert)
     LoadString(Globals.hInstance, STRING_NOTEPAD, szNotepad, _countof(szNotepad));
 
     /* Determine if the file has been saved or if this is a new file */
+/*
     if (Globals.szFileTitle[0] != 0)
         StringCchCopy(szFilename, _countof(szFilename), Globals.szFileTitle);
     else
         LoadString(Globals.hInstance, STRING_UNTITLED, szFilename, _countof(szFilename));
+*/
+    StringCchCopy(szFilename, _countof(szFilename),
+        Globals.szFileTitle[0] ? Globals.szFileTitle : Globals.szUntitled);
 
     /* Update the window caption based upon whether the user has modified the file or not */
     StringCbPrintf(szCaption, sizeof(szCaption), _T("%s%s - %s"),
@@ -116,7 +117,7 @@ void UpdateWindowCaption(BOOL clearModifyAlert)
 
 VOID DIALOG_StatusBarAlignParts(VOID)
 {
-    static const int defaultWidths[] = {120, 120, 120};
+    static const int defaultWidths[] = {200, 200, 200};
     RECT rcStatusBar;
     int parts[3];
 
@@ -188,12 +189,11 @@ static void AlertFileNotFound(LPCTSTR szFileName)
 
 static int AlertFileNotSaved(LPCTSTR szFileName)
 {
-    TCHAR szUntitled[MAX_STRING_LEN];
-
-    LoadString(Globals.hInstance, STRING_UNTITLED, szUntitled, _countof(szUntitled));
+    // TCHAR szUntitled[MAX_STRING_LEN];
+    // LoadString(Globals.hInstance, STRING_UNTITLED, szUntitled, _countof(szUntitled));
 
     return DIALOG_StringMsgBox(Globals.hMainWnd, STRING_NOTSAVED,
-                               szFileName[0] ? szFileName : szUntitled,
+                               szFileName[0] ? szFileName : Globals.szUntitled,
                                MB_ICONQUESTION | MB_YESNOCANCEL);
 }
 
@@ -307,8 +307,8 @@ VOID DoOpenFile(LPCTSTR szFileName)
     HLOCAL hLocal;
 
     /* Close any files and prompt to save changes */
-    if (!DoCloseFile())
-        return;
+    // if (!DoCloseFile())
+    //     return;
 
     hFile = CreateFile(szFileName, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
                        OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -317,6 +317,11 @@ VOID DoOpenFile(LPCTSTR szFileName)
         ShowLastError();
         goto done;
     }
+
+    SetFileName(szFileName);
+    AddNewEditTab();
+    StringCchCopy(Globals.pEditInfo->filePath, _countof(Globals.pEditInfo->filePath), szFileName);
+    Globals.pEditInfo->pathOK = TRUE;
 
     /* To make loading file quicker, we use the internal handle of EDIT control */
     hLocal = (HLOCAL)SendMessageW(Globals.hEdit, EM_GETHANDLE, 0, 0);
@@ -342,7 +347,7 @@ VOID DoOpenFile(LPCTSTR szFileName)
         SendMessage(Globals.hEdit, EM_REPLACESEL, TRUE, (LPARAM)lf);
     }
 
-    SetFileName(szFileName);
+    // SetFileName(szFileName);
     UpdateWindowCaption(TRUE);
     NOTEPAD_EnableSearchMenu();
     DIALOG_StatusBarUpdateAll();
@@ -355,16 +360,20 @@ done:
 VOID DIALOG_FileNew(VOID)
 {
     /* Close any files and prompt to save changes */
-    if (!DoCloseFile())
-        return;
+    // if (!DoCloseFile())
+    //     return;
 
+    StringCchCopy(Globals.szFileTitle, _countof(Globals.szFileTitle), Globals.szUntitled);
+
+    AddNewEditTab();
     SetWindowText(Globals.hEdit, NULL);
     SendMessage(Globals.hEdit, EM_EMPTYUNDOBUFFER, 0, 0);
     Globals.iEoln = EOLN_CRLF;
     Globals.encFile = ENCODING_DEFAULT;
-
+    
     NOTEPAD_EnableSearchMenu();
     DIALOG_StatusBarUpdateAll();
+    UpdateWindowCaption(TRUE);
 }
 
 VOID DIALOG_FileNewWindow(VOID)
@@ -516,7 +525,7 @@ BOOL DIALOG_FileSaveAs(VOID)
         }
         else
         {
-            SetFileName(_T(""));
+            SetFileName(empty_str);
             return FALSE;
         }
     }
@@ -580,7 +589,7 @@ VOID DIALOG_EditTimeDate(VOID)
 VOID DoShowHideStatusBar(VOID)
 {
     /* Check if status bar object already exists. */
-    if (Globals.bShowStatusBar && Globals.hStatusBar == NULL)
+    if (Globals.hStatusBar == NULL)
     {
         /* Try to create the status bar */
         Globals.hStatusBar = CreateStatusWindow(WS_CHILD | CCS_BOTTOM | SBARS_SIZEGRIP,
@@ -611,7 +620,7 @@ VOID DoShowHideStatusBar(VOID)
     DIALOG_StatusBarUpdateAll();
 }
 
-VOID DoCreateEditWindow(HWND hWnd)
+VOID DoCreateEditWindow(VOID)
 {
     DWORD dwStyle;
     int iSize;
@@ -650,7 +659,9 @@ VOID DoCreateEditWindow(HWND hWnd)
     }
 
     /* Update wrap status into the main menu and recover style flags */
-    dwStyle = (Globals.bWrapLongLines ? EDIT_STYLE_WRAP : EDIT_STYLE);
+    dwStyle =  EDIT_STYLE_WRAP| WS_VISIBLE | WS_BORDER;
+    if (!Globals.bWrapLongLines)
+        dwStyle |= EDIT_STYLE;
 
     /* Create the new edit control */
     Globals.hEdit = CreateWindowEx(WS_EX_CLIENTEDGE,
@@ -661,7 +672,7 @@ VOID DoCreateEditWindow(HWND hWnd)
                                    CW_USEDEFAULT,
                                    CW_USEDEFAULT,
                                    CW_USEDEFAULT,
-                                   hWnd,
+                                   Globals.hwTabCtrl,
                                    NULL,
                                    Globals.hInstance,
                                    NULL);
@@ -708,8 +719,8 @@ VOID DIALOG_EditWrap(VOID)
 
     EnableMenuItem(Globals.hMenu, CMD_GOTO, (Globals.bWrapLongLines ? MF_GRAYED : MF_ENABLED));
 
-    //DoCreateEditWindow();
-    AddNewEditorTab(L"");
+    // DoCreateEditWindow();
+    AddNewEditTab();
     DoShowHideStatusBar();
 }
 
@@ -884,7 +895,8 @@ VOID DIALOG_StatusBarUpdateCaretPos(VOID)
     line = SendMessage(Globals.hEdit, EM_LINEFROMCHAR, (WPARAM)dwStart, 0);
     col = dwStart - SendMessage(Globals.hEdit, EM_LINEINDEX, (WPARAM)line, 0);
 
-    _stprintf(buff, Globals.szStatusBarLineCol, line + 1, col + 1);
+    _tcscpy(buff, L"   ");
+    _stprintf(buff+3, Globals.szStatusBarLineCol, line + 1, col + 1);
     SendMessage(Globals.hStatusBar, SB_SETTEXT, SBPART_CURPOS, (LPARAM)buff);
 }
 
@@ -911,75 +923,168 @@ VOID DIALOG_HelpAboutNotepad(VOID)
                LoadIcon(Globals.hInstance, MAKEINTRESOURCE(IDI_NPICON)));
 }
 
-#include <windowsx.h>
+#define     MAX_NTAB    9
 
 static int TH_Height;
-#define TH_SLACK    5
+static int ST_Height;
 
-static HFONT TH_font;
+#define XSP    3
 
-// Creates a tab control, sized to fit the specified parent window's client
-//   area, and adds some tabs. 
-// Returns the handle to the tab control. 
-// hwndParent - parent window (the application's main window). 
-// 
+// static HFONT TH_font;
+
+// Creates a tab control. Returns TRUE on success.
+// Measure tab header height, status height. 
 BOOL DoCreateTabControl(VOID)
 {
-    RECT rcClient, rcTab; 
-    INITCOMMONCONTROLSEX icex;
- 
-    // Initialize common controls.
-    icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
-    icex.dwICC = ICC_TAB_CLASSES;
-    InitCommonControlsEx(&icex);
-    
     // Get the dimensions of the parent window's client area,
     //  and create a tab control child window of that size.
-    GetClientRect(Globals.hMainWnd, &rcClient); 
     Globals.hwTabCtrl = CreateWindow(WC_TABCONTROL, L"", 
-        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE, 
-        0, 0, rcClient.right, rcClient.bottom, 
+        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE|TCS_FIXEDWIDTH|TCS_FOCUSNEVER, 
+        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 
         Globals.hMainWnd, NULL, Globals.hInstance, NULL);
 
-    NONCLIENTMETRICS ncmet = {0};
+    RECT rcTab, rcStatus;
+    
+    TabCtrl_GetItemRect(Globals.hwTabCtrl, 0, &rcTab);
+    TH_Height = rcTab.bottom - rcTab.top + XSP;
+
+    GetWindowRect(Globals.hStatusBar, &rcStatus);
+    ST_Height = rcStatus.bottom - rcStatus.top;
+
+    return Globals.hwTabCtrl != NULL;
+}
+
+// Add new tab and new Edit Control on the tab.
+BOOL AddNewEditTab(VOID)
+{
+    _ASSERT(Globals.hwTabCtrl);
+
+    int ntab = TabCtrl_GetItemCount(Globals.hwTabCtrl);
+    if ( ntab >= MAX_NTAB)
+        return FALSE;
+
+    ShowWindow(Globals.hEdit, SW_HIDE);
+
+    Globals.hEdit = NULL;
+    DoCreateEditWindow();
+    ShowWindow(Globals.hEdit, SW_SHOW);
+
+    TCITEM tie ; ZeroMemory(&tie, sizeof tie);
+    tie.mask = TCIF_TEXT|TCIF_PARAM;
+
+    EDITINFO* pedi = calloc(1, sizeof(EDITINFO));
+    pedi->cbSize = sizeof(EDITINFO);
+    pedi->hwEDIT = Globals.hEdit;
+    // StringCchCopy(pedi->fileTitle, _countof(pedi->fileTitle), Globals.szFileTitle);
+    Globals.pEditInfo = pedi;
+
+    tie.lParam = (LPARAM) pedi;
+    tie.pszText = Globals.szFileTitle;
+
+    TabCtrl_InsertItem(Globals.hwTabCtrl, ntab, &tie);
+    TabCtrl_SetCurSel(Globals.hwTabCtrl, ntab);
+
+    return TRUE;
+}
+
+void OnTabChange(VOID)
+{
+    ShowWindow(Globals.hEdit, SW_HIDE);
+
+    int iPage = TabCtrl_GetCurSel(Globals.hwTabCtrl);
+
+    TCITEM tie; ZeroMemory(&tie, sizeof tie);
+    tie.mask =  TCIF_TEXT|TCIF_PARAM;
+    tie.pszText = Globals.szFileTitle;
+    tie.cchTextMax = _countof(Globals.szFileTitle);
+    TabCtrl_GetItem(Globals.hwTabCtrl, iPage, (LPARAM) &tie);
+
+    EDITINFO * pedi = (EDITINFO *) tie.lParam;
+    Globals.hEdit = pedi->hwEDIT;
+    if (pedi->pathOK)
+        StringCchCopy( Globals.szFileName, _countof(Globals.szFileName), pedi->filePath);
+    // StringCchCopy( Globals.szFileTitle, _countof(Globals.szFileTitle), pedi->fileTitle);
+    Globals.pEditInfo = pedi;
+
+    ShowWindow(Globals.hEdit, SW_SHOW);
+    UpdateWindow(Globals.hEdit);
+
+    if ( Globals.bShowStatusBar )
+    {
+        DIALOG_StatusBarUpdateAll();
+        DIALOG_StatusBarUpdateCaretPos();
+    }
+    UpdateWindowCaption(TRUE);
+}
+
+void UpdateEditSize(VOID)
+{
+    if (!Globals.hwTabCtrl)
+        return;
+
+    RECT rct;
+    GetClientRect(Globals.hMainWnd, &rct);
+    int ww = rct.right - rct.left;
+    int hh = rct.bottom - rct.top;
+
+    if (Globals.bShowStatusBar )
+        hh -= ST_Height-XSP;
+
+    ww -= XSP*2; hh -= XSP*2;
+    MoveWindow(Globals.hwTabCtrl, XSP, XSP, ww, hh, TRUE);
+
+    ww -= XSP*2; hh -= TH_Height + XSP*2;
+    MoveWindow(Globals.hEdit, XSP, TH_Height + XSP, ww, hh, TRUE);
+
+}
+
+#if 0
+/*
+*
+* 
+void SetTabHeader(TCHAR header[])
+{
+    TCHAR buf[50];
+    if (!header && Globals.szFileTitle && Globals.szFileTitle[0])
+        header = Globals.szFileTitle;
+    _stprintf_s(buf, 40, L" %s ", header);
+
+    TCITEM tie ; ZeroMemory(&tie, sizeof tie);
+    tie.mask = TCIF_TEXT; 
+    tie.pszText = buf;
+    int ntab = TabCtrl_GetCurSel(Globals.hwTabCtrl);
+    TabCtrl_SetItem(Globals.hwTabCtrl, ntab, &tie);
+}
+
+*
+*   
+    HWND hwndStatic = CreateWindow(WC_STATIC, L"", 
+        WS_CHILD | WS_VISIBLE | WS_BORDER, 
+        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+        Globals.hwTabCtrl, NULL, Globals.hInstance, NULL);
+  
+
+*
+    TCITEM tie; ZeroMemory(&tie, sizeof tie);
+    tie.mask = TCIF_TEXT | TCIF_IMAGE| TCIF_PARAM;
+    TabCtrl_GetItem(Globals.hwTabCtrl, 0, (LPARAM) &tie);
+        ww -= XSP*2; hh -= TH_Height + XSP*2;
+
+    // MoveWindow((HWND) tie.lParam, XSP, , ww, hh, TRUE);
+
+
+
+
+    * 
+    NONCLIENTMETRICS ncmet; ZeroMemory(&ncmet,sizeof (ncmet));
 	ncmet.cbSize = sizeof(NONCLIENTMETRICS);
     SystemParametersInfo(SPI_GETNONCLIENTMETRICS, ncmet.cbSize, &ncmet, 0);
 
     ncmet.lfMenuFont.lfHeight = (ncmet.lfMenuFont.lfHeight) *130/100;
     TH_font  = CreateFontIndirect(&ncmet.lfMenuFont);
     SendMessage(Globals.hwTabCtrl, WM_SETFONT, (WPARAM)TH_font, TRUE);
-    
-    TabCtrl_GetItemRect(Globals.hwTabCtrl, 0, &rcTab);
-    TH_Height = rcTab.bottom - rcTab.top;
-    return Globals.hwTabCtrl != NULL;
-}
 
 
-
-BOOL AddNewEditorTab(TCHAR fn[])
-{
-    _ASSERT(Globals.hwTabCtrl);
-
-    HWND hwndStatic = CreateWindow(WC_STATIC, L"", 
-        WS_CHILD | WS_VISIBLE | WS_BORDER, 
-        TH_SLACK, TH_Height+TH_SLACK, 10000, 10000,
-        Globals.hwTabCtrl, NULL, Globals.hInstance, NULL); 
-
-    TCITEM tie = {0};
-    tie.mask = TCIF_TEXT | TCIF_IMAGE| TCIF_PARAM; 
-    tie.iImage = -1; 
-    tie.pszText = L"XXXXXXXXXXXXXXXX";
-
-    if ( TabCtrl_InsertItem(Globals.hwTabCtrl, 0, &tie) == -1)
-        return FALSE;
-
-    DoCreateEditWindow(hwndStatic);
-    tie.lParam = (LPARAM) Globals.hEdit;
-    SendMessage(hwndStatic, TCM_SETITEM, 0, (LPARAM) &tie);
-    return TRUE;
-}
-
-/*
 int test()
 {
     if (hwndTab == NULL)
@@ -1005,8 +1110,6 @@ int test()
     return hwndTab; 
 }
 
-*/
-
 // Creates a child window (a static control) to occupy the tab control's 
 //   display area. 
 // Returns the handle to the static control. 
@@ -1016,13 +1119,15 @@ HWND DoCreateDisplayWindow(HWND hwndTab)
 { 
 
 }
+*/
 
+/*
 // Handles the WM_SIZE message for the main window by resizing the 
 //   tab control. 
 // hwndTab - handle of the tab control.
 // lParam - the lParam parameter of the WM_SIZE message.
 //
-HRESULT OnSize(HWND hwndTab, LPARAM lParam)
+HRESULT __OnSize(HWND hwndTab, LPARAM lParam)
 {
     RECT rc; 
 
@@ -1072,3 +1177,5 @@ BOOL OnNotify(HWND hwndTab, HWND hwndDisplay, LPARAM lParam)
         }
         return TRUE;
 }
+*/
+#endif
