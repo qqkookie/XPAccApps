@@ -58,6 +58,7 @@ static int NOTEPAD_MenuCommand(WPARAM wParam)
     case CMD_SAVE_AS:    DIALOG_FileSaveAs(); break;
     case CMD_PRINT:      DIALOG_FilePrint(); break;
     case CMD_PAGE_SETUP: DIALOG_FilePageSetup(); break;
+    case CMD_CLOSE:      DIALOG_FileClose(); break;
     case CMD_EXIT:       DIALOG_FileExit(); break;
 
     case CMD_UNDO:       DIALOG_EditUndo(); break;
@@ -205,7 +206,27 @@ BOOL NOTEPAD_FindNext(FINDREPLACE *pFindReplace, BOOL bReplace, BOOL bShowAlert)
             LoadString(Globals.hInstance, STRING_CANNOTFIND, szResource, _countof(szResource));
             _sntprintf(szText, _countof(szText), szResource, pFindReplace->lpstrFindWhat);
             LoadString(Globals.hInstance, STRING_NOTEPAD, szResource, _countof(szResource));
-            MessageBox(Globals.hFindReplaceDlg, szText, szResource, MB_OK);
+            // MessageBox(Globals.hFindReplaceDlg, szText, szResource, MB_OK);
+            int retry = MessageBox(Globals.hFindReplaceDlg, szText, szResource,
+                MB_RETRYCANCEL|MB_ICONQUESTION|MB_DEFBUTTON2);
+            if (retry == IDRETRY)
+            {
+                if (pFindReplace->Flags & FR_DOWN)
+                {
+                    /* Move the caret */
+                    SendMessage(Globals.hEdit, EM_SETSEL, 0, 0);
+                    SendMessage(Globals.hEdit, EM_SCROLLCARET, 0, 0);
+                    DIALOG_SearchNext(TRUE);
+                }
+                else if ( pFindReplace->Flags & ~FR_DOWN)
+                {
+                    int last = GetWindowTextLength(Globals.hEdit);
+                    SendMessage(Globals.hEdit, EM_SETSEL, last, last);
+                    SendMessage(Globals.hEdit, EM_SCROLLCARET, 0, 0);
+                    DIALOG_SearchNext(FALSE);
+                }
+            }
+                
         }
         bSuccess = FALSE;
     }
@@ -368,8 +389,7 @@ NOTEPAD_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_CLOSE:
-        if (DoCloseFile())
-            DestroyWindow(hWnd);
+        DestroyWindow(hWnd);
         break;
 
     case WM_QUERYENDSESSION:
@@ -680,113 +700,3 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE prev, LPTSTR cmdline, int sh
 
     return (int) msg.wParam;
 }
-
-#if 0
-    void Adjust_DPI(HWND hWnd, HMONITOR hMonitor);
-    Adjust_DPI(Globals.hMainWnd, monitor);
-
-
-UINT GetWindowDPI(HWND hWnd,  HMONITOR hMonitor)
-{
-    typedef HRESULT (WINAPI *PGetDpiForMonitor)(HMONITOR hmonitor, int dpiType, UINT* dpiX, UINT* dpiY);
-
-    // Try to get the DPI setting for the monitor where the given window is located.
-    // This API is Windows 8.1+.
-    HMODULE hShcore = LoadLibraryW(L"shcore");
-    if (hShcore)
-    {
-        PGetDpiForMonitor pGetDpiForMonitor =
-           (PGetDpiForMonitor)GetProcAddress(hShcore, "GetDpiForMonitor");
-        if (pGetDpiForMonitor)
-        {
-            // HMONITOR hMonitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTOPRIMARY);
-            UINT uiDpiX, uiDpiY;
-            if (SUCCEEDED(pGetDpiForMonitor(hMonitor, 0, &uiDpiX, &uiDpiY)))
-            {
-                return (uiDpiX);
-            }
-        }
-    }
-
-    // We couldn't get the window's DPI above, so get the DPI of the primary monitor
-    // using an API that is available in all Windows versions.
-    HDC hScreenDC = GetDC(0);
-    int iDpiX = GetDeviceCaps(hScreenDC, LOGPIXELSX);
-    ReleaseDC(0, hScreenDC);
-
-    return (iDpiX);
-}
-
-BOOL CALLBACK SetChildFont(HWND hwndChild, LPARAM lParam)
-{
-    HFONT hFont = (HFONT)lParam;
-    SendMessage(hwndChild, WM_SETFONT, (WPARAM)hFont, TRUE);
-}
-
-void Adjust_DPI(HWND hWnd, HMONITOR hMonitor)
-{
-    HWND hwMM, hwSM, hwCM;
-    MENUBARINFO mbi = {0};
-    mbi.cbSize = sizeof(MENUBARINFO);
-    GetMenuBarInfo(hWnd, OBJID_MENU, 0, &mbi);
-    hwMM = mbi.hwndMenu;
-    GetMenuBarInfo(hWnd, OBJID_SYSMENU, 0, &mbi);
-    hwSM = mbi.hwndMenu;
-    GetMenuBarInfo(hWnd, OBJID_CLIENT, 0, &mbi);
-    hwCM = mbi.hwndMenu;
-
-    UINT dpi = GetWindowDPI(hWnd, hMonitor);
-
-
-    NONCLIENTMETRICS ncmet = {0};
-    ZeroMemory(&ncmet, sizeof(NONCLIENTMETRICS));
-	ncmet.cbSize = sizeof(NONCLIENTMETRICS); // - sizeof(ncmet.iPaddedBorderWidth);
-    SystemParametersInfo(SPI_GETNONCLIENTMETRICS, ncmet.cbSize, &ncmet, 0);
-
-    ncmet.lfMenuFont.lfHeight = (ncmet.lfMenuFont.lfHeight * 200)/90;
-
-    HFONT hf = CreateFontIndirect(&ncmet.lfMenuFont);
-
-    SendMessage(hwMM, WM_SETFONT, (WPARAM)hf, TRUE);
-    SendMessage(hwSM, WM_SETFONT, (WPARAM)hf, TRUE);
-    SendMessage(hwCM, WM_SETFONT, (WPARAM)hf, TRUE);
-
-    // EnumChildWindows(Globals.hMainWnd, SetChildFont, (LPARAM) hf);
-
-    //SystemParametersInfo(SPI_SETNONCLIENTMETRICS, 0, &ncmet, 0);
-    // ncmet.lfMenuFont.lfHeight = ncmet.lfMenuFont.lfHeight *; // MulDiv( ncmet.lfMenuFont.lfHeight, dpi, USER_DEFAULT_SCREEN_DPI);
-
-    /*
-    *
-    *
-    * 
-
-
-*/
-
-    // ncmet.lfMenuFont.lfHeight = MulDiv( ncmet.lfMenuFont.lfHeight, dpi, USER_DEFAULT_SCREEN_DPI);
-    //SystemParametersInfo(SPI_SETNONCLIENTMETRICS,0, &ncmet, 0);
-    //ncmet.lfMenuFont.lfHeight = 29; MulDiv( ncmet.lfMenuFont.lfHeight, USER_DEFAULT_SCREEN_DPI,dpi);
-
-
- //   HFONT nf = CreateFontIndirect(&ncmet.lfMenuFont);
-
- //   SendMessage(hWnd, WM_SETFONT, nf, TRUE);
-
-    /*
-    ZeroMemory(&ncmet, sizeof(NONCLIENTMETRICS));
-	ncmet.cbSize = sizeof(NONCLIENTMETRICS);
-
-    SystemParametersInfo(SPI_GETNONCLIENTMETRICS, ncmet.cbSize, &ncmet, 0);
-
-    NONCLIENTMETRICS saved;
-    memcpy(&saved, &ncmet, sizeof(NONCLIENTMETRICS));
-
-
-    ncmet.lfMenuFont.lfHeight = MulDiv( ncmet.lfMenuFont.lfHeight, dpi, USER_DEFAULT_SCREEN_DPI);
-    SystemParametersInfo(SPI_SETNONCLIENTMETRICS,0, &ncmet, 0);
-    ncmet.lfMenuFont.lfHeight = MulDiv( ncmet.lfMenuFont.lfHeight, USER_DEFAULT_SCREEN_DPI,dpi);
-    SystemParametersInfo(SPI_SETNONCLIENTMETRICS,0, &ncmet, 0);
-    */
-}
-#endif

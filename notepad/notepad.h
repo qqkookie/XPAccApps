@@ -64,11 +64,14 @@ typedef enum
     EOLN_CR   = 2  /* "\r" */
 } EOLN; /* End of line (NewLine) type */
 
-// Extra info for each Edit control saved for eacn Tab.
+// Extra info for each Edit control on eacn Tab.
 typedef struct {
-    UINT    cbSize;
-    HWND    hwEDIT;
-    // BOOL    modified;
+    UINT        cbSize;
+    HWND        hwEDIT;
+    BOOL        isModified;
+    ENCODING    encFile;
+    EOLN        iEoln;
+
     BOOL    pathOK;
     TCHAR   filePath[MAX_PATH];
 } EDITINFO;

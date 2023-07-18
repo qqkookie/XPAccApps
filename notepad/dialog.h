@@ -14,6 +14,7 @@ BOOL DIALOG_FileSave(VOID);
 BOOL DIALOG_FileSaveAs(VOID);
 VOID DIALOG_FilePrint(VOID);
 VOID DIALOG_FilePageSetup(VOID);
+VOID DIALOG_FileClose(VOID);
 VOID DIALOG_FileExit(VOID);
 
 VOID DIALOG_EditUndo(VOID);
@@ -61,4 +62,8 @@ void UpdateWindowCaption(BOOL clearModifyAlert);
 BOOL DoCreateTabControl(VOID);
 BOOL AddNewEditTab(VOID);
 void OnTabChange(VOID);
+void SetTabHeader(VOID);
+
 void UpdateEditSize(VOID);
+int CheckDupFileName(LPCTSTR filePath);
+BOOL DoCloseAllFiles(VOID);

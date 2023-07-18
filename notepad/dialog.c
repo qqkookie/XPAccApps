@@ -87,7 +87,7 @@ void UpdateWindowCaption(BOOL clearModifyAlert)
     {
         /* Check whether the user has modified the file or not. If we are
          * in the same state as before, don't change the caption. */
-        isModified = !!SendMessage(Globals.hEdit, EM_GETMODIFY, 0, 0);
+        isModified = (BOOL) SendMessage(Globals.hEdit, EM_GETMODIFY, 0, 0);
         if (isModified == Globals.bWasModified)
             return;
     }
@@ -109,7 +109,7 @@ void UpdateWindowCaption(BOOL clearModifyAlert)
         Globals.szFileTitle[0] ? Globals.szFileTitle : Globals.szUntitled);
 
     /* Update the window caption based upon whether the user has modified the file or not */
-    StringCbPrintf(szCaption, sizeof(szCaption), _T("%s%s - %s"),
+    StringCchPrintf(szCaption, _countof(szCaption), _T("%s%s - %s"),
                    (isModified ? _T("*") : _T("")), szFilename, szNotepad);
 
     SetWindowText(Globals.hMainWnd, szCaption);
@@ -133,6 +133,7 @@ VOID DIALOG_StatusBarAlignParts(VOID)
     SendMessageW(Globals.hStatusBar, SB_SETPARTS, _countof(parts), (LPARAM)parts);
 }
 
+/*
 static VOID DIALOG_StatusBarUpdateLineEndings(VOID)
 {
     WCHAR szText[128];
@@ -153,12 +154,26 @@ static VOID DIALOG_StatusBarUpdateEncoding(VOID)
 
     SendMessageW(Globals.hStatusBar, SB_SETTEXTW, SBPART_ENCODING, (LPARAM)szText);
 }
+*/
 
 static VOID DIALOG_StatusBarUpdateAll(VOID)
 {
     DIALOG_StatusBarUpdateCaretPos();
-    DIALOG_StatusBarUpdateLineEndings();
-    DIALOG_StatusBarUpdateEncoding();
+    // DIALOG_StatusBarUpdateLineEndings();
+    // DIALOG_StatusBarUpdateEncoding();
+
+    WCHAR szText[128];
+
+    LoadStringW(Globals.hInstance, EolnToStrId[Globals.iEoln], szText, _countof(szText));
+
+    SendMessageW(Globals.hStatusBar, SB_SETTEXTW, SBPART_EOLN, (LPARAM)szText);
+
+    if (Globals.encFile != ENCODING_AUTO)
+    {
+        LoadStringW(Globals.hInstance, EncToStrId[Globals.encFile], szText, _countof(szText));
+    }
+
+    SendMessageW(Globals.hStatusBar, SB_SETTEXTW, SBPART_ENCODING, (LPARAM)szText);
 }
 
 int DIALOG_StringMsgBox(HWND hParent, int formatId, LPCTSTR szString, DWORD dwFlags)
@@ -297,6 +312,11 @@ BOOL DoCloseFile(VOID)
     SetFileName(empty_str);
     UpdateWindowCaption(TRUE);
 
+    DestroyWindow(Globals.hEdit);
+    free(Globals.pEditInfo);
+    Globals.hEdit = NULL;
+    Globals.pEditInfo = NULL;
+
     return TRUE;
 }
 
@@ -310,6 +330,9 @@ VOID DoOpenFile(LPCTSTR szFileName)
     // if (!DoCloseFile())
     //     return;
 
+    if (CheckDupFileName(szFileName) != -1)
+        return;
+
     hFile = CreateFile(szFileName, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
                        OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE)
@@ -318,8 +341,20 @@ VOID DoOpenFile(LPCTSTR szFileName)
         goto done;
     }
 
-    SetFileName(szFileName);
-    AddNewEditTab();
+    BOOL preserve = Globals.szFileName[0]        // old filename
+        || SendMessage(Globals.hEdit, EM_GETMODIFY, TRUE, 0); 
+
+    SetFileName(szFileName);                   // new filename
+
+    if (preserve)
+    {
+        AddNewEditTab();
+    }
+    else
+    {
+        SetTabHeader();
+    }
+
     StringCchCopy(Globals.pEditInfo->filePath, _countof(Globals.pEditInfo->filePath), szFileName);
     Globals.pEditInfo->pathOK = TRUE;
 
@@ -330,6 +365,10 @@ VOID DoOpenFile(LPCTSTR szFileName)
         ShowLastError();
         goto done;
     }
+
+    Globals.pEditInfo->encFile = Globals.encFile;
+    Globals.pEditInfo->iEoln = Globals.iEoln;
+
     SendMessageW(Globals.hEdit, EM_SETHANDLE, (WPARAM)hLocal, 0);
     /* No need of EM_SETMODIFY and EM_EMPTYUNDOBUFFER here. EM_SETHANDLE does instead. */
 
@@ -487,6 +526,8 @@ DIALOG_FileSaveAs_Hook(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
+#include <time.h>
+
 BOOL DIALOG_FileSaveAs(VOID)
 {
     OPENFILENAME saveas;
@@ -495,7 +536,14 @@ BOOL DIALOG_FileSaveAs(VOID)
     ZeroMemory(&saveas, sizeof(saveas));
 
     if (Globals.szFileName[0] == 0)
-        _tcscpy(szPath, txt_files);
+    {
+        TCHAR tmp[100];
+        time_t t = time(NULL);
+        _tcsftime(tmp, _countof(tmp), L"-%m%d%H%M.txt", localtime(&t));
+
+        _tcscpy(szPath, Globals.szUntitled);
+        _tcscat(szPath, tmp);
+    }
     else
         _tcscpy(szPath, Globals.szFileName);
 
@@ -519,6 +567,7 @@ BOOL DIALOG_FileSaveAs(VOID)
         SetFileName(szPath);
         if (DoSaveFile())
         {
+            SetTabHeader();
             UpdateWindowCaption(TRUE);
             DIALOG_StatusBarUpdateAll();
             return TRUE;
@@ -537,7 +586,8 @@ BOOL DIALOG_FileSaveAs(VOID)
 
 VOID DIALOG_FileExit(VOID)
 {
-    PostMessage(Globals.hMainWnd, WM_CLOSE, 0, 0);
+    if (DoCloseAllFiles())
+        PostMessage(Globals.hMainWnd, WM_CLOSE, 0, 0);
 }
 
 VOID DIALOG_EditUndo(VOID)
@@ -939,7 +989,7 @@ BOOL DoCreateTabControl(VOID)
     // Get the dimensions of the parent window's client area,
     //  and create a tab control child window of that size.
     Globals.hwTabCtrl = CreateWindow(WC_TABCONTROL, L"", 
-        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE|TCS_FIXEDWIDTH|TCS_FOCUSNEVER, 
+        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE|TCS_FOCUSNEVER, 
         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 
         Globals.hMainWnd, NULL, Globals.hInstance, NULL);
 
@@ -957,7 +1007,7 @@ BOOL DoCreateTabControl(VOID)
 // Add new tab and new Edit Control on the tab.
 BOOL AddNewEditTab(VOID)
 {
-    _ASSERT(Globals.hwTabCtrl);
+    assert(Globals.hwTabCtrl);
 
     int ntab = TabCtrl_GetItemCount(Globals.hwTabCtrl);
     if ( ntab >= MAX_NTAB)
@@ -967,43 +1017,56 @@ BOOL AddNewEditTab(VOID)
 
     Globals.hEdit = NULL;
     DoCreateEditWindow();
+
     ShowWindow(Globals.hEdit, SW_SHOW);
 
-    TCITEM tie ; ZeroMemory(&tie, sizeof tie);
-    tie.mask = TCIF_TEXT|TCIF_PARAM;
+    TCITEM tab;
+    ZeroMemory(&tab, sizeof (tab));
+    tab.mask = TCIF_TEXT|TCIF_IMAGE|TCIF_PARAM;
 
     EDITINFO* pedi = calloc(1, sizeof(EDITINFO));
     pedi->cbSize = sizeof(EDITINFO);
     pedi->hwEDIT = Globals.hEdit;
+
     // StringCchCopy(pedi->fileTitle, _countof(pedi->fileTitle), Globals.szFileTitle);
     Globals.pEditInfo = pedi;
 
-    tie.lParam = (LPARAM) pedi;
-    tie.pszText = Globals.szFileTitle;
+    tab.lParam = (LPARAM) pedi;
+    tab.pszText = Globals.szFileTitle;
+    tab.iImage = -1;
 
-    TabCtrl_InsertItem(Globals.hwTabCtrl, ntab, &tie);
+    TabCtrl_InsertItem(Globals.hwTabCtrl, ntab, &tab);
     TabCtrl_SetCurSel(Globals.hwTabCtrl, ntab);
+    SetTabHeader();
 
     return TRUE;
 }
 
+// Context switching chore after tab change.
 void OnTabChange(VOID)
 {
     ShowWindow(Globals.hEdit, SW_HIDE);
 
     int iPage = TabCtrl_GetCurSel(Globals.hwTabCtrl);
 
-    TCITEM tie; ZeroMemory(&tie, sizeof tie);
-    tie.mask =  TCIF_TEXT|TCIF_PARAM;
-    tie.pszText = Globals.szFileTitle;
-    tie.cchTextMax = _countof(Globals.szFileTitle);
-    TabCtrl_GetItem(Globals.hwTabCtrl, iPage, (LPARAM) &tie);
+    TCITEM tab;
+    ZeroMemory(&tab, sizeof (tab));
+    tab.mask =  TCIF_TEXT|TCIF_PARAM;
+    tab.pszText = Globals.szFileTitle;
+    tab.cchTextMax = _countof(Globals.szFileTitle);
+    Globals.szFileName[0] = Globals.szFileTitle[0] = L'0';
 
-    EDITINFO * pedi = (EDITINFO *) tie.lParam;
+    TabCtrl_GetItem(Globals.hwTabCtrl, iPage, (LPARAM) &tab);
+
+    EDITINFO * pedi = (EDITINFO *) tab.lParam;
+
+    // Restore global states of selected edit control. 
     Globals.hEdit = pedi->hwEDIT;
-    if (pedi->pathOK)
-        StringCchCopy( Globals.szFileName, _countof(Globals.szFileName), pedi->filePath);
-    // StringCchCopy( Globals.szFileTitle, _countof(Globals.szFileTitle), pedi->fileTitle);
+    StringCchCopy( Globals.szFileName, _countof(Globals.szFileName), pedi->filePath );
+    Globals.encFile = pedi->encFile;
+    Globals.iEoln = pedi->iEoln;
+    Globals.bWasModified = pedi->isModified;
+
     Globals.pEditInfo = pedi;
 
     ShowWindow(Globals.hEdit, SW_SHOW);
@@ -1012,11 +1075,30 @@ void OnTabChange(VOID)
     if ( Globals.bShowStatusBar )
     {
         DIALOG_StatusBarUpdateAll();
-        DIALOG_StatusBarUpdateCaretPos();
     }
-    UpdateWindowCaption(TRUE);
+
+    UpdateWindowCaption(FALSE);
 }
 
+// Set tab header
+void SetTabHeader()
+{
+    TCHAR buf[100];
+    _tcscpy(buf, L"     ");
+    _tcscat(buf, Globals.szFileTitle);
+    _tcscat(buf, L"     ");   
+
+    TCITEM tab;
+    ZeroMemory(&tab, sizeof (tab));
+    tab.mask = TCIF_TEXT|TCIF_IMAGE;
+    tab.pszText = (LPTSTR) buf;
+    tab.iImage = -1;
+
+    int iPage = TabCtrl_GetCurSel(Globals.hwTabCtrl);
+    TabCtrl_SetItem(Globals.hwTabCtrl, iPage, &tab);
+}
+
+// update screen layout on WM_SIZE
 void UpdateEditSize(VOID)
 {
     if (!Globals.hwTabCtrl)
@@ -1028,7 +1110,9 @@ void UpdateEditSize(VOID)
     int hh = rct.bottom - rct.top;
 
     if (Globals.bShowStatusBar )
+    {
         hh -= ST_Height-XSP;
+    }
 
     ww -= XSP*2; hh -= XSP*2;
     MoveWindow(Globals.hwTabCtrl, XSP, XSP, ww, hh, TRUE);
@@ -1038,144 +1122,66 @@ void UpdateEditSize(VOID)
 
 }
 
-#if 0
-/*
-*
-* 
-void SetTabHeader(TCHAR header[])
+// Check for file is duplicate (already editing)
+// Returns Tab index (zero-based) on matching duplicate file already loaed, -1 on not duplicate.
+// Caveats: very rudimentary path name comparison for match checking.
+int CheckDupFileName(LPCTSTR filePath)
 {
-    TCHAR buf[50];
-    if (!header && Globals.szFileTitle && Globals.szFileTitle[0])
-        header = Globals.szFileTitle;
-    _stprintf_s(buf, 40, L" %s ", header);
+    int ntab = TabCtrl_GetItemCount(Globals.hwTabCtrl);
 
-    TCITEM tie ; ZeroMemory(&tie, sizeof tie);
-    tie.mask = TCIF_TEXT; 
-    tie.pszText = buf;
-    int ntab = TabCtrl_GetCurSel(Globals.hwTabCtrl);
-    TabCtrl_SetItem(Globals.hwTabCtrl, ntab, &tie);
-}
+    TCITEM tab;
+    ZeroMemory(&tab, sizeof(tab));
+    tab.mask =  TCIF_PARAM;
+    EDITINFO *pedi = NULL;
 
-*
-*   
-    HWND hwndStatic = CreateWindow(WC_STATIC, L"", 
-        WS_CHILD | WS_VISIBLE | WS_BORDER, 
-        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-        Globals.hwTabCtrl, NULL, Globals.hInstance, NULL);
-  
-
-*
-    TCITEM tie; ZeroMemory(&tie, sizeof tie);
-    tie.mask = TCIF_TEXT | TCIF_IMAGE| TCIF_PARAM;
-    TabCtrl_GetItem(Globals.hwTabCtrl, 0, (LPARAM) &tie);
-        ww -= XSP*2; hh -= TH_Height + XSP*2;
-
-    // MoveWindow((HWND) tie.lParam, XSP, , ww, hh, TRUE);
-
-
-
-
-    * 
-    NONCLIENTMETRICS ncmet; ZeroMemory(&ncmet,sizeof (ncmet));
-	ncmet.cbSize = sizeof(NONCLIENTMETRICS);
-    SystemParametersInfo(SPI_GETNONCLIENTMETRICS, ncmet.cbSize, &ncmet, 0);
-
-    ncmet.lfMenuFont.lfHeight = (ncmet.lfMenuFont.lfHeight) *130/100;
-    TH_font  = CreateFontIndirect(&ncmet.lfMenuFont);
-    SendMessage(Globals.hwTabCtrl, WM_SETFONT, (WPARAM)TH_font, TRUE);
-
-
-int test()
-{
-    if (hwndTab == NULL)
-    { 
-        return NULL; 
-    }
- 
-
- 
-    for (i = 0; i < DAYS_IN_WEEK; i++) 
-    { 
-        // Load the day string from the string resources. Note that
-        // g_hInst is the global instance handle.
-        //LoadString(Globals.hInstance, IDS_SUNDAY + i, 
-        //        achTemp, sizeof(achTemp) / sizeof(achTemp[0]));
-        _tcscpy(achTemp, _T("Test"));
-        if (TabCtrl_InsertItem(hwndTab, i, &tie) == -1) 
-        { 
-            DestroyWindow(hwndTab); 
-            return NULL; 
-        } 
-    } 
-    return hwndTab; 
-}
-
-// Creates a child window (a static control) to occupy the tab control's 
-//   display area. 
-// Returns the handle to the static control. 
-// hwndTab - handle of the tab control. 
-// 
-HWND DoCreateDisplayWindow(HWND hwndTab) 
-{ 
-
-}
-*/
-
-/*
-// Handles the WM_SIZE message for the main window by resizing the 
-//   tab control. 
-// hwndTab - handle of the tab control.
-// lParam - the lParam parameter of the WM_SIZE message.
-//
-HRESULT __OnSize(HWND hwndTab, LPARAM lParam)
-{
-    RECT rc; 
-
-    if (hwndTab == NULL)
-        return E_INVALIDARG;
-
-    // Resize the tab control to fit the client are of main window.
-     if (!SetWindowPos(hwndTab, HWND_TOP, 0, 0, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), SWP_SHOWWINDOW))
-        return E_FAIL;
-
-    return S_OK;
-}
-
-// Handles notifications from the tab control, as follows: 
-//   TCN_SELCHANGING - always returns FALSE to allow the user to select a 
-//     different tab.  
-//   TCN_SELCHANGE - loads a string resource and displays it in a static 
-//     control on the selected tab.
-// hwndTab - handle of the tab control.
-// hwndDisplay - handle of the static control. 
-// lParam - the lParam parameter of the WM_NOTIFY message.
-//
-BOOL OnNotify(HWND hwndTab, HWND hwndDisplay, LPARAM lParam)
-{
-    TCHAR achTemp[256]; // temporary buffer for strings
-
-    switch (((LPNMHDR)lParam)->code)
+    for ( int iPage = 0 ; iPage < ntab; iPage++ )
+    {
+        TabCtrl_GetItem(Globals.hwTabCtrl, iPage, (LPARAM) &tab);
+        pedi = (EDITINFO *) tab.lParam;
+        if ( pedi && pedi->pathOK && pedi->filePath[0]
+            && _tcsicmp(filePath, pedi->filePath) == 0 )    // very rudimentary!
         {
-            case TCN_SELCHANGING:
-                {
-                    // Return FALSE to allow the selection to change.
-                    return FALSE;
-                }
-
-            case TCN_SELCHANGE:
-                { 
-                    int iPage = TabCtrl_GetCurSel(hwndTab); 
-
-                    // Note that g_hInst is the global instance handle.
-                    //LoadString(Globals.hInstance, IDS_SUNDAY + iPage, achTemp,
-                    //    sizeof(achTemp) / sizeof(achTemp[0]));
-                    _tcscpy(achTemp, _T("Test"));
-                    LRESULT result = SendMessage(hwndDisplay, WM_SETTEXT, 0,
-                        (LPARAM) achTemp); 
-                    break;
-                } 
+            TabCtrl_SetCurSel(Globals.hwTabCtrl, iPage);
+            OnTabChange();
+            return (iPage);
         }
-        return TRUE;
+    }
+    return -1;
 }
-*/
-#endif
+
+// Cloase all open files and ask to save unsaved files.
+BOOL DoCloseAllFiles(VOID)
+{
+    int ntab = TabCtrl_GetItemCount(Globals.hwTabCtrl);
+    for ( int iPage = ntab-1 ; iPage >=0; iPage-- )
+    {
+        TabCtrl_SetCurSel(Globals.hwTabCtrl, iPage);
+        OnTabChange();
+        if (!DoCloseFile())
+            return FALSE;  // user canceled close all
+    }
+    return TRUE;
+}
+
+// Close current file and tab. Delete the tab.
+VOID DIALOG_FileClose(VOID)
+{
+    if (DoCloseFile() == FALSE)
+        return;
+
+    int iPage = TabCtrl_GetCurSel(Globals.hwTabCtrl);
+    TabCtrl_DeleteItem(Globals.hwTabCtrl, iPage);
+    int ntab = TabCtrl_GetItemCount(Globals.hwTabCtrl);
+
+    if (ntab == 0)
+    {
+        PostMessage(Globals.hMainWnd, WM_CLOSE, 0, 0);
+        return;
+    }
+
+    TabCtrl_SetCurSel(Globals.hwTabCtrl, ((iPage == ntab) ? iPage-1 : iPage));
+    OnTabChange();
+}
+
+
+

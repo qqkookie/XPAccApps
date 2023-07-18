@@ -1,16 +1,24 @@
 CHANGELOG
 =====
 
-## v0.1.1
+## v0.1.3
+ * 2023-07-18 20:26:00
 
- * 2023-06-13 15:18:55
- * Initial directory setup
- * Add calc orignal source
+### xchcp.exe
+ * Add symbolic codepage names (like korea, euc-kr,...)
+
+### xnotepad
+ * added "XPAccApp.ini" setting support.
+ * added multi tab support
+ * close tab, close all files.
+ * Search wrap around / find previous menu.
+ * Duplicate edit check.
+ * Untiltedled time stamp.
 
 ## v0.1.2
  * 2023-07-03 15:42:00
 
-### For XCalc
+###  xcalc
  * Fixed uninitialized calc total memory base ([M+]) bug.
  * Expanded Standard Calc layout:
    - Add total memory minus ([M-]) button.
@@ -41,6 +49,12 @@ CHANGELOG
  * [MS], [MR] works correctly on MPFR + hexa moode.
  * TODO: History tape window? Make HTMLHELP work.
 
-### Add xchcp
+### xchcp
 Winodws chcp.com replacement.
 Added charmap, clipbrd, mspaint, notepad, wordpad source.
+
+## v0.1.1
+
+ * 2023-06-13 15:18:55
+ * Initial directory setup
+ * Add calc orignal source

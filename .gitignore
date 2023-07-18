@@ -4,6 +4,7 @@
 out/
 CMakeFiles/
 CppProperties.json
+CMakeSettings.json
 
 resource.aps
 *.vcxproj.user
