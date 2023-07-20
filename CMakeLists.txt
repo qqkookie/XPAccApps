@@ -23,5 +23,6 @@ add_subdirectory(chcp)
 add_subdirectory(calc)
 add_subdirectory(taskmgr)
 add_subdirectory(notepad)
+add_subdirectory(mspaint)
 
 set( CMAKE_RUNTIME_OUTPUT_DIRECTORY out )

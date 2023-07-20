@@ -6,6 +6,14 @@
     #undef _DEBUG
 #endif
 
+// Additional include's for porting
+#define WIN32_LEAN_AND_MEAN
+
+#include <Windows.h>
+#include <cguid.h>
+#include <objidl.h>
+#include <Gdiplus.h>
+
 #include <windef.h>
 #include <winbase.h>
 #include <winuser.h>
@@ -13,7 +21,8 @@
 #include <tchar.h>
 #include <atlbase.h>
 #include <atlcom.h>
-#include <atlimage.h>
+//#include <atlimage.h>
+#include "atlimage.h"
 #include <atlpath.h>
 #include <atlstr.h>
 #include <atlwin.h>
@@ -24,13 +33,18 @@
 #include <stdlib.h>
 #include <shellapi.h>
 #include <htmlhelp.h>
+
+#define UNREACHABLE /**/
+#define WINBOOL     BOOL
+
 #include "atlimagedx.h"
 #ifdef _DEBUG
     #define _CRTDBG_MAP_ALLOC
     #include <crtdbg.h>
 #endif
 
-#include <debug.h>
+// #include <debug.h>
+#include "debug.h"
 
 #include "resource.h"
 #include "common.h"

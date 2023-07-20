@@ -130,10 +130,14 @@ protected:
         FARPROC proc = ::GetProcAddress(GetCommon().hinstGdiPlus, name);
         return reinterpret_cast<TYPE>(proc);
     }
-
+    /*
     typedef St (WINGDIPAPI *GETIMAGEHORIZONTALRESOLUTION)(Im *, float*);
     typedef St (WINGDIPAPI *GETIMAGEVERTICALRESOLUTION)(Im *, float*);
     typedef St (WINGDIPAPI *BITMAPSETRESOLUTION)(Bm *, float, float);
+    */
+    typedef St  (__cdecl *GETIMAGEHORIZONTALRESOLUTION)(Im *, float*) ;
+    typedef St  (__cdecl *GETIMAGEVERTICALRESOLUTION)(Im *, float*);
+    typedef St  (__cdecl *BITMAPSETRESOLUTION)(Bm *, float, float);
 
     GETIMAGEHORIZONTALRESOLUTION    GetImageHorizontalResolution;
     GETIMAGEVERTICALRESOLUTION      GetImageVerticalResolution;
