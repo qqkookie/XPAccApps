@@ -8,12 +8,15 @@ CHANGELOG
  * Add symbolic codepage names (like korea, euc-kr,...)
 
 ### xnotepad
- * added "XPAccApp.ini" setting support.
+ * added "XPAccApps.ini" setting support.
  * added multi tab support
  * close tab, close all files.
  * Search wrap around / find previous menu.
  * Duplicate edit check.
  * Untiltedled time stamp.
+ * MRU Recent support
+ * Add misc.c & code rearrage.
+ * setting clean up
 
 ## v0.1.2
  * 2023-07-03 15:42:00
@@ -25,7 +28,7 @@ CHANGELOG
    - Add parenthsis buttons.
    - Change [Sqrt] button to [x^y] button.
    - Enlarge [+] and [=] buttons.
- * Saves setting in "~/AppData/XPAccApp.ini" file, not registry.
+ * Saves setting in "~/AppData/XPAccApps.ini" file, not registry.
    - Remembers window position.
  * Adjust unit conversion list order.
  * Add force units (newton, pound-force etc) in unit conversion.

@@ -34,6 +34,19 @@ BEGIN
         MENUITEM "Page Set&up...", CMD_PAGE_SETUP
         MENUITEM "&Print...\tCtrl+P", CMD_PRINT
         MENUITEM SEPARATOR
+	POPUP "&Recent"
+	BEGIN
+		MENUITEM "&1 Recent File 1" MENU_RECENT1
+		MENUITEM "&2 Recent File 2" MENU_RECENT2
+		MENUITEM "&3 Recent File 3" MENU_RECENT3
+		MENUITEM "&4 Recent File 4" MENU_RECENT4
+		MENUITEM "&5 Recent File 5" MENU_RECENT5
+		MENUITEM "&6 Recent File 6" MENU_RECENT6
+		MENUITEM "&7 Recent File 7" MENU_RECENT7
+		MENUITEM "&8 Recent File 8" MENU_RECENT8
+		MENUITEM "&9 Recent File 9" MENU_RECENT9
+		// MENUITEM "1&0 Recent File 10" MENU_RECENT10
+	END
         MENUITEM "&Close\tCtrl+W", CMD_CLOSE
         MENUITEM "E&xit", CMD_EXIT
     END

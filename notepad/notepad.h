@@ -118,9 +118,33 @@ extern NOTEPAD_GLOBALS Globals;
 BOOL ReadText(HANDLE hFile, HLOCAL *phLocal, ENCODING *pencFile, EOLN *piEoln);
 BOOL WriteText(HANDLE hFile, LPCWSTR pszText, DWORD dwTextLen, ENCODING encFile, EOLN iEoln);
 
-void NOTEPAD_LoadSettingsFromRegistry(void);
-void NOTEPAD_SaveSettingsToRegistry(void);
+void NOTEPAD_LoadSettings(void);
+void NOTEPAD_SaveSettings(void);
 
 BOOL NOTEPAD_FindNext(FINDREPLACE *pFindReplace, BOOL bReplace, BOOL bShowAlert);
 VOID NOTEPAD_EnableSearchMenu(VOID);
 VOID SetFileName(LPCTSTR szFileName);
+
+void UpdateEditSize(VOID);
+
+BOOL DoCreateTabControl(VOID);
+BOOL AddNewEditTab(VOID);
+void OnTabChange(VOID);
+void SetTabHeader(VOID);
+
+int CheckDupFileName(LPCTSTR filePath);
+BOOL DoCloseAllFiles(VOID);
+
+void MRU_Init(VOID);
+void MRU_Add(LPCTSTR newpath);
+void MRU_Sort(VOID);
+LPCTSTR MRU_Enum(int n);
+
+void MRU_Load(VOID);
+void MRU_Save(VOID);
+
+void UpdateMenuRecent(HMENU menuMain);
+
+void LimitStrLen(LPTSTR szStr, int limit);
+extern TCHAR ProfilePath[];
+#define PFSECTION _T("XNotePad")

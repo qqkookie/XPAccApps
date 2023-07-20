@@ -1,4 +1,4 @@
-# Global WinXPAccApp project master CMakeList.txt
+# Global WinXPAccApps project master CMakeList.txt
 
 cmake_minimum_required(VERSION 3.10)
 project(XPApps)
@@ -7,7 +7,7 @@ project(XPApps)
 add_compile_definitions(_AMD64_ _WIN64)
 add_compile_definitions(_UNICODE UNICODE)
 # common setting ini file in ~/AppData/Local
-add_compile_definitions( PRIVATEPROFILE_INI="XPAccApp.ini")
+add_compile_definitions( PRIVATEPROFILE_INI="XPAccApps.ini")
 
 if(MSVC)
 #     add_importlibs(calc ntdll)

@@ -156,7 +156,7 @@ static VOID DIALOG_StatusBarUpdateEncoding(VOID)
 }
 */
 
-static VOID DIALOG_StatusBarUpdateAll(VOID)
+VOID DIALOG_StatusBarUpdateAll(VOID)
 {
     DIALOG_StatusBarUpdateCaretPos();
     // DIALOG_StatusBarUpdateLineEndings();
@@ -275,6 +275,7 @@ static BOOL DoSaveFile(VOID)
     {
         SendMessage(Globals.hEdit, EM_SETMODIFY, FALSE, 0);
         SetFileName(Globals.szFileName);
+        MRU_Add(Globals.szFileName);
     }
 
     return bRet;
@@ -345,6 +346,7 @@ VOID DoOpenFile(LPCTSTR szFileName)
         || SendMessage(Globals.hEdit, EM_GETMODIFY, TRUE, 0); 
 
     SetFileName(szFileName);                   // new filename
+    MRU_Add(szFileName);
 
     if (preserve)
     {
@@ -973,215 +975,9 @@ VOID DIALOG_HelpAboutNotepad(VOID)
                LoadIcon(Globals.hInstance, MAKEINTRESOURCE(IDI_NPICON)));
 }
 
-#define     MAX_NTAB    9
-
-static int TH_Height;
-static int ST_Height;
-
-#define XSP    3
-
-// static HFONT TH_font;
-
-// Creates a tab control. Returns TRUE on success.
-// Measure tab header height, status height. 
-BOOL DoCreateTabControl(VOID)
+VOID DIALOG_MenuRecent(int menu_id)
 {
-    // Get the dimensions of the parent window's client area,
-    //  and create a tab control child window of that size.
-    Globals.hwTabCtrl = CreateWindow(WC_TABCONTROL, L"", 
-        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE|TCS_FOCUSNEVER, 
-        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 
-        Globals.hMainWnd, NULL, Globals.hInstance, NULL);
-
-    RECT rcTab, rcStatus;
-    
-    TabCtrl_GetItemRect(Globals.hwTabCtrl, 0, &rcTab);
-    TH_Height = rcTab.bottom - rcTab.top + XSP;
-
-    GetWindowRect(Globals.hStatusBar, &rcStatus);
-    ST_Height = rcStatus.bottom - rcStatus.top;
-
-    return Globals.hwTabCtrl != NULL;
+    const TCHAR *path = MRU_Enum( menu_id -MENU_RECENT -1);
+    if ( path && path[0])
+        DoOpenFile(path);
 }
-
-// Add new tab and new Edit Control on the tab.
-BOOL AddNewEditTab(VOID)
-{
-    assert(Globals.hwTabCtrl);
-
-    int ntab = TabCtrl_GetItemCount(Globals.hwTabCtrl);
-    if ( ntab >= MAX_NTAB)
-        return FALSE;
-
-    ShowWindow(Globals.hEdit, SW_HIDE);
-
-    Globals.hEdit = NULL;
-    DoCreateEditWindow();
-
-    ShowWindow(Globals.hEdit, SW_SHOW);
-
-    TCITEM tab;
-    ZeroMemory(&tab, sizeof (tab));
-    tab.mask = TCIF_TEXT|TCIF_IMAGE|TCIF_PARAM;
-
-    EDITINFO* pedi = calloc(1, sizeof(EDITINFO));
-    pedi->cbSize = sizeof(EDITINFO);
-    pedi->hwEDIT = Globals.hEdit;
-
-    // StringCchCopy(pedi->fileTitle, _countof(pedi->fileTitle), Globals.szFileTitle);
-    Globals.pEditInfo = pedi;
-
-    tab.lParam = (LPARAM) pedi;
-    tab.pszText = Globals.szFileTitle;
-    tab.iImage = -1;
-
-    TabCtrl_InsertItem(Globals.hwTabCtrl, ntab, &tab);
-    TabCtrl_SetCurSel(Globals.hwTabCtrl, ntab);
-    SetTabHeader();
-
-    return TRUE;
-}
-
-// Context switching chore after tab change.
-void OnTabChange(VOID)
-{
-    ShowWindow(Globals.hEdit, SW_HIDE);
-
-    int iPage = TabCtrl_GetCurSel(Globals.hwTabCtrl);
-
-    TCITEM tab;
-    ZeroMemory(&tab, sizeof (tab));
-    tab.mask =  TCIF_TEXT|TCIF_PARAM;
-    tab.pszText = Globals.szFileTitle;
-    tab.cchTextMax = _countof(Globals.szFileTitle);
-    Globals.szFileName[0] = Globals.szFileTitle[0] = L'0';
-
-    TabCtrl_GetItem(Globals.hwTabCtrl, iPage, (LPARAM) &tab);
-
-    EDITINFO * pedi = (EDITINFO *) tab.lParam;
-
-    // Restore global states of selected edit control. 
-    Globals.hEdit = pedi->hwEDIT;
-    StringCchCopy( Globals.szFileName, _countof(Globals.szFileName), pedi->filePath );
-    Globals.encFile = pedi->encFile;
-    Globals.iEoln = pedi->iEoln;
-    Globals.bWasModified = pedi->isModified;
-
-    Globals.pEditInfo = pedi;
-
-    ShowWindow(Globals.hEdit, SW_SHOW);
-    UpdateWindow(Globals.hEdit);
-
-    if ( Globals.bShowStatusBar )
-    {
-        DIALOG_StatusBarUpdateAll();
-    }
-
-    UpdateWindowCaption(FALSE);
-}
-
-// Set tab header
-void SetTabHeader()
-{
-    TCHAR buf[100];
-    _tcscpy(buf, L"     ");
-    _tcscat(buf, Globals.szFileTitle);
-    _tcscat(buf, L"     ");   
-
-    TCITEM tab;
-    ZeroMemory(&tab, sizeof (tab));
-    tab.mask = TCIF_TEXT|TCIF_IMAGE;
-    tab.pszText = (LPTSTR) buf;
-    tab.iImage = -1;
-
-    int iPage = TabCtrl_GetCurSel(Globals.hwTabCtrl);
-    TabCtrl_SetItem(Globals.hwTabCtrl, iPage, &tab);
-}
-
-// update screen layout on WM_SIZE
-void UpdateEditSize(VOID)
-{
-    if (!Globals.hwTabCtrl)
-        return;
-
-    RECT rct;
-    GetClientRect(Globals.hMainWnd, &rct);
-    int ww = rct.right - rct.left;
-    int hh = rct.bottom - rct.top;
-
-    if (Globals.bShowStatusBar )
-    {
-        hh -= ST_Height-XSP;
-    }
-
-    ww -= XSP*2; hh -= XSP*2;
-    MoveWindow(Globals.hwTabCtrl, XSP, XSP, ww, hh, TRUE);
-
-    ww -= XSP*2; hh -= TH_Height + XSP*2;
-    MoveWindow(Globals.hEdit, XSP, TH_Height + XSP, ww, hh, TRUE);
-
-}
-
-// Check for file is duplicate (already editing)
-// Returns Tab index (zero-based) on matching duplicate file already loaed, -1 on not duplicate.
-// Caveats: very rudimentary path name comparison for match checking.
-int CheckDupFileName(LPCTSTR filePath)
-{
-    int ntab = TabCtrl_GetItemCount(Globals.hwTabCtrl);
-
-    TCITEM tab;
-    ZeroMemory(&tab, sizeof(tab));
-    tab.mask =  TCIF_PARAM;
-    EDITINFO *pedi = NULL;
-
-    for ( int iPage = 0 ; iPage < ntab; iPage++ )
-    {
-        TabCtrl_GetItem(Globals.hwTabCtrl, iPage, (LPARAM) &tab);
-        pedi = (EDITINFO *) tab.lParam;
-        if ( pedi && pedi->pathOK && pedi->filePath[0]
-            && _tcsicmp(filePath, pedi->filePath) == 0 )    // very rudimentary!
-        {
-            TabCtrl_SetCurSel(Globals.hwTabCtrl, iPage);
-            OnTabChange();
-            return (iPage);
-        }
-    }
-    return -1;
-}
-
-// Cloase all open files and ask to save unsaved files.
-BOOL DoCloseAllFiles(VOID)
-{
-    int ntab = TabCtrl_GetItemCount(Globals.hwTabCtrl);
-    for ( int iPage = ntab-1 ; iPage >=0; iPage-- )
-    {
-        TabCtrl_SetCurSel(Globals.hwTabCtrl, iPage);
-        OnTabChange();
-        if (!DoCloseFile())
-            return FALSE;  // user canceled close all
-    }
-    return TRUE;
-}
-
-// Close current file and tab. Delete the tab.
-VOID DIALOG_FileClose(VOID)
-{
-    if (DoCloseFile() == FALSE)
-        return;
-
-    int iPage = TabCtrl_GetCurSel(Globals.hwTabCtrl);
-    TabCtrl_DeleteItem(Globals.hwTabCtrl, iPage);
-    int ntab = TabCtrl_GetItemCount(Globals.hwTabCtrl);
-
-    if (ntab == 0)
-    {
-        PostMessage(Globals.hMainWnd, WM_CLOSE, 0, 0);
-        return;
-    }
-
-    TabCtrl_SetCurSel(Globals.hwTabCtrl, ((iPage == ntab) ? iPage-1 : iPage));
-    OnTabChange();
-}
-
-
-

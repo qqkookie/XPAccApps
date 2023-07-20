@@ -9,6 +9,7 @@ list(APPEND SOURCE
     printing.c
     settings.c
     text.c
+    misc.c
     notepad.h)
 
 add_link_options(/SUBSYSTEM:WINDOWS /MANIFEST:NO)

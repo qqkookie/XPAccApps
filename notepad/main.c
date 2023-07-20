@@ -84,6 +84,10 @@ static int NOTEPAD_MenuCommand(WPARAM wParam)
     case CMD_HELP_ABOUT_NOTEPAD: DIALOG_HelpAboutNotepad(); break;
 
     default:
+        if ( wParam >= MENU_RECENT &&  wParam < MENU_RECENT10 )
+        {
+            DIALOG_MenuRecent(wParam);
+        }
         break;
     }
     return 0;
@@ -295,6 +299,8 @@ static VOID NOTEPAD_InitData(HINSTANCE hInstance)
     LoadString(Globals.hInstance, STRING_UNTITLED,
         Globals.szUntitled, _countof(Globals.szUntitled));
     StringCchCopy(Globals.szFileTitle, _countof(Globals.szFileTitle), Globals.szUntitled);
+
+    MRU_Init();
 }
 
 /***********************************************************************
@@ -320,6 +326,9 @@ static VOID NOTEPAD_InitMenuPopup(HMENU menu, LPARAM index)
 
     EnableMenuItem(menu, CMD_SELECT_ALL,
         GetWindowTextLength(Globals.hEdit) ? MF_ENABLED : MF_GRAYED);
+
+    UpdateMenuRecent(menu);
+
 }
 
 LRESULT CALLBACK EDIT_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -399,6 +408,11 @@ NOTEPAD_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_DESTROY:
+        if (Globals.pEditInfo)
+            free(Globals.pEditInfo);
+        if (Globals.hEdit)
+            DestroyWindow(Globals.hEdit);
+
         if (Globals.hFont)
             DeleteObject(Globals.hFont);
         if (Globals.hDevMode)
@@ -406,7 +420,7 @@ NOTEPAD_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         if (Globals.hDevNames)
             GlobalFree(Globals.hDevNames);
         SetWindowLongPtr(Globals.hEdit, GWLP_WNDPROC, (LONG_PTR)Globals.EditProc);
-        NOTEPAD_SaveSettingsToRegistry();
+        NOTEPAD_SaveSettings();
         PostQuitMessage(0);
         break;
 
@@ -626,7 +640,7 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE prev, LPTSTR cmdline, int sh
     aFINDMSGSTRING = (ATOM)RegisterWindowMessage(FINDMSGSTRING);
 
     NOTEPAD_InitData(hInstance);
-    NOTEPAD_LoadSettingsFromRegistry();
+    NOTEPAD_LoadSettings();
 
     ZeroMemory(&wndclass, sizeof(wndclass));
     wndclass.cbSize = sizeof(wndclass);

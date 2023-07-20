@@ -35,6 +35,7 @@ VOID DIALOG_SelectFont(VOID);
 
 VOID DIALOG_ViewStatusBar(VOID);
 VOID DIALOG_StatusBarAlignParts(VOID);
+VOID DIALOG_StatusBarUpdateAll(VOID);
 VOID DIALOG_StatusBarUpdateCaretPos(VOID);
 
 VOID DIALOG_HelpContents(VOID);
@@ -59,11 +60,4 @@ VOID DoShowHideStatusBar(VOID);
 VOID DoCreateEditWindow(VOID);
 void UpdateWindowCaption(BOOL clearModifyAlert);
 
-BOOL DoCreateTabControl(VOID);
-BOOL AddNewEditTab(VOID);
-void OnTabChange(VOID);
-void SetTabHeader(VOID);
-
-void UpdateEditSize(VOID);
-int CheckDupFileName(LPCTSTR filePath);
-BOOL DoCloseAllFiles(VOID);
+VOID DIALOG_MenuRecent(int menu_id);
