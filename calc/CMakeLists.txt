@@ -1,5 +1,7 @@
 # Calc app slave CMakeList.txt
 
+project(XClac)
+
 set(xapp xcalc)
 
 set(ENABLE_MULTI_PRECISION 1)

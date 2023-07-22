@@ -8,6 +8,8 @@
 
 #include "precomp.h"
 
+int DPIScale = 2000;
+
 POINT start;
 POINT last;
 
@@ -211,6 +213,7 @@ _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, INT nC
     if (__argc >= 2)
         DoLoadImageFile(mainWindow, __targv[1], TRUE);
     imageModel.ClearHistory();
+    imageSaved = TRUE;
 
     // Make the window visible on the screen
     mainWindow.ShowWindow(registrySettings.WindowPlacement.showCmd);

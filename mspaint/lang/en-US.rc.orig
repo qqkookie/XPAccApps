@@ -14,23 +14,16 @@ ID_MENU MENU
 BEGIN
     POPUP "&File"
     BEGIN
-//        MENUITEM "&New\tCtrl+N", IDM_FILENEW
+        MENUITEM "&New\tCtrl+N", IDM_FILENEW
         MENUITEM "&Open...\tCtrl+O", IDM_FILEOPEN
         MENUITEM "&Save\tCtrl+S", IDM_FILESAVE
         MENUITEM "Save &As...", IDM_FILESAVEAS
-        MENUITEM "&Close\tCtrl+W", IDM_FILENEW
         MENUITEM SEPARATOR
-//        MENUITEM "From Scanner or Camera...", IDM_FILEFROMSCANNERORCAMERA        
-        POPUP "&Recenly used files"
-        BEGIN
-            MENUITEM "MRU file 1", IDM_FILE1
-        END
-        MENUITEM "file 1", IDM_FILE1
+        MENUITEM "From Scanner or Camera...", IDM_FILEFROMSCANNERORCAMERA
         MENUITEM SEPARATOR
-//        MENUITEM "Page View", IDM_FILEPAGEVIEW  
+        MENUITEM "Page View", IDM_FILEPAGEVIEW
         MENUITEM "Page Setup...", IDM_FILEPAGESETUP
         MENUITEM "&Print...\tCtrl+P", IDM_FILEPRINT
-/*
         MENUITEM SEPARATOR
         MENUITEM "Send...", IDM_FILESEND
         MENUITEM SEPARATOR
@@ -39,17 +32,6 @@ BEGIN
         MENUITEM "Set as wallpaper (Stretched)", IDM_FILEASWALLPAPERSTRETCHED
         MENUITEM SEPARATOR
         MENUITEM "Most recently used file", IDM_FILEMOSTRECENTLYUSEDFILE, GRAYED
-*/
-        POPUP "&Image Utility"
-        BEGIN
-            MENUITEM "From Scanner or Camera...", IDM_FILEFROMSCANNERORCAMERA
-            MENUITEM "Page View", IDM_FILEPAGEVIEW
-            MENUITEM "Send...", IDM_FILESEND
-            MENUITEM SEPARATOR
-            MENUITEM "Set as wallpaper (Tiled)", IDM_FILEASWALLPAPERPLANE
-            MENUITEM "Set as wallpaper (Centered)", IDM_FILEASWALLPAPERCENTERED
-            MENUITEM "Set as wallpaper (Stretched)", IDM_FILEASWALLPAPERSTRETCHED
-        END
         MENUITEM SEPARATOR
         MENUITEM "E&xit\tAlt+F4", IDM_FILEEXIT
     END
@@ -75,7 +57,6 @@ BEGIN
         MENUITEM "&Status bar", IDM_VIEWSTATUSBAR, CHECKED
         MENUITEM "T&ext Toolbar", IDM_FORMATICONBAR, CHECKED, GRAYED
         MENUITEM SEPARATOR
-/*
         POPUP "&Zoom"
         BEGIN
             POPUP "&User defined"
@@ -92,10 +73,7 @@ BEGIN
             MENUITEM "Show &grid\tCtrl+G", IDM_VIEWSHOWGRID
             MENUITEM "S&how miniature", IDM_VIEWSHOWMINIATURE
         END
-*/
         MENUITEM "&Full screen\tCtrl+F", IDM_VIEWFULLSCREEN
-        MENUITEM "Show &grid\tCtrl+G", IDM_VIEWSHOWGRID
-        MENUITEM "S&how miniature", IDM_VIEWSHOWMINIATURE
     END
     POPUP "&Image"
     BEGIN
@@ -106,34 +84,14 @@ BEGIN
         MENUITEM "&Attributes...\tCtrl+E", IDM_IMAGEATTRIBUTES
         MENUITEM "Delete image\tCtrl+Shft+N", IDM_IMAGEDELETEIMAGE
         MENUITEM "&Draw opaque", IDM_IMAGEDRAWOPAQUE
-/*
     END
     POPUP "&Colors"
     BEGIN
-*/	
-        MENUITEM SEPARATOR
-        MENUITEM "&Modern palette", IDM_COLORSMODERNPALETTE
-        MENUITEM "&Old palette", IDM_COLORSOLDPALETTE
         MENUITEM "&Edit palette...", IDM_COLORSEDITPALETTE
-    END
-    POPUP "&Zoom"
-    BEGIN
-        MENUITEM "1&00%", IDM_ZOOM100
-        MENUITEM "1&50%", IDM_ZOOM150
-        MENUITEM "&200%", IDM_ZOOM200
-        MENUITEM "&300%", IDM_ZOOM300
-        MENUITEM "&400%", IDM_ZOOM400
-        MENUITEM "&600%", IDM_ZOOM600
-        MENUITEM "&800%", IDM_ZOOM800
-        MENUITEM "1200% (&9)", IDM_ZOOM1200
-        MENUITEM "70% (&a)", IDM_ZOOM70
-        MENUITEM "50% (&b)", IDM_ZOOM50
-        MENUITEM "33% (&c)", IDM_ZOOM33
-        MENUITEM "25% (&d)", IDM_ZOOM25
-        MENUITEM "12.5% (&e)", IDM_ZOOM125
         MENUITEM SEPARATOR
-        MENUITEM "&User defined", IDM_ZOOMUSER
-    END	
+        MENUITEM "Modern palette", IDM_COLORSMODERNPALETTE
+        MENUITEM "Old palette", IDM_COLORSOLDPALETTE
+    END
     POPUP "&Help"
     BEGIN
         MENUITEM "&Help Topics", IDM_HELPHELPTOPICS
@@ -163,7 +121,6 @@ BEGIN
     "^I", IDM_IMAGEINVERTCOLORS
     "^E", IDM_IMAGEATTRIBUTES
     "N", IDM_IMAGEDELETEIMAGE, CONTROL, SHIFT, VIRTKEY
-    "^W", IDM_FILENEW
 END
 
 IDD_MIRRORROTATE DIALOGEX 100, 100, 180, 100

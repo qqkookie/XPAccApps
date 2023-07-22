@@ -36,15 +36,8 @@
 
 #define MENU_RECENT    0x1200
 #define MENU_RECENT1   0x1201
-#define MENU_RECENT2   0x1202
-#define MENU_RECENT3   0x1203
-#define MENU_RECENT4   0x1204
-#define MENU_RECENT5   0x1205
-#define MENU_RECENT6   0x1206
-#define MENU_RECENT7   0x1207
-#define MENU_RECENT8   0x1208
 #define MENU_RECENT9   0x1209
-#define MENU_RECENT10  0x120A
+
 
 #define CMD_UNDO       0x110
 #define CMD_CUT        0x111

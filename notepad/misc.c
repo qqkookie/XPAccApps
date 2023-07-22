@@ -344,22 +344,36 @@ void MRU_Save()
 
 void UpdateMenuRecent(HMENU menuMain)
 {
-    MENUITEMINFO mi_mru;
-    ZeroMemory(&mi_mru, sizeof (MENUITEMINFO));
-    mi_mru.cbSize = sizeof(MENUITEMINFO);
-    mi_mru.fMask = MIIM_STRING;
-
     TCHAR szTitle[MAX_PATH] = {0}, szMenu[MAX_PATH] = {0};
 
     MRU_Sort();
 
+#define MENUOFFSET_RECENTLYUSED   6
+
+    HMENU hmsubMRU = GetSubMenu(menuMain, MENUOFFSET_RECENTLYUSED);
+    int nmi = GetMenuItemCount(hmsubMRU);
+    for (int imi = 0; imi < nmi; imi++)
+    {
+        DeleteMenu(hmsubMRU, 0, MF_BYPOSITION);
+    }
+
     for (int ii = 0; ii < MRU_MAX; ii++ )
     {
-        BOOL ok = !GetFileTitle(MRU_Enum(ii), szTitle, _countof(szTitle));
-        StringCchPrintf(szMenu, _countof(szMenu), ok ? L"&%d  %s" :L"        ", ii+1, szTitle);
+        szTitle[0] = 0;
+        if (GetFileTitle(MRU_Enum(ii), szTitle, _countof(szTitle)) != 0 )
+            break;
+        StringCchPrintf(szMenu, _countof(szMenu), L"&%d  %s", ii+1, szTitle);
         LimitStrLen(szMenu, 0);
-        mi_mru.dwTypeData = szMenu;
-        SetMenuItemInfo(menuMain, MENU_RECENT1 +ii, FALSE, &mi_mru);
+        /*
+        * _KOOKIE_: Fix MRU....
+        if (ii < 3 )
+        {
+            DeleteMenu(menuMain, MENUOFFSET_RECENTLYUSED +ii +1, MF_BYPOSITION);
+            InsertMenu(menuMain, MENUOFFSET_RECENTLYUSED +ii +1,
+            MF_BYPOSITION|MF_STRING, MENU_RECENT1 +ii, szMenu );
+        }
+        */
+        AppendMenu(hmsubMRU, MF_BYPOSITION|MF_STRING, MENU_RECENT1 +ii, szMenu);
     }
 }
 

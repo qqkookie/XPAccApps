@@ -76,7 +76,9 @@ BEGIN
 END
 
 /* Manifest */
+#ifndef NOMANIFEST
 #ifndef CONSOLE_APP
 // Link .exe file with /MANIFEST:NO linker option
 CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "../manifest.xml"
+#endif
 #endif

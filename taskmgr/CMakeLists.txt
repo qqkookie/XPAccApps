@@ -1,5 +1,7 @@
 # TaskMgr app slave CMakeList.txt
 
+project(XTaskMgr)
+
 set(xapp xtaskmgr)
 
 list(APPEND SOURCE

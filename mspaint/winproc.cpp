@@ -45,6 +45,9 @@ static HWND DoHtmlHelpW(HWND hwndCaller, LPCWSTR pszFile, UINT uCommand, DWORD_P
 BOOL
 zoomTo(int newZoom, int mouseX, int mouseY)
 {
+    static int zoom_scale[] = { 1000, 125, 250, 330, 500, 700,
+            1000, 1500, 2000, 3000, 4000, 6000, 8000, 12000 };
+
     int x, y, w, h;
     RECT clientRectScrollbox;
     canvasWindow.GetClientRect(&clientRectScrollbox);
@@ -52,6 +55,9 @@ zoomTo(int newZoom, int mouseX, int mouseY)
     RECT clientRectImageArea;
     ::SetRect(&clientRectImageArea, 0, 0, imageModel.GetWidth(), imageModel.GetHeight());
     Zoomed(clientRectImageArea);
+
+    if (newZoom >= 0 && newZoom < _countof(zoom_scale))
+        newZoom = zoom_scale[newZoom];
 
     w = clientRectImageArea.right * newZoom / toolsModel.GetZoom();
     h = clientRectImageArea.bottom * newZoom / toolsModel.GetZoom();
@@ -387,6 +393,18 @@ void CMainWindow::ProcessFileMenu(HMENU hPopupMenu)
     EnableMenuItem(hPopupMenu, IDM_FILEASWALLPAPERCENTERED,  ENABLED_IF(isAFile && isBMP));
     EnableMenuItem(hPopupMenu, IDM_FILEASWALLPAPERSTRETCHED, ENABLED_IF(isAFile && isBMP));
 
+#define MENUOFFSET_MOSTRECENTLYUSED     5
+
+    // Most recenly used files as submenu
+    HMENU hsubmenuMRU = GetSubMenu(hPopupMenu, MENUOFFSET_MOSTRECENTLYUSED);
+    INT csubmenuItems = GetMenuItemCount(hsubmenuMRU);
+
+    for (INT iItem = 0; iItem < csubmenuItems; ++iItem)
+        DeleteMenu(hsubmenuMRU, 0, MF_BYPOSITION);
+
+    if (registrySettings.strFiles[0].IsEmpty())
+        return;
+/*
     for (INT iItem = 0; iItem < MAX_RECENT_FILES; ++iItem)
         RemoveMenu(hPopupMenu, IDM_FILE1 + iItem, MF_BYCOMMAND);
 
@@ -396,7 +414,7 @@ void CMainWindow::ProcessFileMenu(HMENU hPopupMenu)
     RemoveMenu(hPopupMenu, IDM_FILEMOSTRECENTLYUSEDFILE, MF_BYCOMMAND);
 
     INT cMenuItems = GetMenuItemCount(hPopupMenu);
-
+*/
     for (INT iItem = 0; iItem < MAX_RECENT_FILES; ++iItem)
     {
         CString& strFile = registrySettings.strFiles[iItem];
@@ -412,9 +430,17 @@ void CMainWindow::ProcessFileMenu(HMENU hPopupMenu)
         // Add an accelerator (by '&') to the item number for quick access
         TCHAR szText[4 + MAX_RECENT_PATHNAME_DISPLAY + 1];
         wsprintf(szText, _T("&%u %s"), iItem + 1, (LPCTSTR)pathFile);
-
+/*
         INT iMenuItem = (cMenuItems - 2) + iItem;
         InsertMenu(hPopupMenu, iMenuItem, MF_BYPOSITION | MF_STRING, IDM_FILE1 + iItem, szText);
+*/
+        if ( iItem < MAX_RECENT_EXPOSED)
+        {
+            DeleteMenu(hPopupMenu, IDM_FILE1+iItem, MF_BYCOMMAND);
+            InsertMenu(hPopupMenu, MENUOFFSET_MOSTRECENTLYUSED+ 1 +iItem,
+               MF_BYPOSITION | MF_STRING, IDM_FILE1 + iItem, szText);
+        }
+        AppendMenu(hsubmenuMRU,  MF_BYCOMMAND | MF_STRING, IDM_FILE1 + iItem, szText);
     }
 }
 
@@ -458,13 +484,19 @@ LRESULT CMainWindow::OnInitMenuPopup(UINT nMsg, WPARAM wParam, LPARAM lParam, BO
             break;
     }
 
-    CheckMenuItem(menu, IDM_VIEWZOOM125, CHECKED_IF(toolsModel.GetZoom() == 125));
-    CheckMenuItem(menu, IDM_VIEWZOOM25,  CHECKED_IF(toolsModel.GetZoom() == 250));
-    CheckMenuItem(menu, IDM_VIEWZOOM50,  CHECKED_IF(toolsModel.GetZoom() == 500));
-    CheckMenuItem(menu, IDM_VIEWZOOM100, CHECKED_IF(toolsModel.GetZoom() == 1000));
-    CheckMenuItem(menu, IDM_VIEWZOOM200, CHECKED_IF(toolsModel.GetZoom() == 2000));
-    CheckMenuItem(menu, IDM_VIEWZOOM400, CHECKED_IF(toolsModel.GetZoom() == 4000));
-    CheckMenuItem(menu, IDM_VIEWZOOM800, CHECKED_IF(toolsModel.GetZoom() == 8000));
+    CheckMenuItem(menu, IDM_ZOOM125, CHECKED_IF(toolsModel.GetZoom() == 125));
+    CheckMenuItem(menu, IDM_ZOOM25,  CHECKED_IF(toolsModel.GetZoom() == 250));
+    CheckMenuItem(menu, IDM_ZOOM33,  CHECKED_IF(toolsModel.GetZoom() == 330));
+    CheckMenuItem(menu, IDM_ZOOM50,  CHECKED_IF(toolsModel.GetZoom() == 500));
+    CheckMenuItem(menu, IDM_ZOOM70,  CHECKED_IF(toolsModel.GetZoom() == 700));
+    CheckMenuItem(menu, IDM_ZOOM100, CHECKED_IF(toolsModel.GetZoom() == 1000));
+    CheckMenuItem(menu, IDM_ZOOM150, CHECKED_IF(toolsModel.GetZoom() == 1500));
+    CheckMenuItem(menu, IDM_ZOOM200, CHECKED_IF(toolsModel.GetZoom() == 2000));
+    CheckMenuItem(menu, IDM_ZOOM300, CHECKED_IF(toolsModel.GetZoom() == 3000));
+    CheckMenuItem(menu, IDM_ZOOM400, CHECKED_IF(toolsModel.GetZoom() == 4000));
+    CheckMenuItem(menu, IDM_ZOOM600, CHECKED_IF(toolsModel.GetZoom() == 6000));
+    CheckMenuItem(menu, IDM_ZOOM800, CHECKED_IF(toolsModel.GetZoom() == 8000));
+    CheckMenuItem(menu, IDM_ZOOM1200, CHECKED_IF(toolsModel.GetZoom() == 12000));
 
     CheckMenuItem(menu, IDM_COLORSMODERNPALETTE, CHECKED_IF(paletteModel.SelectedPalette() == PAL_MODERN));
     CheckMenuItem(menu, IDM_COLORSOLDPALETTE,    CHECKED_IF(paletteModel.SelectedPalette() == PAL_OLDTYPE));
@@ -566,6 +598,8 @@ LRESULT CMainWindow::OnCommand(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bH
         case IDM_FILEEXIT:
             SendMessage(WM_CLOSE, wParam, lParam);
             break;
+
+        case IDM_FILECLOSE:
         case IDM_FILENEW:
             if (ConfirmSave())
             {
@@ -632,6 +666,12 @@ LRESULT CMainWindow::OnCommand(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bH
         case IDM_FILE2:
         case IDM_FILE3:
         case IDM_FILE4:
+
+        case IDM_FILE5:
+        case IDM_FILE6:
+        case IDM_FILE7:
+        case IDM_FILE8:
+        case IDM_FILE9:
         {
             INT iFile = LOWORD(wParam) - IDM_FILE1;
             if (ConfirmSave())
@@ -869,7 +909,7 @@ LRESULT CMainWindow::OnCommand(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bH
             miniature.DoCreate(m_hWnd);
             miniature.ShowWindow(registrySettings.ShowThumbnail ? SW_SHOWNOACTIVATE : SW_HIDE);
             break;
-
+/*
         case IDM_VIEWZOOM125:
             zoomTo(125, 0, 0);
             break;
@@ -890,6 +930,22 @@ LRESULT CMainWindow::OnCommand(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bH
             break;
         case IDM_VIEWZOOM800:
             zoomTo(8000, 0, 0);
+            break;
+*/
+        case IDM_ZOOM125:
+        case IDM_ZOOM25:
+        case IDM_ZOOM33:
+        case IDM_ZOOM50:
+        case IDM_ZOOM70:
+        case IDM_ZOOM100:
+        case IDM_ZOOM150:
+        case IDM_ZOOM200:
+        case IDM_ZOOM300:
+        case IDM_ZOOM400:
+        case IDM_ZOOM600:
+        case IDM_ZOOM800:
+        case IDM_ZOOM1200:
+            zoomTo( LOWORD(wParam)-IDM_ZOOMMIN+1, 0, 0);
             break;
 
         case IDM_VIEWFULLSCREEN:

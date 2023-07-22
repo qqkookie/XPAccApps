@@ -22,11 +22,11 @@ BOOL CPaintToolBar::DoCreate(HWND hwndParent)
     if (!CWindow::Create(TOOLBARCLASSNAME, hwndParent, toolbarPos, NULL, style))
         return FALSE;
 
-    HIMAGELIST hImageList = ImageList_Create(16, 16, ILC_COLOR24 | ILC_MASK, 16, 0);
+    HIMAGELIST hImageList = ImageList_Create(ScreenScale(16), ScreenScale(16), ILC_COLOR24 | ILC_MASK, 16, 0);
     SendMessage(TB_SETIMAGELIST, 0, (LPARAM)hImageList);
 
     HBITMAP hbmIcons = (HBITMAP)::LoadImage(hProgInstance, MAKEINTRESOURCE(IDB_TOOLBARICONS),
-                                            IMAGE_BITMAP, 256, 16, 0);
+                                            IMAGE_BITMAP, ScreenScale(256), ScreenScale(16), 0);
     ImageList_AddMasked(hImageList, hbmIcons, RGB(255, 0, 255));
     ::DeleteObject(hbmIcons);
 

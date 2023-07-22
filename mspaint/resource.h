@@ -49,10 +49,12 @@
 #define IDM_FILEASWALLPAPERSTRETCHED 212
 
 #define IDM_FILEMOSTRECENTLYUSEDFILE 213
+/*
 #define IDM_FILE1 214
 #define IDM_FILE2 215
 #define IDM_FILE3 216
 #define IDM_FILE4 217
+*/
 
 #define IDM_FILEEXIT 218
 
@@ -71,6 +73,7 @@
 #define IDM_VIEWCOLORPALETTE  231
 #define IDM_VIEWSTATUSBAR     232
 #define IDM_FORMATICONBAR     233
+/*
 #define IDM_VIEWZOOM125       234
 #define IDM_VIEWZOOM25        235
 #define IDM_VIEWZOOM50        236
@@ -78,6 +81,7 @@
 #define IDM_VIEWZOOM200       238
 #define IDM_VIEWZOOM400       239
 #define IDM_VIEWZOOM800       240
+*/
 #define IDM_VIEWFULLSCREEN    241
 #define IDM_VIEWSHOWGRID      242
 #define IDM_VIEWSHOWMINIATURE 243
@@ -101,6 +105,38 @@
 #define IDM_ITALIC      281
 #define IDM_UNDERLINE   282
 #define IDM_VERTICAL    283
+
+// --------------------------------
+#define IDM_FILECLOSE	  311
+
+#define IDM_ZOOMMIN       320
+#define IDM_ZOOM125       320
+#define IDM_ZOOM25        321
+#define IDM_ZOOM33        322
+#define IDM_ZOOM50        323
+#define IDM_ZOOM70        324
+#define IDM_ZOOM100       325
+#define IDM_ZOOM150       326
+#define IDM_ZOOM200       327
+#define IDM_ZOOM300       328
+#define IDM_ZOOM400       339
+#define IDM_ZOOM600       330
+#define IDM_ZOOM800       331
+#define IDM_ZOOM1200      332
+#define IDM_ZOOMMAX       332
+
+#define IDM_ZOOMUSER      335
+
+#define IDM_FILE1         341
+#define IDM_FILE2         342
+#define IDM_FILE3         343
+#define IDM_FILE4         344
+#define IDM_FILE5         345
+#define IDM_FILE6         346
+#define IDM_FILE7         347
+#define IDM_FILE8         348
+#define IDM_FILE9         349
+// --------------------------------
 
 /* the following 16 numbers need to be in order, increasing by 1 */
 #define ID_FREESEL  600

@@ -19,13 +19,14 @@
 #define REACTOS_STR_ORIGINAL_FILENAME "mspaint.exe"
 
 #define APP_PRODUCTNAME		        "XMSPaint"
-#define APP_PRODVERMINOR		    1,0
-#define APP_PRODVERMINOR_STR		"1.0"
-#define APP_FILEVERMINOR		    1,10
+#define APP_PRODVERMINOR		    2,0
+#define APP_PRODVERMINOR_STR		"2.0"
+#define APP_FILEVERMINOR		    2,40
 #define APP_FILEDESCRIPTION		    "Paint desktop accessory app"
 #define APP_ORIGINALFILENAME		"xmspaint.exe"
 
 // #include <reactos/version.rc>
+#define NOMANIFEST
 #include "../version.rc"
 
 /* Icons */
@@ -48,7 +49,7 @@ IDI_VERTSTRETCH ICON "icons/vertstretch.ico"
 IDI_HORZSKEW ICON "icons/horzskew.ico"
 IDI_VERTSKEW ICON "icons/vertskew.ico"
 
-// CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "mspaint.exe.manifest"
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "mspaint.exe.manifest"
 
 /* UTF-8 */
 #pragma code_page(65001)

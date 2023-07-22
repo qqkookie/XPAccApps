@@ -84,9 +84,12 @@ static int NOTEPAD_MenuCommand(WPARAM wParam)
     case CMD_HELP_ABOUT_NOTEPAD: DIALOG_HelpAboutNotepad(); break;
 
     default:
-        if ( wParam >= MENU_RECENT &&  wParam < MENU_RECENT10 )
         {
-            DIALOG_MenuRecent(wParam);
+            int ix = LOWORD(wParam);
+            if ( ix >= MENU_RECENT1 &&  ix <= MENU_RECENT9 )
+            {
+                DIALOG_MenuRecent(ix);
+            }
         }
         break;
     }

@@ -15,10 +15,10 @@
 #define X_TOOLSETTINGS  0
 #define Y_TOOLSETTINGS  (CY_TOOLBAR + 3)
 #define CX_TOOLSETTINGS CX_TOOLBAR
-#define CY_TOOLSETTINGS 140
+#define CY_TOOLSETTINGS ScreenScale(140)
 
-#define CX_TRANS_ICON 40
-#define CY_TRANS_ICON 30
+#define CX_TRANS_ICON ScreenScale(40)
+#define CY_TRANS_ICON ScreenScale(30)
 #define MARGIN1 3
 #define MARGIN2 2
 
@@ -170,11 +170,11 @@ static INT getAirBrushRects(RECT rects[4], LPCRECT prc, LPPOINT ppt = NULL)
 
     rects[0] = rects[1] = rects[2] = rects[3] = *prc;
 
-    rects[0].right = rects[1].left = prc->left + cx * 3 / 8;
+    rects[0].right = rects[1].left = prc->left + cx * 4 / 10;
     rects[0].bottom = rects[1].bottom = prc->top + cy / 2;
 
     rects[2].top = rects[3].top = prc->top + cy / 2;
-    rects[2].right = rects[3].left = prc->left + cx * 2 / 8;
+    rects[2].right = rects[3].left = prc->left + cx * 4 / 10;
 
     if (ppt)
     {
@@ -265,9 +265,11 @@ LRESULT CToolSettingsWindow::OnCreate(UINT nMsg, WPARAM wParam, LPARAM lParam, W
     m_hTranspIcon = (HICON)LoadImage(hProgInstance, MAKEINTRESOURCE(IDI_TRANSPARENT),
                                      IMAGE_ICON, CX_TRANS_ICON, CY_TRANS_ICON, LR_DEFAULTCOLOR);
 
-    RECT trackbarZoomPos = {1, 1, 1 + 40, 1 + 64};
+    int dxy = ScreenScale(4);
+    RECT trackbarZoomPos = {dxy, dxy, dxy + ScreenScale(40), dxy + ScreenScale(64)};
     trackbarZoom.Create(TRACKBAR_CLASS, m_hWnd, trackbarZoomPos, NULL, WS_CHILD | TBS_VERT | TBS_AUTOTICKS);
-    trackbarZoom.SendMessage(TBM_SETRANGE, (WPARAM) TRUE, MAKELPARAM(0, 6));
+    // Range 6 -> 7 1/8 - *16
+    trackbarZoom.SendMessage(TBM_SETRANGE, (WPARAM) TRUE, MAKELPARAM(0, 7));
     trackbarZoom.SendMessage(TBM_SETPOS, (WPARAM) TRUE, (LPARAM) 3);
     return 0;
 }

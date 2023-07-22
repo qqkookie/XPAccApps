@@ -1,6 +1,26 @@
 CHANGELOG
 =====
 
+## v0.1.4
+ * 2023-07-22 16:16:00
+ * Project name change: WinXPApp -> XPAccAps
+ * Add project() name to CMakeLists.txt
+ *
+
+### xmspaint.exe
+ * Ported to Windows 11
+ * Scaled for DPI 200%
+ * Adjust menu layout
+ * Expanded MRU as submenu
+ * Separate Zoom menu.
+ * More zoom steps
+ * New command -> Close command.
+ * No save on unmodified new image
+ * Zoom tool 6 range -> 7 range
+
+### xnotepad
+ * Clean up UpdateMenuRecent()
+
 ## v0.1.3
  * 2023-07-18 20:26:00
 

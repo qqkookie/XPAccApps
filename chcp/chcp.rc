@@ -20,7 +20,8 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 #define APP_FILEDESCRIPTION	"Codepage utility command"
 #define APP_ORIGINALFILENAME	"xchcp.exe"
 
-// app version info resouce and "manifest.xml"
+// app version info resouce, excluding "manifest.xml"
+#define NOMANIFEST
 #include "../version.rc"
 
 #ifdef LANGUAGE_CS_CZ

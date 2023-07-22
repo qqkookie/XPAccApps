@@ -1,4 +1,6 @@
-project(MSPAINT)
+# MSPaint app slave CMakeList.txt
+
+project(XMSPaint)
 
 add_definitions(-DINITGUID)
 

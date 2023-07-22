@@ -1,3 +1,6 @@
+# Notepad app slave CMakeList.txt
+
+project(XNotePad)
 
 if(DBG)
     add_definitions(-D_DEBUG=1)

@@ -8,7 +8,8 @@
 
 #pragma once
 
-#define MAX_RECENT_FILES 4
+#define MAX_RECENT_FILES    9
+#define MAX_RECENT_EXPOSED  3
 
 class RegistrySettings
 {

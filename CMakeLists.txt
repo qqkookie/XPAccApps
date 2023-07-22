@@ -1,8 +1,7 @@
 # Global WinXPAccApps project master CMakeList.txt
 
 cmake_minimum_required(VERSION 3.10)
-project(XPApps)
-
+project(XPAccApps)
 
 add_compile_definitions(_AMD64_ _WIN64)
 add_compile_definitions(_UNICODE UNICODE)
@@ -10,7 +9,6 @@ add_compile_definitions(_UNICODE UNICODE)
 add_compile_definitions( PRIVATEPROFILE_INI="XPAccApps.ini")
 
 if(MSVC)
-#     add_importlibs(calc ntdll)
     # warning C4244, C4267: conversion from 'xxx' to 'yyy', possible loss of data
     # warning C4996: 'xxx': This function or variable may be unsafe. Consider using xxx_s instead. 
     # add_compile_definitions(_CRT_SECURE_NO_WARNINGS)

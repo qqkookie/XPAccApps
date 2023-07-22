@@ -53,3 +53,7 @@ extern CToolSettingsWindow toolSettingsWindow;
 extern CPaletteWindow paletteWindow;
 extern CCanvasWindow canvasWindow;
 extern CTextEditWindow textEditWindow;
+
+extern int DPIScale;
+
+#define ScreenScale(xy) MulDiv((xy), DPIScale, 1000)

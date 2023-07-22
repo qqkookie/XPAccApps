@@ -10,7 +10,7 @@
 #include "precomp.h"
 
 /* The private metrics */
-#define CXY_SELECTEDBOX     15 /* width / height of a selected color box */
+#define CXY_SELECTEDBOX     ScreenScale(15) /* width / height of a selected color box */
 #define X_MARGIN 4 /* horizontal margin */
 #define Y_MARGIN ((rcClient.bottom / 2) - CXY_COLORBOX) /* center position minus one color box */
 #define X_COLORBOX_OFFSET   (X_MARGIN + CXY_BIGBOX + X_MARGIN)

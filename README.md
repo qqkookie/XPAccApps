@@ -6,7 +6,7 @@ Simple Windows XP Accessories ported from React OS application
 like calculator, notepad, taskmgr.
 It looks, feels and works like Windows XP desktop accessory tools clone.
 
-Current vserion: 0.1.3
+Current vserion: 0.1.4
 
 ## What it has:
 
@@ -18,6 +18,8 @@ Current vserion: 0.1.3
  * xchcp.exe - Windows chcp.com replacement
  * xnotepad.exe
    - Simple notepad-like text editor with multi-tab support
+ * xmspaint.exe
+   - MS Paint-like image editor
 
 ## Build/Install
 
