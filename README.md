@@ -2,8 +2,8 @@ XP Acc Apps
 ======
 
 ## Introduction
-Simple Windows XP Accessories ported from React OS application
-like calculator, notepad, taskmgr.
+Simple Windows XP Accessories ported from Wine/React OS application
+like calculator, notepad, taskmgr, mspinat, wordpad, etc.
 It looks, feels and works like Windows XP desktop accessory tools clone.
 It supports high-DPI monitor like 144 dpi.
 
@@ -51,8 +51,9 @@ if it exists in AppData folder under user's home.
 
 ## NOTICE
 
-This source codes are based on [ReactOS](https://github.com/reactos/reactos) project.
-For license/copying, owners/credits, Code of Conduct, see ReactOS documents
+This source codes are based on [ReactOS](https://github.com/reactos/reactos)
+and [Wine](https://github.com/wine-mirror/wine) project.
+For license/copying, owners/credits, Code of Conduct, see ReactOS/Wine documents
 
 ## FAQ
 

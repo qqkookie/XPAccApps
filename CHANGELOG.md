@@ -1,11 +1,14 @@
 CHANGELOG
 =====
+## v0.1.5
+ * 2023-07-23 10:39:00
+ * Import Wine codebase
+ * Wine chcp, clock, notepad, taskmgr, wordpad
 
 ## v0.1.4
  * 2023-07-22 16:16:00
  * Project name change: WinXPApp -> XPAccApps
  * Add project() name to CMakeLists.txt
- *
 
 ### xmspaint
  * Ported to Windows 11
