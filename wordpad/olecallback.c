@@ -25,7 +25,8 @@
 #include <windows.h>
 #include <richedit.h>
 #include <richole.h>
-#include <wine/debug.h>
+// #include <wine/debug.h>
+#include "debug.h"
 
 #include "wordpad.h"
 

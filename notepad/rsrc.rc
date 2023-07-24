@@ -25,13 +25,13 @@ IDI_NPICON ICON "res/notepad.ico"
 /* UTF-8 */
 #pragma code_page(65001)
 
-#define APP_PRODUCTNAME		"XNotepad"
-#define APP_PRODVERMINOR	3,0
-#define APP_PRODVERMINOR_STR	"3.0"
-#define APP_FILEVERMINOR	3,30
-#define APP_FILEDESCRIPTION	"Simple notepad app"
-#define APP_INTERNALNAME	"xnotepad"
-#define APP_ORIGINALFILENAME	"xnotepad.exe"
+#define APP_PRODUCTNAME		        "XNordpad"
+#define APP_PRODVERMINOR	        3,0
+#define APP_PRODVERMINOR_STR	    "3.0"
+#define APP_FILEVERMINOR	        3,31
+#define APP_FILEDESCRIPTION	        "Simple notepad app"
+#define APP_INTERNALNAME	        "xnotepad"
+#define APP_ORIGINALFILENAME	    "xnotepad.exe"
 
 // app version info resouce
 #include "../version.rc"

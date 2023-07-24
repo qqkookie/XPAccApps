@@ -282,6 +282,8 @@ static void OnPaint(HWND hWnd, WPARAM wParam, LPARAM lParam)
     if (ps.fErase)
         FillRect(ps.hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1));
 
+    HFONT hOldFont = (HFONT) SelectObject(hdc, Globals.TextFont);
+
     /* Set the correct background and text colors */
     crOldBkColor   = SetBkColor(ps.hdc, GetSysColor(COLOR_WINDOW));
     crOldTextColor = SetTextColor(ps.hdc, GetSysColor(COLOR_WINDOWTEXT));
@@ -369,6 +371,8 @@ static void OnPaint(HWND hWnd, WPARAM wParam, LPARAM lParam)
         }
     }
 
+    SelectObject(hdc, hOldFont);
+
     /* Restore the original colors */
     SetTextColor(ps.hdc, crOldTextColor);
     SetBkColor(ps.hdc, crOldBkColor);
@@ -376,6 +380,18 @@ static void OnPaint(HWND hWnd, WPARAM wParam, LPARAM lParam)
     EndPaint(hWnd, &ps);
 
     CloseClipboard();
+}
+
+// Create font and select it. Returns old font handle. 
+HFONT SetTextFont(HDC hDC)
+{
+    int dpi = GetDeviceCaps( hDC, LOGPIXELSY);
+    LOGFONT lf;
+    ZeroMemory(&lf, sizeof(lf));
+    lf.lfHeight = - MulDiv( 12, dpi, 72);
+    wcscpy(lf.lfFaceName,  L"Tahoma");
+    Globals.TextFont = CreateFontIndirect(&lf);
+    return SelectObject(hDC, Globals.TextFont);
 }
 
 static LRESULT WINAPI MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -386,6 +402,7 @@ static LRESULT WINAPI MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
         {
             TEXTMETRICW tm;
             HDC hDC = GetDC(hWnd);
+            HFONT hOldFont = SetTextFont(hDC);
 
             /*
              * Note that the method with GetObjectW just returns
@@ -396,6 +413,8 @@ static LRESULT WINAPI MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
                 Globals.CharWidth  = tm.tmMaxCharWidth; // tm.tmAveCharWidth;
                 Globals.CharHeight = tm.tmHeight + tm.tmExternalLeading;
             }
+
+            SelectObject(hDC, hOldFont);
             ReleaseDC(hWnd, hDC);
 
 
@@ -423,6 +442,7 @@ static LRESULT WINAPI MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
         case WM_DESTROY:
         {
             ChangeClipboardChain(hWnd, Globals.hWndNext);
+            DeleteObject(Globals.TextFont);
 
             if (Globals.uDisplayFormat == CF_OWNERDISPLAY)
             {
@@ -724,6 +744,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         ShowLastWin32Error(NULL);
         return 0;
     }
+
+    SetWindowPos(Globals.hMainWnd, 0, 0, 0, 640, 480, SWP_NOMOVE|SWP_NOZORDER);
 
     ShowWindow(Globals.hMainWnd, nCmdShow);
     UpdateWindow(Globals.hMainWnd);

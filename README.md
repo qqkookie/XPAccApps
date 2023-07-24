@@ -1,25 +1,28 @@
- WinXPAccApps
+XP Acc Apps
 ======
 
 ## Introduction
 Simple Windows XP Accessories ported from React OS application
 like calculator, notepad, taskmgr.
 It looks, feels and works like Windows XP desktop accessory tools clone.
+It supports high-DPI monitor like 144 dpi.
 
 Current vserion: 0.1.4
 
 ## What it has:
 
- * xcalc.exe
-   - XP style calculator app.
-   64 bits double precision version or multi-precision MPFR version
- * xtaskmgr.exe
-   - XP style task manager
+ * xcalc.exe -
+   XP style calculator app. 64 bits double precision version
+   or multi-precision MPFR version
+ * xtaskmgr.exe -
+   XP style task manager
  * xchcp.exe - Windows chcp.com replacement
- * xnotepad.exe
-   - Simple notepad-like text editor with multi-tab support
- * xmspaint.exe
-   - MS Paint-like image editor
+ * xnotepad.exe -
+   Simple notepad-like text editor with multi-tab support
+ * xmspaint.exe -
+   Simple MS Paint-like image editor
+ * xclipbrd -
+   Simple clipboard viewer
 
 ## Build/Install
 

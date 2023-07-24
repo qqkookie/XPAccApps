@@ -212,17 +212,19 @@ static HWND MoveControl(HWND hDlg, int item, int dx, int dy, int dw, int dh, BOO
 // Adjust buttons layout
 void AdjustLayout(HWND hDlg, DWORD dwLayout)
 {
+    int dpi = GetDeviceCaps( GetDC(NULL), LOGPIXELSY);
+    int RH = MulDiv(30, dpi, 96);    // button row height
+
 #define MOVE(iid, dx, dy) MoveControl(hDlg, iid, (dx), (dy), 0, 0, TRUE)
-    int RH = 30;    // button row height
 
     if (dwLayout == IDD_DIALOG_SCIENTIFIC) {
         MOVE( IDC_BUTTON_Xe3,-1000, -1000);
-        MOVE( IDC_BUTTON_XeY, 0, 2*RH);
+        MOVE( IDC_BUTTON_XeY, 0, 2*RH +RH/8);
     }
     else if (dwLayout == IDD_DIALOG_CONVERSION) {
-        MOVE( IDC_BUTTON_PERCENT, 0, RH-2);
-        MOVE( IDC_BUTTON_RX, 0, -2*RH+3);
-        MOVE( IDC_BUTTON_SQRT, 0, RH-1);
+        MOVE( IDC_BUTTON_PERCENT, 0, RH);
+        MOVE( IDC_BUTTON_RX, 0, -2*RH);
+        MOVE( IDC_BUTTON_SQRT, 0, RH);
     }
     else if (GetDlgItem(hDlg, IDC_BUTTON_LEFTPAR)) { // IDD_DIALOG_STANDARD
 
@@ -251,7 +253,7 @@ void AdjustLayout(HWND hDlg, DWORD dwLayout)
         MOVE( IDC_BUTTON_DOT, 0, RH);
 
         MOVE( IDC_BUTTON_PERCENT, 0, RH);
-        MOVE( IDC_BUTTON_RX, 0, -2*RH);
+        MOVE( IDC_BUTTON_RX, 0, -2*RH -RH/8);
         MOVE( IDC_BUTTON_MP, 0, RH);
 
         MoveControl(hDlg, IDC_BUTTON_ADD, 0, 0, 0, RH, TRUE); // enlarge
@@ -295,4 +297,5 @@ void AdjustLayout(HWND hDlg, DWORD dwLayout)
         calc.memory_ToolTip = &mem_ti;
         SendMessage(hwTip, TTM_ACTIVATE, TRUE, 0);
     }
+    SendMessage(hDlg, WM_PAINT, 0,0);
 }

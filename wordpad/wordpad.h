@@ -278,3 +278,7 @@ void registry_set_options(HWND);
 
 /* olecallback.c */
 HRESULT setup_richedit_olecallback(HWND hEditorWnd);
+
+#define RICHEDIT_CLASS20W       L"RichEdit20W"
+
+#define ScrScale(xy) ((xy)*2)

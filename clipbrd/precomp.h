@@ -50,6 +50,8 @@ typedef struct _CLIPBOARD_GLOBALS
     /* Metrics of the current font */
     LONG CharWidth;
     LONG CharHeight;
+
+    HFONT TextFont;
 } CLIPBOARD_GLOBALS;
 
 extern CLIPBOARD_GLOBALS Globals;

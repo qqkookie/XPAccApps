@@ -18,12 +18,12 @@
 #define REACTOS_STR_INTERNAL_NAME     "mspaint"
 #define REACTOS_STR_ORIGINAL_FILENAME "mspaint.exe"
 
-#define APP_PRODUCTNAME		        "XMSPaint"
-#define APP_PRODVERMINOR		    2,0
-#define APP_PRODVERMINOR_STR		"2.0"
-#define APP_FILEVERMINOR		    2,40
-#define APP_FILEDESCRIPTION		    "Paint desktop accessory app"
-#define APP_ORIGINALFILENAME		"xmspaint.exe"
+#define APP_PRODUCTNAME                 "XMSPaint"
+#define APP_PRODVERMINOR                2,0
+#define APP_PRODVERMINOR_STR           "2.0"
+#define APP_FILEVERMINOR               2,40
+#define APP_FILEDESCRIPTION           "Paint desktop accessory app"
+#define APP_ORIGINALFILENAME          "xmspaint.exe"
 
 // #include <reactos/version.rc>
 #define NOMANIFEST

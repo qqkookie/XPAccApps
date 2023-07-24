@@ -3,11 +3,11 @@ CHANGELOG
 
 ## v0.1.4
  * 2023-07-22 16:16:00
- * Project name change: WinXPApp -> XPAccAps
+ * Project name change: WinXPApp -> XPAccApps
  * Add project() name to CMakeLists.txt
  *
 
-### xmspaint.exe
+### xmspaint
  * Ported to Windows 11
  * Scaled for DPI 200%
  * Adjust menu layout
@@ -20,6 +20,16 @@ CHANGELOG
 
 ### xnotepad
  * Clean up UpdateMenuRecent()
+
+### xclipbrd
+ * Porting and font scaling.
+
+### xcalc
+ * DPI scaling fix.
+
+### wordpad
+ * Wordpad ported
+ * TODO: DPI scaling WIP.
 
 ## v0.1.3
  * 2023-07-18 20:26:00

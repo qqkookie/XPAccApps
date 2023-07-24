@@ -33,7 +33,8 @@
 #include <commdlg.h>
 #include <shellapi.h>
 #include <shlobj.h>
-#include <wine/unicode.h>
+// #include <wine/unicode.h>
+#include "unicode.h"
 
 #include "wordpad.h"
 
@@ -163,6 +164,8 @@ static void AddButton(HWND hwndToolBar, int nImage, int nCommand)
     button.fsStyle = BTNS_BUTTON;
     button.dwData = 0;
     button.iString = -1;
+    SendMessageW(hwndToolBar, TB_SETBITMAPSIZE, 0, 64 <<16 | 64);
+
     SendMessageW(hwndToolBar, TB_ADDBUTTONSW, 1, (LPARAM)&button);
 }
 
@@ -1383,7 +1386,7 @@ static void number_with_units(LPWSTR buffer, int number)
     static const WCHAR fmt[] = {'%','.','2','f',' ','%','s','\0'};
     float converted = (float)number / (float)TWIPS_PER_INCH *(float)CENTMM_PER_INCH / 1000.0;
 
-    sprintfW(buffer, fmt, converted, units_cmW);
+    sprintfW(buffer, 32, fmt, converted, units_cmW);
 }
 
 static BOOL get_comboexlist_selection(HWND hComboEx, LPWSTR wszBuffer, UINT bufferLength)
@@ -1819,7 +1822,7 @@ static LRESULT OnCreate( HWND hWnd )
       IDC_TOOLBAR,
       1, hInstance, IDB_TOOLBAR,
       NULL, 0,
-      24, 24, 16, 16, sizeof(TBBUTTON));
+      ScrScale(24), ScrScale(24), ScrScale(16), ScrScale(16), sizeof(TBBUTTON));
 
     ab.hInst = HINST_COMMCTRL;
     ab.nID = IDB_STD_SMALL_COLOR;
@@ -1857,17 +1860,17 @@ static LRESULT OnCreate( HWND hWnd )
 
     hFontListWnd = CreateWindowExW(0, WC_COMBOBOXEXW, NULL,
                       WS_BORDER | WS_VISIBLE | WS_CHILD | CBS_DROPDOWN | CBS_SORT,
-                      0, 0, 200, 150, hReBarWnd, (HMENU)IDC_FONTLIST, hInstance, NULL);
+                      0, 0,ScrScale(200), ScrScale(150), hReBarWnd, (HMENU)IDC_FONTLIST, hInstance, NULL);
 
     rbb.hwndChild = hFontListWnd;
-    rbb.cx = 200;
+    rbb.cx = ScrScale(200);
     rbb.wID = BANDID_FONTLIST;
 
     SendMessageW(hReBarWnd, RB_INSERTBANDW, -1, (LPARAM)&rbb);
 
     hSizeListWnd = CreateWindowExW(0, WC_COMBOBOXEXW, NULL,
                       WS_BORDER | WS_VISIBLE | WS_CHILD | CBS_DROPDOWN,
-                      0, 0, 50, 150, hReBarWnd, (HMENU)IDC_SIZELIST, hInstance, NULL);
+                      0, 0, ScrScale(50), ScrScale(150), hReBarWnd, (HMENU)IDC_SIZELIST, hInstance, NULL);
 
     rbb.hwndChild = hSizeListWnd;
     rbb.cx = 50;
@@ -1878,7 +1881,7 @@ static LRESULT OnCreate( HWND hWnd )
 
     hFormatBarWnd = CreateToolbarEx(hReBarWnd,
          CCS_NOPARENTALIGN | CCS_NOMOVEY | WS_VISIBLE | TBSTYLE_TOOLTIPS | BTNS_BUTTON,
-         IDC_FORMATBAR, 8, hInstance, IDB_FORMATBAR, NULL, 0, 16, 16, 16, 16, sizeof(TBBUTTON));
+         IDC_FORMATBAR, 8, hInstance, IDB_FORMATBAR, NULL, 0, ScrScale(16), ScrScale(16), ScrScale(16), ScrScale(16), sizeof(TBBUTTON));
 
     AddButton(hFormatBarWnd, 0, ID_FORMAT_BOLD);
     AddButton(hFormatBarWnd, 1, ID_FORMAT_ITALIC);
@@ -1899,7 +1902,7 @@ static LRESULT OnCreate( HWND hWnd )
     SendMessageW(hReBarWnd, RB_INSERTBANDW, -1, (LPARAM)&rbb);
 
     hRulerWnd = CreateWindowExW(0, WC_STATICW, NULL, WS_VISIBLE | WS_CHILD,
-                                0, 0, 200, 10, hReBarWnd,  (HMENU)IDC_RULER, hInstance, NULL);
+                                0, 0, ScrScale(200), ScrScale(10), hReBarWnd,  (HMENU)IDC_RULER, hInstance, NULL);
 
 
     rbb.hwndChild = hRulerWnd;
@@ -2542,6 +2545,20 @@ static LRESULT OnSize( HWND hWnd, WPARAM wParam, LPARAM lParam )
     HWND hwndReBar = GetDlgItem(hWnd, IDC_REBAR);
     HWND hRulerWnd = GetDlgItem(hwndReBar, IDC_RULER);
     int rebarHeight = 0;
+
+    REBARBANDINFO rbinfo;
+    ZeroMemory(&rbinfo, sizeof(rbinfo));
+    rbinfo.cbSize = sizeof(rbinfo);
+   
+    rbinfo.cx = 64;
+    rbinfo.fMask = RBBIM_CHILDSIZE|RBBIM_SIZE;
+    rbinfo.cx = 64;
+    rbinfo.cxMinChild =64;
+    rbinfo.cyMinChild=64;
+    rbinfo.cyChild=64;
+    rbinfo.cyMaxChild=64;
+    // rbinfo.cyIntegral
+    SendMessage( hwndReBar, RB_SETBANDINFO, 0, &rbinfo);
 
     if (hwndStatusBar)
     {
