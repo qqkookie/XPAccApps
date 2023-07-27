@@ -15,19 +15,11 @@
     #define STRSAFE_NO_DEPRECATE
 #endif
 
-/*
-#include <windef.h>
-#include <winbase.h>
-#include <winuser.h>
-#include <winnls.h>
-#include <wingdi.h>
-*/
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#include <shellapi.h>
-#include <commdlg.h>
 #include <tchar.h>
 #include <stdlib.h>
+#include <commdlg.h>
 
 #ifdef _DEBUG
     #define _CRTDBG_MAP_ALLOC
@@ -38,29 +30,27 @@
 #include "dialog.h"
 #include "notepad_res.h"
 
-#define EDIT_STYLE_WRAP (WS_CHILD | WS_VSCROLL | ES_AUTOVSCROLL | ES_MULTILINE | ES_NOHIDESEL)
-#define EDIT_STYLE      (EDIT_STYLE_WRAP | WS_HSCROLL | ES_AUTOHSCROLL)
-#define EDIT_CLASS      _T("EDIT")
-
-#define MAX_STRING_LEN  255
+#define STR_LONG     256
+#define STR_SHORT   64
 
 /* Values are indexes of the items in the Encoding combobox. */
 typedef enum
 {
     ENCODING_AUTO    = -1,
-    ENCODING_ANSI    =  0,
-    ENCODING_UTF16LE =  1,
-    ENCODING_UTF16BE =  2,
-    ENCODING_UTF8    =  3,
-    ENCODING_UTF8BOM =  4
+    ENCODING_UTF8    =  0,
+    ENCODING_UTF8BOM =  1,
+    ENCODING_ANSIOEM =  2,
+    ENCODING_UTF16LE =  3,
+    ENCODING_UTF16BE =  4,
+
 } ENCODING;
 
-#define ENCODING_DEFAULT    ENCODING_UTF8 // ENCODING_ANSI
+#define ENCODING_DEFAULT    ENCODING_UTF8 // ENCODING_ANSIOEM
 
 typedef enum
 {
-    EOLN_CRLF = 0, /* "\r\n" */
-    EOLN_LF   = 1, /* "\n" */
+    EOLN_LF   = 0, /* "\n" */
+    EOLN_CRLF = 1, /* "\r\n" */
     EOLN_CR   = 2  /* "\r" */
 } EOLN; /* End of line (NewLine) type */
 
@@ -68,83 +58,114 @@ typedef enum
 typedef struct {
     UINT        cbSize;
     HWND        hwEDIT;
-    BOOL        isModified;
     ENCODING    encFile;
     EOLN        iEoln;
+    BOOL        isModified;
 
-    BOOL    pathOK;
-    TCHAR   filePath[MAX_PATH];
+    BOOL        pathOK;
+    TCHAR       filePath[MAX_PATH];
 } EDITINFO;
 
 typedef struct
 {
     HINSTANCE hInstance;
     HWND hMainWnd;
-    HWND hFindReplaceDlg;
-    HWND hEdit;
-    HWND hStatusBar;
-    HFONT hFont; /* Font used by the edit control */
     HMENU hMenu;
-    HGLOBAL hDevMode;
-    HGLOBAL hDevNames;
-    LOGFONT lfFont;
-    BOOL bWrapLongLines;
-    BOOL bShowStatusBar;
-    TCHAR szFindText[MAX_PATH];
-    TCHAR szReplaceText[MAX_PATH];
-    TCHAR szFileName[MAX_PATH];
-    TCHAR szFileTitle[MAX_PATH];
-    TCHAR szFilter[512];
-    RECT lMargins; /* The margin values in 100th millimeters */
-    TCHAR szHeader[MAX_PATH];
-    TCHAR szFooter[MAX_PATH];
-    TCHAR szStatusBarLineCol[MAX_PATH];
+
+    HWND hEdit;
+    WNDPROC EditProc;
+    HFONT hFont; /* Font used by the edit control */
+
+    HWND hStatusBar;
+    HWND hFindReplaceDlg;
+    FINDREPLACE find;
 
     ENCODING encFile;
     EOLN iEoln;
-
-    FINDREPLACE find;
-    WNDPROC EditProc;
-    RECT main_rect;
     BOOL bWasModified;
 
     HWND hwTabCtrl;
     EDITINFO *pEditInfo;
-    TCHAR szUntitled[MAX_PATH];
+
+    HGLOBAL hDevMode;
+    HGLOBAL hDevNames;
+
+    TCHAR szFileName[MAX_PATH];
+    TCHAR szFileTitle[MAX_PATH];
+    TCHAR szStatusBarLineCol[STR_LONG];
+    TCHAR szFilter[STR_LONG*3];
+
 } NOTEPAD_GLOBALS;
 
 extern NOTEPAD_GLOBALS Globals;
 
+TCHAR G_STR_NOTEPAD[];
+
+// ----- settings.c ------------
+
+typedef struct
+{
+    RECT main_rect;
+    LOGFONT lfFont;
+    BOOL bWrapLongLines;
+    BOOL bShowStatusBar;
+    TCHAR szFindText[STR_LONG];
+    TCHAR szReplaceText[STR_LONG];
+
+    RECT lMargins; /* The margin values in 100th millimeters */
+    TCHAR szHeader[STR_SHORT];
+    TCHAR szFooter[STR_SHORT];
+
+    TCHAR txtTypeFilter[STR_LONG];
+    TCHAR moreTypeFilter[STR_LONG*2];
+} SETTING_DATA;
+
+extern SETTING_DATA Settings;
+
+VOID LoadAppSettings(VOID);
+VOID SaveAppSettings(VOID);
+
+LPCTSTR GetString(UINT rid);
+#define GETSTRING(id)           GetString(id)
+#define LOADSTRING(id, buf)     LoadString( NULL, id, buf, _countof(buf))
+
+int LoadIniString(LPCTSTR key, LPTSTR buf, int buflen);
+LPCTSTR GetIniString(LPCTSTR key, LPCTSTR defval);
+VOID PutIniString(LPCTSTR key, LPCTSTR value);
+#define LOADINISTRING(key, buf) LoadProfileString(key, buf, _countof(buf))
+
+// ----- text.c ---------------
 BOOL ReadText(HANDLE hFile, HLOCAL *phLocal, ENCODING *pencFile, EOLN *piEoln);
 BOOL WriteText(HANDLE hFile, LPCWSTR pszText, DWORD dwTextLen, ENCODING encFile, EOLN iEoln);
 
-void NOTEPAD_LoadSettings(void);
-void NOTEPAD_SaveSettings(void);
-
-BOOL NOTEPAD_FindNext(FINDREPLACE *pFindReplace, BOOL bReplace, BOOL bShowAlert);
-VOID NOTEPAD_EnableSearchMenu(VOID);
+// ----- file.c ---------------
 VOID SetFileName(LPCTSTR szFileName);
-
-void UpdateEditSize(VOID);
-
-BOOL DoCreateTabControl(VOID);
-BOOL AddNewEditTab(VOID);
-void OnTabChange(VOID);
-void SetTabHeader(VOID);
-
-int CheckDupFileName(LPCTSTR filePath);
+BOOL DoSaveFile(VOID);
+BOOL DoCloseFile(VOID);
 BOOL DoCloseAllFiles(VOID);
+VOID DoOpenFile(LPCTSTR szFileName);
 
-void MRU_Init(VOID);
-void MRU_Add(LPCTSTR newpath);
-void MRU_Sort(VOID);
+BOOL Search_FindNext(FINDREPLACE *pFindReplace, BOOL bReplace, BOOL bShowAlert);
+VOID EventSearchReplace (FINDREPLACE *pFindReplace);
+
+VOID MRU_Init(VOID);
+VOID MRU_Add(LPCTSTR newpath);
+VOID MRU_Sort(VOID);
 LPCTSTR MRU_Enum(int n);
+VOID MRU_Load(VOID);
+VOID MRU_Save(VOID);
 
-void MRU_Load(VOID);
-void MRU_Save(VOID);
+VOID UpdateMenuRecentList(HMENU menuMain);
 
-void UpdateMenuRecent(HMENU menuMain);
+VOID ShortenPath(LPTSTR szStr, int maxlen);
+BOOL FileExists(LPCTSTR szFilename);
+BOOL HasFileExtension(LPCTSTR szFilename);
 
-void LimitStrLen(LPTSTR szStr, int limit);
-extern TCHAR ProfilePath[];
-#define PFSECTION _T("XNotePad")
+// ------------------------------
+/* utility macros */
+
+#define ZEROMEM(mem)    ZeroMemory(&mem, sizeof(mem))
+
+#define STROK(s) ((s) && *(s))
+#define STRBAD(s) ((!s)||!*(s))
+#define NULSTR  _T("")

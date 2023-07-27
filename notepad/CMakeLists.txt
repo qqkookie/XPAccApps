@@ -7,13 +7,16 @@ if(DBG)
 endif()
 
 list(APPEND SOURCE
-    dialog.c
     main.c
-    printing.c
     settings.c
+    dialog.c
+    file.c
     text.c
-    misc.c
-    notepad.h)
+    printing.c
+    
+    notepad.h
+    dialog.h
+)
 
 add_link_options(/SUBSYSTEM:WINDOWS /MANIFEST:NO)
 

@@ -1,9 +1,22 @@
 CHANGELOG
 =====
 ## v0.1.5
- * 2023-07-23 10:39:00
+ * 2023-07-27 13:49:00
  * Import Wine codebase
  * Wine chcp, clock, notepad, taskmgr, wordpad
+
+### xnotepad
+ * Major code rearrange/clean up
+ * Globals -> Globals + Settings separation
+ * Modify F1-F5 accelerator key
+ * Enum encodng/eoln reorder
+ * Encodings name change
+ * STRING_TEXT_TYPE_FILTER, STRING_MORE_TYPE_FILTER
+ * STRING_LOSS_OF_UNICODE_CHARACTERS
+ * Use GETSTRING(), LOADSTRING()
+ * UpdateWindowLayout() in dialog.c
+ * misc.c -> file.c + search
+ * MAX_STRING_LEN -> STR_LONG
 
 ## v0.1.4
  * 2023-07-22 16:16:00

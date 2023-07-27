@@ -15,13 +15,9 @@
 
 static VOID AlertPrintError(VOID)
 {
-    TCHAR szUntitled[MAX_STRING_LEN];
-
-    LoadString(Globals.hInstance, STRING_UNTITLED, szUntitled, _countof(szUntitled));
-
-    DIALOG_StringMsgBox(Globals.hMainWnd, STRING_PRINTERROR,
-                        Globals.szFileName[0] ? Globals.szFileName : szUntitled,
-                        MB_ICONEXCLAMATION | MB_OK);
+    StringMsgBox( STRING_PRINTERROR,
+        Globals.szFileName[0] ? Globals.szFileName : GETSTRING(STRING_UNTITLED),
+        MB_ICONEXCLAMATION | MB_OK);
 }
 
 static RECT
@@ -323,7 +319,7 @@ static BOOL DoPrintPage(PPRINT_DATA pData, DWORD PageCount)
             rc.bottom = rc.top + pData->cyHeader;
 
             hOldFont = SelectObject(pPrinter->hDC, pData->hHeaderFont);
-            DrawHeaderOrFooter(pPrinter->hDC, &rc, Globals.szHeader, PageCount, &pData->stNow);
+            DrawHeaderOrFooter(pPrinter->hDC, &rc, Settings.szHeader, PageCount, &pData->stNow);
             SelectObject(pPrinter->hDC, hOldFont); /* De-select the font */
         }
     }
@@ -344,7 +340,7 @@ static BOOL DoPrintPage(PPRINT_DATA pData, DWORD PageCount)
             rc.top = rc.bottom - pData->cyFooter;
 
             hOldFont = SelectObject(pPrinter->hDC, pData->hHeaderFont);
-            DrawHeaderOrFooter(pPrinter->hDC, &rc, Globals.szFooter, PageCount, &pData->stNow);
+            DrawHeaderOrFooter(pPrinter->hDC, &rc, Settings.szFooter, PageCount, &pData->stNow);
             SelectObject(pPrinter->hDC, hOldFont);
         }
 
@@ -368,14 +364,14 @@ static BOOL DoCreatePrintFonts(LPPRINTDLG pPrinter, PPRINT_DATA pPrintData)
     LOGFONT lfBody, lfHeader;
 
     /* Create the main text font for printing */
-    lfBody = Globals.lfFont;
+    lfBody = Settings.lfFont;
     lfBody.lfHeight = -Y_POINTS_TO_PIXELS(pPrinter->hDC, BODY_FONT_SIZE);
     pPrintData->hBodyFont = CreateFontIndirect(&lfBody);
     if (pPrintData->hBodyFont == NULL)
         return FALSE;
 
     /* Create the header/footer font */
-    lfHeader = Globals.lfFont;
+    lfHeader = Settings.lfFont;
     lfHeader.lfHeight = -Y_POINTS_TO_PIXELS(pPrinter->hDC, HEADER_FONT_SIZE);
     lfHeader.lfWeight = FW_BOLD;
     pPrintData->hHeaderFont = CreateFontIndirect(&lfHeader);
@@ -396,7 +392,7 @@ static BOOL DoPrintDocument(PPRINT_DATA printData)
 
     GetLocalTime(&printData->stNow);
 
-    printData->printRect = GetPrintingRect(pPrinter->hDC, &Globals.lMargins);
+    printData->printRect = GetPrintingRect(pPrinter->hDC, &Settings.lMargins);
 
     if (!DoCreatePrintFonts(pPrinter, printData))
     {
@@ -438,9 +434,9 @@ static BOOL DoPrintDocument(PPRINT_DATA printData)
     printData->cyHeader = printData->cyFooter = 2 * tmHeader.tmHeight;
     printData->cySpacing = Y_POINTS_TO_PIXELS(pPrinter->hDC, SPACING_HEIGHT);
     SelectObject(pPrinter->hDC, hOldFont); /* De-select the font */
-    if (!Globals.szHeader[0])
+    if (!Settings.szHeader[0])
         printData->cyHeader = printData->cySpacing = 0;
-    if (!Globals.szFooter[0])
+    if (!Settings.szFooter[0])
         printData->cyFooter = 0;
 
     /* The printing-copies loop */
@@ -492,8 +488,8 @@ static DWORD WINAPI PrintThreadFunc(LPVOID arg)
 static INT_PTR CALLBACK
 DIALOG_Printing_DialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    TCHAR szText[MAX_STRING_LEN];
-    static TCHAR s_szPage[64];
+    TCHAR szText[STR_LONG];
+    static TCHAR s_szPage[STR_SHORT];
     static PPRINT_DATA s_pData = NULL;
     static HANDLE s_hThread = NULL;
 
@@ -624,8 +620,8 @@ static UINT_PTR CALLBACK DIALOG_PAGESETUP_Hook(HWND hDlg, UINT uMsg, WPARAM wPar
     {
         case WM_INITDIALOG:
             /* fetch last user input prior to display dialog */
-            SetDlgItemText(hDlg, 0x141, Globals.szHeader);
-            SetDlgItemText(hDlg, 0x143, Globals.szFooter);
+            SetDlgItemText(hDlg, 0x141, Settings.szHeader);
+            SetDlgItemText(hDlg, 0x143, Settings.szFooter);
             break;
 
         case WM_COMMAND:
@@ -636,8 +632,8 @@ static UINT_PTR CALLBACK DIALOG_PAGESETUP_Hook(HWND hDlg, UINT uMsg, WPARAM wPar
                 {
                 case IDOK:
                     /* save user input and close dialog */
-                    GetDlgItemText(hDlg, 0x141, Globals.szHeader, _countof(Globals.szHeader));
-                    GetDlgItemText(hDlg, 0x143, Globals.szFooter, _countof(Globals.szFooter));
+                    GetDlgItemText(hDlg, 0x141, Settings.szHeader, _countof(Settings.szHeader));
+                    GetDlgItemText(hDlg, 0x143, Settings.szFooter, _countof(Settings.szFooter));
                     return FALSE;
 
                 case IDCANCEL:
@@ -676,7 +672,7 @@ VOID DIALOG_FilePageSetup(VOID)
     page.hwndOwner = Globals.hMainWnd;
     page.Flags = PSD_ENABLEPAGESETUPTEMPLATE | PSD_ENABLEPAGESETUPHOOK | PSD_MARGINS;
     page.hInstance = Globals.hInstance;
-    page.rtMargin = Globals.lMargins;
+    page.rtMargin = Settings.lMargins;
     page.hDevMode = Globals.hDevMode;
     page.hDevNames = Globals.hDevNames;
     page.lpPageSetupTemplateName = MAKEINTRESOURCE(DIALOG_PAGESETUP);
@@ -687,5 +683,5 @@ VOID DIALOG_FilePageSetup(VOID)
     /* NOTE: Even if PageSetupDlg returns FALSE, the following members may have changed */
     Globals.hDevMode = page.hDevMode;
     Globals.hDevNames = page.hDevNames;
-    Globals.lMargins = page.rtMargin;
+    Settings.lMargins = page.rtMargin;
 }

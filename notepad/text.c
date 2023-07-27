@@ -26,22 +26,27 @@ static BOOL IsTextNonZeroASCII(LPCVOID pText, DWORD dwSize)
 
 static ENCODING AnalyzeEncoding(const BYTE *pBytes, DWORD dwSize)
 {
-    INT flags = IS_TEXT_UNICODE_STATISTICS | IS_TEXT_UNICODE_REVERSE_STATISTICS;
+    static const char bom_utf8[] = { 0xef, 0xbb, 0xbf };
+    INT flags = IS_TEXT_UNICODE_SIGNATURE|IS_TEXT_UNICODE_STATISTICS | IS_TEXT_UNICODE_REVERSE_STATISTICS;
 
-    if (IsTextNonZeroASCII(pBytes, dwSize))
-        return ENCODING_DEFAULT;
+    if (dwSize >= sizeof(bom_utf8) && !memcmp(pBytes, bom_utf8, sizeof(bom_utf8)))
+        return ENCODING_UTF8;
 
-    if (IsTextUnicode(pBytes, dwSize, &flags))
+    IsTextUnicode(pBytes, dwSize, &flags);
+    if ( flags & IS_TEXT_UNICODE_SIGNATURE)
         return ENCODING_UTF16LE;
 
-    if (((flags & IS_TEXT_UNICODE_REVERSE_MASK) == IS_TEXT_UNICODE_REVERSE_STATISTICS))
+    if (flags & IS_TEXT_UNICODE_REVERSE_MASK)
         return ENCODING_UTF16BE;
 
     /* is it UTF-8? */
     if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, (LPCSTR)pBytes, dwSize, NULL, 0))
         return ENCODING_UTF8;
 
-    return ENCODING_ANSI;
+    if (IsTextNonZeroASCII(pBytes, dwSize))
+        return ENCODING_ANSIOEM;
+
+    return ENCODING_DEFAULT;
 }
 
 static VOID
@@ -241,7 +246,7 @@ ReadText(HANDLE hFile, HLOCAL *phLocal, ENCODING *pencFile, EOLN *piEoln)
         break;
     }
 
-    case ENCODING_ANSI:
+    case ENCODING_ANSIOEM:
     case ENCODING_UTF8:
     case ENCODING_UTF8BOM:
     {
@@ -336,7 +341,7 @@ static BOOL WriteEncodedText(HANDLE hFile, LPCWSTR pszText, DWORD dwTextLen, ENC
                 dwPos += dwByteCount / sizeof(WCHAR);
                 break;
 
-            case ENCODING_ANSI:
+            case ENCODING_ANSIOEM:
             case ENCODING_UTF8:
             case ENCODING_UTF8BOM:
                 if (encFile == ENCODING_UTF8 || encFile == ENCODING_UTF8BOM)
@@ -399,7 +404,7 @@ BOOL WriteText(HANDLE hFile, LPCWSTR pszText, DWORD dwTextLen, ENCODING encFile,
     DWORD dwPos, dwNext;
 
     /* Write the proper byte order marks if not ANSI or UTF-8 without BOM */
-    if (encFile != ENCODING_ANSI && encFile != ENCODING_UTF8)
+    if (encFile != ENCODING_ANSIOEM && encFile != ENCODING_UTF8)
     {
         wcBom = 0xFEFF;
         if (!WriteEncodedText(hFile, &wcBom, 1, encFile))
