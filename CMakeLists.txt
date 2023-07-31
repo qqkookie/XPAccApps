@@ -24,5 +24,7 @@ add_subdirectory(notepad)
 add_subdirectory(mspaint)
 add_subdirectory(clipbrd)
 add_subdirectory(wordpad)
+add_subdirectory(winmine)
+add_subdirectory(clock)
 
 set( CMAKE_RUNTIME_OUTPUT_DIRECTORY out )

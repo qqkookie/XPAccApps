@@ -19,32 +19,44 @@
  */
 
 #include "main.h"
+#include <time.h>
+#include <stdlib.h>
+#include <commctrl.h>
 
+/*
 #include <winbase.h>
 #include <winreg.h>
 #include <wingdi.h>
-#include <time.h>
-#include <stdlib.h>
-#include <shellapi.h>
 
-#include <wine/debug.h>
+#include <shellapi.h>
+*/
+
+// #include <wine/debug.h>
+#include "../wordpad/debug.h"
+
+int BOTTOM_MARGIN;
+int BOARD_WMARGIN;
+int BOARD_HMARGIN;
+
+/* mine defines */
+int MINE_WIDTH;
+int MINE_HEIGHT;
+int LED_WIDTH;
+int LED_HEIGHT;
+int FACE_WIDTH;
+int FACE_HEIGHT;
+
+VOID DoDPIScale(VOID);
+
+#ifdef PRIVATEPROFILE_INI
+static BOOL LoadSettingsIni(BOARD *p_board );
+static BOOL SaveSettingsIni(BOARD *p_board);
+#endif
 
 WINE_DEFAULT_DEBUG_CHANNEL(winemine);
 
 static const DWORD wnd_style = WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX;
-static const WCHAR registry_key[] = {'S','o','f','t','w','a','r','e','\\',
-                                     'M','i','c','r','o','s','o','f','t','\\',
-                                     'W','i','n','M','i','n','e',0};
-
-static const WCHAR xposW[] = {'X','p','o','s',0};
-static const WCHAR yposW[] = {'Y','p','o','s',0};
-static const WCHAR heightW[] = {'H','e','i','g','h','t',0};
-static const WCHAR widthW[] = {'W','i','d','t','h',0};
-static const WCHAR minesW[] = {'M','i','n','e','s',0};
-static const WCHAR difficultyW[] = {'D','i','f','f','i','c','u','l','t','y',0};
-static const WCHAR markW[] = {'M','a','r','k',0};
-static const WCHAR nameW[] = {'N','a','m','e','%','u',0};
-static const WCHAR timeW[] = {'T','i','m','e','%','u',0};
+static const WCHAR registry_key[] = L"Software\\Microsoft\\WinMine";
 
 void CheckLevel( BOARD *p_board )
 {
@@ -76,48 +88,53 @@ static void LoadBoard( BOARD *p_board )
     WCHAR key_name[8];
     unsigned i;
 
+#ifdef PRIVATEPROFILE_INI
+    if(LoadSettingsIni(p_board))
+        return;
+#endif
+
     RegOpenKeyExW( HKEY_CURRENT_USER, registry_key, 0, KEY_QUERY_VALUE, &hkey );
 
     size = sizeof( p_board->pos.x );
-    if( RegQueryValueExW( hkey, xposW, NULL, &type, (BYTE*) &p_board->pos.x, &size ) )
+    if( RegQueryValueExW( hkey, L"Xpos", NULL, &type, (BYTE*) &p_board->pos.x, &size ) )
 	p_board->pos.x = 0;
 
     size = sizeof( p_board->pos.y );
-    if( RegQueryValueExW( hkey, yposW, NULL, &type, (BYTE*) &p_board->pos.y, &size ) )
+    if( RegQueryValueExW( hkey, L"Ypos", NULL, &type, (BYTE*) &p_board->pos.y, &size ) )
         p_board->pos.y = 0;
 
     size = sizeof( p_board->rows );
-    if( RegQueryValueExW( hkey, heightW, NULL, &type, (BYTE*) &p_board->rows, &size ) )
+    if( RegQueryValueExW( hkey, L"Height", NULL, &type, (BYTE*) &p_board->rows, &size ) )
         p_board->rows = BEGINNER_ROWS;
 
     size = sizeof( p_board->cols );
-    if( RegQueryValueExW( hkey, widthW, NULL, &type, (BYTE*) &p_board->cols, &size ) )
+    if( RegQueryValueExW( hkey, L"Width", NULL, &type, (BYTE*) &p_board->cols, &size ) )
         p_board->cols = BEGINNER_COLS;
 
     size = sizeof( p_board->mines );
-    if( RegQueryValueExW( hkey, minesW, NULL, &type, (BYTE*) &p_board->mines, &size ) )
+    if( RegQueryValueExW( hkey, L"Mines", NULL, &type, (BYTE*) &p_board->mines, &size ) )
         p_board->mines = BEGINNER_MINES;
 
     size = sizeof( p_board->difficulty );
-    if( RegQueryValueExW( hkey, difficultyW, NULL, &type, (BYTE*) &p_board->difficulty, &size ) )
+    if( RegQueryValueExW( hkey, L"Difficulty", NULL, &type, (BYTE*) &p_board->difficulty, &size ) )
         p_board->difficulty = BEGINNER;
 
     size = sizeof( p_board->IsMarkQ );
-    if( RegQueryValueExW( hkey, markW, NULL, &type, (BYTE*) &p_board->IsMarkQ, &size ) )
+    if( RegQueryValueExW( hkey, L"Mark", NULL, &type, (BYTE*) &p_board->IsMarkQ, &size ) )
         p_board->IsMarkQ = TRUE;
 
     for( i = 0; i < 3; i++ ) {
-        wsprintfW( key_name, nameW, i+1 );
+        wsprintfW( key_name, L"Name%u", i+1 );
         size = sizeof( data );
         if( RegQueryValueExW( hkey, key_name, NULL, &type,
                 (LPBYTE) data, &size ) == ERROR_SUCCESS )
-            lstrcpynW( p_board->best_name[i], data, sizeof(p_board->best_name[i])/sizeof(WCHAR) );
+            lstrcpynW( p_board->best_name[i], data, _countof(p_board->best_name[i]));
         else
             LoadStringW( p_board->hInst, IDS_NOBODY, p_board->best_name[i], MAX_PLAYER_NAME_SIZE+1 );
     }
 
     for( i = 0; i < 3; i++ ) {
-        wsprintfW( key_name, timeW, i+1 );
+        wsprintfW( key_name, L"Time%u", i+1 );
         size = sizeof( p_board->best_time[i] );
         if( RegQueryValueExW( hkey, key_name, NULL, &type, (BYTE*) &p_board->best_time[i], &size ) )
             p_board->best_time[i] = 999;
@@ -145,12 +162,27 @@ static void InitBoard( BOARD *p_board )
     CheckLevel( p_board );
 }
 
-static void SaveBoard( BOARD *p_board )
+void ResetResults( BOARD *p_board )
+{
+    unsigned i;
+
+    for( i = 0; i < 3; i++ ) {
+        LoadStringW( p_board->hInst, IDS_NOBODY, p_board->best_name[i], MAX_PLAYER_NAME_SIZE+1 );
+        p_board->best_time[i] = 999;
+    }
+}
+
+void SaveBoard( BOARD *p_board )
 {
     HKEY hkey;
     unsigned i;
     WCHAR data[MAX_PLAYER_NAME_SIZE+1];
     WCHAR key_name[8];
+
+#ifdef PRIVATEPROFILE_INI
+    if(SaveSettingsIni(p_board))
+        return;
+#endif
 
     if( RegCreateKeyExW( HKEY_CURRENT_USER, registry_key,
 	        0, NULL,
@@ -158,25 +190,27 @@ static void SaveBoard( BOARD *p_board )
                 &hkey, NULL ) != ERROR_SUCCESS)
         return;
 
-    RegSetValueExW( hkey, xposW, 0, REG_DWORD, (LPBYTE) &p_board->pos.x, sizeof(p_board->pos.x) );
-    RegSetValueExW( hkey, yposW, 0, REG_DWORD, (LPBYTE) &p_board->pos.y, sizeof(p_board->pos.y) );
-    RegSetValueExW( hkey, difficultyW, 0, REG_DWORD, (LPBYTE) &p_board->difficulty, sizeof(p_board->difficulty) );
-    RegSetValueExW( hkey, heightW, 0, REG_DWORD, (LPBYTE) &p_board->rows, sizeof(p_board->rows) );
-    RegSetValueExW( hkey, widthW, 0, REG_DWORD, (LPBYTE) &p_board->cols, sizeof(p_board->cols) );
-    RegSetValueExW( hkey, minesW, 0, REG_DWORD, (LPBYTE) &p_board->mines, sizeof(p_board->mines) );
-    RegSetValueExW( hkey, markW, 0, REG_DWORD, (LPBYTE) &p_board->IsMarkQ, sizeof(p_board->IsMarkQ) );
+    RegSetValueExW( hkey, L"Xpos", 0, REG_DWORD, (BYTE*) &p_board->pos.x, sizeof(p_board->pos.x) );
+    RegSetValueExW( hkey, L"Ypos", 0, REG_DWORD, (BYTE*) &p_board->pos.y, sizeof(p_board->pos.y) );
+    RegSetValueExW( hkey, L"Difficulty", 0, REG_DWORD, (BYTE*) &p_board->difficulty, sizeof(p_board->difficulty) );
+    RegSetValueExW( hkey, L"Height", 0, REG_DWORD, (BYTE*) &p_board->rows, sizeof(p_board->rows) );
+    RegSetValueExW( hkey, L"Width", 0, REG_DWORD, (BYTE*) &p_board->cols, sizeof(p_board->cols) );
+    RegSetValueExW( hkey, L"Mines", 0, REG_DWORD, (BYTE*) &p_board->mines, sizeof(p_board->mines) );
+    RegSetValueExW( hkey, L"Mark", 0, REG_DWORD, (BYTE*) &p_board->IsMarkQ, sizeof(p_board->IsMarkQ) );
 
     for( i = 0; i < 3; i++ ) {
-        wsprintfW( key_name, nameW, i+1 );
-        lstrcpynW( data, p_board->best_name[i], sizeof(data)/sizeof(WCHAR) );
+        wsprintfW( key_name, L"Name%u", i+1 );
+        lstrcpynW( data, p_board->best_name[i], _countof(data));
         RegSetValueExW( hkey, key_name, 0, REG_SZ, (LPBYTE) data, (lstrlenW(data)+1) * sizeof(WCHAR) );
     }
 
     for( i = 0; i < 3; i++ ) {
-        wsprintfW( key_name, timeW, i+1 );
+        wsprintfW( key_name, L"Time%u", i+1 );
         RegSetValueExW( hkey, key_name, 0, REG_DWORD, (LPBYTE) &p_board->best_time[i], sizeof(p_board->best_time[i]) );
     }
     RegCloseKey( hkey );
+
+    WINE_TRACE("Board has been saved.\n");
 }
 
 static void DestroyBoard( BOARD *p_board )
@@ -439,11 +473,12 @@ static void DrawMine( HDC hdc, HDC hMemDC, BOARD *p_board, unsigned col, unsigne
         && !p_board->box[col][row].IsMine )
           offset = (MINEBMP_OFFSET) p_board->box[col][row].NumMines;
 
-    BitBlt( hdc,
+    StretchBlt( hdc,
             (col - 1) * MINE_WIDTH + p_board->mines_rect.left,
             (row - 1) * MINE_HEIGHT + p_board->mines_rect.top,
             MINE_WIDTH, MINE_HEIGHT,
-            hMemDC, 0, offset * MINE_HEIGHT, SRCCOPY );
+            hMemDC, 0, offset * _MINE_HEIGHT,
+            _MINE_WIDTH, _MINE_HEIGHT, SRCCOPY );
 }
 
 static void DrawMines ( HDC hdc, HDC hMemDC, BOARD *p_board )
@@ -488,14 +523,15 @@ static void DrawLeds( HDC hdc, HDC hMemDC, BOARD *p_board, int number, int x, in
     hOldObj = SelectObject (hMemDC, p_board->hLedsBMP);
 
     for( i = 0; i < 3; i++ ) {
-        BitBlt( hdc,
+        StretchBlt( hdc,
             i * LED_WIDTH + x,
             y,
             LED_WIDTH,
             LED_HEIGHT,
             hMemDC,
             0,
-            led[i] * LED_HEIGHT,
+            led[i] * _LED_HEIGHT,
+            _LED_WIDTH, _LED_HEIGHT,
             SRCCOPY);
     }
 
@@ -509,12 +545,13 @@ static void DrawFace( HDC hdc, HDC hMemDC, BOARD *p_board )
 
     hOldObj = SelectObject (hMemDC, p_board->hFacesBMP);
 
-    BitBlt( hdc,
+    StretchBlt( hdc,
         p_board->face_rect.left,
         p_board->face_rect.top,
         FACE_WIDTH,
         FACE_HEIGHT,
-        hMemDC, 0, p_board->face_bmp * FACE_HEIGHT, SRCCOPY);
+        hMemDC, 0, p_board->face_bmp * _FACE_HEIGHT,
+        _FACE_WIDTH, _FACE_HEIGHT, SRCCOPY);
 
     SelectObject( hMemDC, hOldObj );
 }
@@ -742,6 +779,10 @@ static void TestMines( BOARD *p_board, POINT pt, int msg )
     case WM_RBUTTONDOWN:
         AddFlag( p_board, col, row );
         break;
+
+    case WM_RBUTTONUP:
+        return;
+               
     default:
         WINE_TRACE("Unknown message type received in TestMines\n");
         break;
@@ -799,7 +840,7 @@ static void TestBoard( HWND hWnd, BOARD *p_board, int x, int y, int msg )
         p_board->press.y = 0;
     }
 
-    if( p_board->boxes_left == 0 ) {
+    if( p_board->boxes_left == 0 && p_board->status != WON ) {
         p_board->status = WON;
 
         if (p_board->num_flags < p_board->mines) {
@@ -822,6 +863,7 @@ static void TestBoard( HWND hWnd, BOARD *p_board, int x, int y, int msg )
 
             DialogBoxParamW( p_board->hInst, MAKEINTRESOURCEW(DLG_CONGRATS), hWnd,
                              CongratsDlgProc, (LPARAM) p_board);
+            SaveBoard( p_board );
             DialogBoxParamW( p_board->hInst, MAKEINTRESOURCEW(DLG_TIMES), hWnd,
                              TimesDlgProc, (LPARAM) p_board);
         }
@@ -989,10 +1031,10 @@ static LRESULT WINAPI MainProc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
         case IDM_ABOUT:
         {
             WCHAR appname[256], other[256];
-            LoadStringW( board.hInst, IDS_APPNAME, appname, sizeof(appname)/sizeof(WCHAR) );
-            LoadStringW( board.hInst, IDS_ABOUT, other, sizeof(other)/sizeof(WCHAR) );
+            LoadStringW( board.hInst, IDS_APPNAME, appname, _countof(appname) );
+            LoadStringW( board.hInst, IDS_ABOUT, other, _countof(other) );
             ShellAboutW( hWnd, appname, other,
-                         LoadImageW(board.hInst, MAKEINTRESOURCEW(IDI_WINEMINE), IMAGE_ICON, 48, 48, LR_SHARED));
+                         LoadImageW(board.hInst, MAKEINTRESOURCEW(IDI_WINMINE), IMAGE_ICON, 48, 48, LR_SHARED));
             return 0;
         }
         default:
@@ -1011,7 +1053,11 @@ int WINAPI wWinMain( HINSTANCE hInst, HINSTANCE hPrevInst, LPWSTR cmdline, int c
     HACCEL haccel;
     WCHAR appname[20];
 
-    LoadStringW( hInst, IDS_APPNAME, appname, sizeof(appname)/sizeof(WCHAR));
+    DoDPIScale();
+
+    InitCommonControls();
+
+    LoadStringW( hInst, IDS_APPNAME, appname, _countof(appname));
 
     wc.cbSize = sizeof(wc);
     wc.style = 0;
@@ -1019,12 +1065,13 @@ int WINAPI wWinMain( HINSTANCE hInst, HINSTANCE hPrevInst, LPWSTR cmdline, int c
     wc.cbClsExtra = 0;
     wc.cbWndExtra = 0;
     wc.hInstance = hInst;
-    wc.hIcon = LoadIconW( hInst, MAKEINTRESOURCEW(IDI_WINEMINE) );
+    wc.hIcon = LoadIconW( hInst, MAKEINTRESOURCEW(IDI_WINMINE) );
     wc.hCursor = LoadCursorW( 0, (LPWSTR)IDI_APPLICATION );
+    // wc.hbrBackground = GetStockObject( BLACK_BRUSH );    
     wc.hbrBackground = GetSysColorBrush(COLOR_BTNFACE); //MOD for ROS
     wc.lpszMenuName = MAKEINTRESOURCEW(IDM_WINEMINE);
     wc.lpszClassName = appname;
-    wc.hIconSm = LoadImageW( hInst, MAKEINTRESOURCEW(IDI_WINEMINE), IMAGE_ICON,
+    wc.hIconSm = LoadImageW( hInst, MAKEINTRESOURCEW(IDI_WINMINE), IMAGE_ICON,
                             GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_SHARED );
 
     if (!RegisterClassExW(&wc)) ExitProcess(1);
@@ -1049,3 +1096,106 @@ int WINAPI wWinMain( HINSTANCE hInst, HINSTANCE hPrevInst, LPWSTR cmdline, int c
     }
     return msg.wParam;
 }
+
+VOID DoDPIScale(VOID)
+{
+    int dpiScale10 = GetDpiForWindow(GetDesktopWindow())*12;
+
+#define DOSCALE(dim) MulDiv(dim, dpiScale10, 720)
+
+    BOTTOM_MARGIN = DOSCALE(_BOTTOM_MARGIN);
+    BOARD_WMARGIN = DOSCALE(_BOARD_WMARGIN);
+    BOARD_HMARGIN = DOSCALE(_BOARD_HMARGIN);
+
+    MINE_WIDTH = DOSCALE(_MINE_WIDTH);
+    MINE_HEIGHT = DOSCALE(_MINE_HEIGHT);
+    LED_WIDTH = DOSCALE(_LED_WIDTH);
+    LED_HEIGHT = DOSCALE(_LED_HEIGHT);
+    FACE_WIDTH = DOSCALE(_FACE_WIDTH);
+    FACE_HEIGHT = DOSCALE(_FACE_HEIGHT);
+}
+
+#ifdef PRIVATEPROFILE_INI
+#include <Shlobj.h>
+
+#define PFSECTION L"XMine"
+
+static TCHAR ProfilePath[MAX_PATH] = {0};
+
+BOOL FileExists(LPCTSTR szFilename)
+{
+    return GetFileAttributes(szFilename) != INVALID_FILE_ATTRIBUTES;
+}
+
+static BOOL LoadSettingsIni(BOARD *p_board)
+{
+#define GETSETTINGINT(key, def) \
+            GetPrivateProfileInt(PFSECTION, key, def, ProfilePath)
+
+#define LOADSETTINGSTR(key, buf, def) \
+            GetPrivateProfileString(PFSECTION, key, def, \
+            buf, _countof(buf), ProfilePath)
+
+    if (FAILED(SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, ProfilePath)))
+        return FALSE;
+
+    wcscat_s(ProfilePath, MAX_PATH, L"\\" PRIVATEPROFILE_INI);
+
+    p_board->pos.x  = GETSETTINGINT( L"Xpos", 100);
+    p_board->pos.y  = GETSETTINGINT( L"Ypos", 100);
+    p_board->difficulty  = GETSETTINGINT( L"difficulty", BEGINNER);
+    p_board->rows  = GETSETTINGINT( L"Height", BEGINNER_ROWS);
+    p_board->cols  = GETSETTINGINT( L"Width", BEGINNER_COLS);
+    p_board->mines  = GETSETTINGINT( L"Mines", BEGINNER_MINES);
+    p_board->IsMarkQ  = GETSETTINGINT( L"Mark", TRUE);
+
+    WCHAR key_name[10], nobody[MAX_PLAYER_NAME_SIZE+1];
+    LoadString(NULL, IDS_NOBODY, nobody, _countof(nobody));
+
+    for( int i = 0; i < _countof(p_board->best_name); i++ )
+    {
+        wsprintfW( key_name, L"Name%u", i+1 );
+        LOADSETTINGSTR( key_name, p_board->best_name[i], nobody);
+
+        wsprintfW( key_name, L"Time%u", i+1 );
+        p_board->best_time[i] = GETSETTINGINT( key_name, 999);
+    }
+
+    if (FileExists(ProfilePath))
+        return TRUE;
+    return SaveSettingsIni(p_board);
+}
+
+static BOOL SaveSettingsIni(BOARD *p_board)
+{
+    TCHAR _savebuf[256];
+#define SAVESETTINGINT(key, value) \
+            _itow_s(value, _savebuf, _countof(_savebuf), 10),\
+            WritePrivateProfileString(PFSECTION, key, _savebuf, ProfilePath)
+#define SAVESETTINGSTR(key, str) \
+            WritePrivateProfileString(PFSECTION, key, str, ProfilePath)
+
+    SAVESETTINGINT( L"Xpos", p_board->pos.x);
+    SAVESETTINGINT( L"Ypos", p_board->pos.y);
+    SAVESETTINGINT( L"Difficulty", p_board->difficulty);
+    SAVESETTINGINT( L"Height", p_board->rows);
+    SAVESETTINGINT( L"Width", p_board->cols);
+    SAVESETTINGINT( L"Mines", p_board->mines);
+    SAVESETTINGINT( L"Mark", p_board->IsMarkQ);
+
+    WCHAR key_name[10], nobody[MAX_PLAYER_NAME_SIZE+1];
+    LoadString(NULL, IDS_NOBODY, nobody, _countof(nobody));
+
+    for( int i = 0; i < _countof(p_board->best_name); i++ )
+    {
+        wsprintfW( key_name, L"Name%u", i+1 );
+        SAVESETTINGSTR( key_name, p_board->best_name[i]);
+
+        wsprintfW( key_name, L"Time%u", i+1 );
+        SAVESETTINGINT( key_name, p_board->best_time[i]);
+    }
+    WINE_TRACE("Board has been saved.\n");
+
+    return FileExists(ProfilePath);
+}
+#endif // PRIVATEPROFILE_INI

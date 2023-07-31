@@ -8,6 +8,27 @@
 
 #include "precomp.h"
 
+#include <stdlib.h>
+#include <commdlg.h>
+#include <shellapi.h>
+#include <htmlhelp.h>
+
+#define DISPLAY_MENU_POS        1
+#define SELECT_FONT_MENU_POS    4
+
+static struct { LPCWCHAR face; int size;}
+    FontList[] = {
+        { L"Tahoma", 11 },
+        { L"Lucida Console", 11 },
+        { L"Malgun Gothic", 12 },
+        { L"Meiryo", 13 },
+        { L"YaHei", 14 },
+    };
+
+static int G_FontIndex = -1;
+static VOID SetTextFont(int index);
+static HFONT G_TextFont = NULL;
+
 static const WCHAR szClassName[] = L"ClipBookWClass";
 
 CLIPBOARD_GLOBALS Globals;
@@ -258,6 +279,17 @@ static int OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             break;
         }
 
+        case CMD_FONT1:
+        case CMD_FONT2:
+        case CMD_FONT3K:
+        case CMD_FONT4J:
+        case CMD_FONT5C:
+        case CMD_FONT6T:
+        {
+            SetTextFont(LOWORD(wParam)-CMD_FONT1);
+            break;
+        }
+
         default:
         {
             break;
@@ -282,8 +314,6 @@ static void OnPaint(HWND hWnd, WPARAM wParam, LPARAM lParam)
     if (ps.fErase)
         FillRect(ps.hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1));
 
-    HFONT hOldFont = (HFONT) SelectObject(hdc, Globals.TextFont);
-
     /* Set the correct background and text colors */
     crOldBkColor   = SetBkColor(ps.hdc, GetSysColor(COLOR_WINDOW));
     crOldTextColor = SetTextColor(ps.hdc, GetSysColor(COLOR_WINDOWTEXT));
@@ -304,7 +334,9 @@ static void OnPaint(HWND hWnd, WPARAM wParam, LPARAM lParam)
         case CF_OEMTEXT:
         case CF_UNICODETEXT:
         {
+            HFONT hOldFont = (HFONT) SelectObject(hdc, G_TextFont);
             DrawTextFromClipboard(Globals.uDisplayFormat, ps, Scrollstate);
+            SelectObject(hdc, hOldFont);
             break;
         }
 
@@ -371,8 +403,6 @@ static void OnPaint(HWND hWnd, WPARAM wParam, LPARAM lParam)
         }
     }
 
-    SelectObject(hdc, hOldFont);
-
     /* Restore the original colors */
     SetTextColor(ps.hdc, crOldTextColor);
     SetBkColor(ps.hdc, crOldBkColor);
@@ -382,17 +412,6 @@ static void OnPaint(HWND hWnd, WPARAM wParam, LPARAM lParam)
     CloseClipboard();
 }
 
-// Create font and select it. Returns old font handle. 
-HFONT SetTextFont(HDC hDC)
-{
-    int dpi = GetDeviceCaps( hDC, LOGPIXELSY);
-    LOGFONT lf;
-    ZeroMemory(&lf, sizeof(lf));
-    lf.lfHeight = - MulDiv( 12, dpi, 72);
-    wcscpy(lf.lfFaceName,  L"Tahoma");
-    Globals.TextFont = CreateFontIndirect(&lf);
-    return SelectObject(hDC, Globals.TextFont);
-}
 
 static LRESULT WINAPI MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -400,26 +419,11 @@ static LRESULT WINAPI MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
     {
         case WM_CREATE:
         {
-            TEXTMETRICW tm;
-            HDC hDC = GetDC(hWnd);
-            HFONT hOldFont = SetTextFont(hDC);
-
-            /*
-             * Note that the method with GetObjectW just returns
-             * the original parameters with which the font was created.
-             */
-            if (GetTextMetricsW(hDC, &tm))
-            {
-                Globals.CharWidth  = tm.tmMaxCharWidth; // tm.tmAveCharWidth;
-                Globals.CharHeight = tm.tmHeight + tm.tmExternalLeading;
-            }
-
-            SelectObject(hDC, hOldFont);
-            ReleaseDC(hWnd, hDC);
-
-
             Globals.hMenu = GetMenu(hWnd);
             Globals.hWndNext = SetClipboardViewer(hWnd);
+
+            // SetTextFont() handles Globals.{CharWidth, CharHeight}, too.
+            SetTextFont(0);
 
             // For now, the Help dialog item is disabled because of lacking of HTML support
             EnableMenuItem(Globals.hMenu, CMD_HELP, MF_BYCOMMAND | MF_GRAYED);
@@ -442,7 +446,7 @@ static LRESULT WINAPI MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
         case WM_DESTROY:
         {
             ChangeClipboardChain(hWnd, Globals.hWndNext);
-            DeleteObject(Globals.TextFont);
+            DeleteObject(G_TextFont);
 
             if (Globals.uDisplayFormat == CF_OWNERDISPLAY)
             {
@@ -770,4 +774,48 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     }
 
     return (int)msg.wParam;
+}
+
+// Create font and set G_TextFont
+static VOID SetTextFont(int index)
+{
+    assert(index >= 0 && index < _countof(FontList));
+    if (index == G_FontIndex)
+        return;
+
+    if (G_TextFont != NULL)
+       DeleteObject(G_TextFont);
+
+    HDC hDC = GetDC(Globals.hMainWnd);
+
+    int dpi = GetDeviceCaps( hDC, LOGPIXELSY);
+    LOGFONT lf;
+    ZeroMemory(&lf, sizeof(lf));
+    wcscpy(lf.lfFaceName, FontList[index].face);
+    lf.lfHeight = - MulDiv( FontList[index].size, dpi, 72);
+
+    G_TextFont = CreateFontIndirect(&lf);
+
+    TEXTMETRICW tm;
+    HFONT hOldFont = SelectObject(hDC, G_TextFont);
+    /*
+     * Note that the method with GetObjectW just returns
+     * the original parameters with which the font was created.
+     */
+    if (GetTextMetricsW(hDC, &tm))
+    {
+        Globals.CharWidth  = tm.tmMaxCharWidth; // tm.tmAveCharWidth;
+        Globals.CharHeight = tm.tmHeight + tm.tmExternalLeading;
+        Globals.CharHeight = MulDiv(Globals.CharHeight, 110, 100); // 110%
+    }
+
+    SelectObject(hDC, hOldFont);
+    ReleaseDC(Globals.hMainWnd, hDC);
+
+    CheckMenuItem(Globals.hMenu, CMD_FONT1 + G_FontIndex, MF_BYCOMMAND|MF_UNCHECKED);
+    G_FontIndex = index;
+    CheckMenuItem(Globals.hMenu, CMD_FONT1 + G_FontIndex, MF_BYCOMMAND|MF_CHECKED);
+
+    InvalidateRect(Globals.hMainWnd, NULL, TRUE);
+    UpdateWindow(Globals.hMainWnd);
 }

@@ -26,6 +26,17 @@
 
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 
+#define APP_PRODUCTNAME		        "XMined"
+#define APP_PRODVERMINOR            1,0
+#define APP_PRODVERMINOR_STR	    "1.0"
+#define APP_FILEVERMINOR            1,5
+#define APP_FILEDESCRIPTION	        "Winmine clone game"
+#define APP_INTERNALNAME	        "xmine"
+#define APP_ORIGINALFILENAME	    "xmine.exe"
+
+// app version info resouce
+#include "../version.rc"
+
 IDA_WINEMINE ACCELERATORS
 BEGIN
     VK_F2, IDM_NEW, VIRTKEY, NOINVERT
@@ -33,7 +44,7 @@ BEGIN
 END
 
 /* @makedep: winemine.ico */
-IDI_WINEMINE ICON "rc/winemine.ico"
+IDI_WINMINE ICON "rc/winmine.ico"
 
 /* @makedep: faces.bmp */
 IDI_FACES BITMAP "rc/faces.bmp"
@@ -44,7 +55,7 @@ IDI_LEDS BITMAP "rc/leds.bmp"
 /* @makedep: mines.bmp */
 IDI_MINES BITMAP "rc/mines.bmp"
 
-#include <reactos/manifest_exe.rc>
+// #include <reactos/manifest_exe.rc>
 
 /* include localised resources */
 

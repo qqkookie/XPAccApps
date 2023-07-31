@@ -7,27 +7,43 @@ END
 
 MAIN_MENU MENU
 BEGIN
-    POPUP "&File"
+    POPUP "&Action"
     BEGIN
         MENUITEM "&Open...", CMD_OPEN
         MENUITEM "Save &As...", CMD_SAVE_AS
+        MENUITEM "&Delete\tDel", CMD_DELETE
+        POPUP "Select &Font"
+        BEGIN
+            MENUITEM "&Tahoma 11", CMD_FONT1
+            MENUITEM "Lucida &Console 11", CMD_FONT2
+            MENUITEM "Malgun &Gothic 12", CMD_FONT3K
+//            MENUITEM "&Meiryo 13", CMD_FONT4J
+//            MENUITEM "&YaHei 14", CMD_FONT5C
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "&Help Topics", CMD_HELP
+        MENUITEM "&About", CMD_ABOUT
         MENUITEM SEPARATOR
         MENUITEM "E&xit", CMD_EXIT
     END
+/*
     POPUP "&Edit"
     BEGIN
         MENUITEM "&Delete\tDel", CMD_DELETE
     END
+*/
     POPUP "&Display"
     BEGIN
         MENUITEM "&Automatic", CMD_AUTOMATIC
     END
+/*
     POPUP "&Help"
     BEGIN
         MENUITEM "&Help Topics", CMD_HELP
         MENUITEM SEPARATOR
         MENUITEM "&About", CMD_ABOUT
     END
+*/
 END
 
 STRINGTABLE

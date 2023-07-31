@@ -8,7 +8,7 @@
 
 #include "precomp.h"
 
-int DPIScale = 2000;
+int DPIScale = 200;
 
 POINT start;
 POINT last;
@@ -173,7 +173,7 @@ BOOL CMainWindow::ChooseColor(IN OUT COLORREF *prgbColor)
 HWND CMainWindow::DoCreate()
 {
     int dpi = GetDeviceCaps(::GetDC(NULL), LOGPIXELSY);
-    DPIScale = MulDiv(1000, dpi, 72);    // default image dpi
+    DPIScale = MulDiv(100, dpi, 72);    // default image dpi
 
     ::LoadString(hProgInstance, IDS_DEFAULTFILENAME, filepathname, _countof(filepathname));
 

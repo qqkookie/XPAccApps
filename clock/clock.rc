@@ -21,34 +21,48 @@
 
 #include "clock_res.h"
 
+#define APP_PRODUCTNAME		        "XClock"
+#define APP_PRODVERMINOR            3,0
+#define APP_PRODVERMINOR_STR	    "1.0"
+#define APP_FILEVERMINOR            3,30
+#define APP_FILEDESCRIPTION	        "Simple Clock"
+#define APP_INTERNALNAME	        "xclock"
+#define APP_ORIGINALFILENAME	    "xclock.exe"
+
+#include "../version.rc"
+
 #pragma makedep po
 
 LANGUAGE LANG_ENGLISH, SUBLANG_DEFAULT
 
-MAIN_MENU MENU
-{
- POPUP "&Properties" {
-  MENUITEM "Ana&log", IDM_ANALOG
-  MENUITEM "Digi&tal", IDM_DIGITAL
-  MENUITEM SEPARATOR
-  MENUITEM "&Font...", IDM_FONT
-  MENUITEM SEPARATOR
-  MENUITEM "&Without Titlebar", IDM_NOTITLE
-  MENUITEM SEPARATOR
-  MENUITEM "&Seconds", IDM_SECONDS
-  MENUITEM "&Date", IDM_DATE
-  MENUITEM SEPARATOR
-  MENUITEM "&Always on Top", IDM_ONTOP
- }
- POPUP "&Help" {
-  MENUITEM "&About Clock", IDM_ABOUT
- }
-}
+// MAIN_MENU MENU
+// POPUP "&Properties" {
+
+POPUP_MENU MENU
+BEGIN
+    POPUP "Dummy"
+    BEGIN 
+        MENUITEM "&Analog", IDM_ANALOG
+        MENUITEM "&Digital", IDM_DIGITAL
+        MENUITEM "&Seconds", IDM_SECONDS
+        MENUITEM "24 &Hours", IDM_24HOURS
+        MENUITEM SEPARATOR
+//        MENUITEM "Date on Titlebar", IDM_DATE
+        MENUITEM "&No Title Bar", IDM_NOTITLE
+        MENUITEM "Always on &Top", IDM_ONTOP
+        MENUITEM "Dar&k Color"    IDM_DARKCOLOR
+//        MENUITEM "&Font...", IDM_FONT
+        MENUITEM SEPARATOR
+        MENUITEM "A&bout Clock", IDM_ABOUT
+        MENUITEM "E&xit", IDM_EXIT
+    END
+END
+
 
 STRINGTABLE
 {
-IDS_CLOCK, "Clock"
+IDS_CLOCK, "XClock"
 }
 
 /* @makedep: clock.manifest */
-1 RT_MANIFEST clock.manifest
+// 1 RT_MANIFEST clock.manifest

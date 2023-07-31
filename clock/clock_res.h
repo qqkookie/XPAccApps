@@ -19,16 +19,19 @@
 #include <windef.h>
 #include <winuser.h>
 
-#define MAIN_MENU                 0x100
-#define IDM_ANALOG                0x101
-#define IDM_DIGITAL               0x102
-#define IDM_FONT                  0x103
-#define IDM_NOTITLE               0x104
-#define IDM_SECONDS               0x105
-#define IDM_DATE                  0x106
+#define MAIN_MENU                 0x110
+#define POPUP_MENU                0x111
+#define IDM_ANALOG                0x120
+#define IDM_DIGITAL               0x121
+#define IDM_NOTITLE               0x222
+#define IDM_SECONDS               0x123
+// #define IDM_DATE                  0x124
+// #define IDM_FONT                  0x125
 
-#define IDM_ABOUT                 0x110
+#define IDM_ABOUT                 0x131
+#define IDM_EXIT                  0x132
+#define IDM_24HOURS               0x133
+#define IDM_DARKCOLOR             0x134
+#define IDM_ONTOP                 0x135
 
-#define IDM_ONTOP                 0x113
-
-#define IDS_CLOCK                 0x10C
+#define IDS_CLOCK                 0x201

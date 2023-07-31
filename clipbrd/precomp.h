@@ -8,6 +8,7 @@
 #ifndef _CLIPBRD_PCH_
 #define _CLIPBRD_PCH_
 
+/*
 // #pragma once
 
 #undef _WIN32_WINNT
@@ -26,6 +27,11 @@
 #include <commdlg.h>
 #include <winnls.h>
 #include <stdlib.h>
+*/
+
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <assert.h>
 
 #include "resources.h"
 #include "cliputils.h"
@@ -34,7 +40,6 @@
 #include "winutils.h"
 
 #define MAX_STRING_LEN 255
-#define DISPLAY_MENU_POS 2
 
 #define CF_NONE 0
 
@@ -50,8 +55,6 @@ typedef struct _CLIPBOARD_GLOBALS
     /* Metrics of the current font */
     LONG CharWidth;
     LONG CharHeight;
-
-    HFONT TextFont;
 } CLIPBOARD_GLOBALS;
 
 extern CLIPBOARD_GLOBALS Globals;

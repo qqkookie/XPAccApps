@@ -445,6 +445,8 @@ VOID MRU_Add(LPCTSTR newpath)
             return;
         }
     }
+
+    // _KOOKIE_ TODO: BUG - Duplicated entry.
     // new to list. Replace oldest with new path.
     MRU[oldest].seq = youngest; 
     StringCchCopy(MRUDATA(oldest), MAX_PATH, newpath);

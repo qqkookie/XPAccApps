@@ -20,14 +20,8 @@ static LPCTSTR s_szRegistryKey = _T("Software\\Microsoft\\Notepad");
 static DWORD dwPointSize, dx, dy;
 
 #ifdef PRIVATEPROFILE_INI
-#include <Shlobj.h>
-
-#define PFSECTION _T("XNotePad")
-
-static TCHAR ProfilePath[MAX_PATH] = {0};
-static BOOL LoadSettingsFromProfile(VOID);
-static BOOL SaveSettingsFromProfile(VOID);
-
+static BOOL LoadSettingsIni(VOID);
+static BOOL SaveSettingsIni(VOID);
 #endif
 
 // Get resource string, returns pointer to internal static buffer.
@@ -81,7 +75,7 @@ VOID LoadAppSettings(VOID)
     LOADSTRING(STRING_PAGESETUP_FOOTERVALUE, Settings.szFooter );
 
 #ifdef PRIVATEPROFILE_INI
-    if (LoadSettingsFromProfile())
+    if (LoadSettingsIni())
         goto skip_reg;
 #endif
 
@@ -192,7 +186,7 @@ VOID SaveAppSettings(VOID)
     dwPointSize -= (dwPointSize+5) % 10 -5;
 
 #ifdef PRIVATEPROFILE_INI
-    if (SaveSettingsFromProfile())
+    if (SaveSettingsIni())
         return;
 #endif
 
@@ -237,6 +231,11 @@ VOID SaveAppSettings(VOID)
 }
 
 #ifdef PRIVATEPROFILE_INI
+#include <Shlobj.h>
+
+#define PFSECTION _T("XNotePad")
+
+static TCHAR ProfilePath[MAX_PATH] = {0};
 
 // read ini file and copy to buffer
 int LoadIniString(LPCTSTR key, LPTSTR buf, int buflen)
@@ -259,10 +258,10 @@ VOID PutIniString(LPCTSTR key, LPCTSTR value)
     WritePrivateProfileString(PFSECTION, key, value, ProfilePath);;
 }
 
-static BOOL LoadSettingsFromProfile(VOID)
+static BOOL LoadSettingsIni(VOID)
 {
-#define LOADSETTINGINT(key, var, def) \
-            Settings.var = GetPrivateProfileInt(PFSECTION, _T(key), def, ProfilePath)
+#define GETSETTINGINT(key, def) \
+            GetPrivateProfileInt(PFSECTION, _T(key), def, ProfilePath)
 
 #define LOADSETTINGSTR(key, var,def) \
             GetPrivateProfileString(PFSECTION, _T(key), _T(def), \
@@ -273,31 +272,31 @@ static BOOL LoadSettingsFromProfile(VOID)
 
     _tcscat_s(ProfilePath, MAX_PATH, _T("\\") _T(PRIVATEPROFILE_INI));
 
-    LOADSETTINGINT("lfCharSet", lfFont.lfCharSet, DEFAULT_CHARSET);
-    LOADSETTINGINT("lfClipPrecision", lfFont.lfClipPrecision, 0 );
-    LOADSETTINGINT("lfEscapement", lfFont.lfEscapement, 0 );
-    LOADSETTINGINT("lfItalic", lfFont.lfItalic, 0 );
-    LOADSETTINGINT("lfOrientation", lfFont.lfOrientation, 0 );
+    Settings.lfFont.lfCharSet = GETSETTINGINT("lfCharSet", DEFAULT_CHARSET);
+    Settings.lfFont.lfClipPrecision = GETSETTINGINT("lfClipPrecision", 0 );
+    Settings.lfFont.lfEscapement = GETSETTINGINT("lfEscapement", 0 );
+    Settings.lfFont.lfItalic = GETSETTINGINT("lfItalic", 0 );
+    Settings.lfFont.lfOrientation = GETSETTINGINT("lfOrientation", 0 );
 
-    LOADSETTINGINT("lfOutPrecision", lfFont.lfOutPrecision, 0 );
-    LOADSETTINGINT("lfPitchAndFamily", lfFont.lfPitchAndFamily, (FIXED_PITCH | FF_MODERN) );
-    LOADSETTINGINT("lfQuality", lfFont.lfQuality, 0 );
-    LOADSETTINGINT("lfStrikeOut", lfFont.lfStrikeOut, 0 );
-    LOADSETTINGINT("lfUnderline", lfFont.lfStrikeOut, 0 );
-    LOADSETTINGINT("lfWeight", lfFont.lfWeight, FW_NORMAL);
-    dwPointSize = GetPrivateProfileInt(PFSECTION, _T("iPointSize"), 100, ProfilePath);
+    Settings.lfFont.lfOutPrecision =  GETSETTINGINT("lfOutPrecision", 0 );
+    Settings.lfFont.lfPitchAndFamily = GETSETTINGINT("lfPitchAndFamily", (FIXED_PITCH | FF_MODERN) );
+    Settings.lfFont.lfQuality =  GETSETTINGINT("lfQuality", 0 );
+    Settings.lfFont.lfStrikeOut = GETSETTINGINT("lfStrikeOut", 0 );
+    Settings.lfFont.lfStrikeOut = GETSETTINGINT("lfUnderline", 0 );
+    Settings.lfFont.lfWeight = GETSETTINGINT("lfWeight", FW_NORMAL);
+    dwPointSize = GETSETTINGINT("iPointSize", 100);
 
-    LOADSETTINGINT("fWrap", bWrapLongLines, TRUE );
-    LOADSETTINGINT("fStatusBar", bShowStatusBar, TRUE );
-    LOADSETTINGINT("iMarginLeft", lMargins.left, 750);
-    LOADSETTINGINT("iMarginTop", lMargins.top, 1000 );
-    LOADSETTINGINT("iMarginRight", lMargins.right, 750 );
-    LOADSETTINGINT("iMarginBottom", lMargins.bottom, 1000 );
+    Settings.bWrapLongLines = GETSETTINGINT("fWrap", TRUE );
+    Settings.bShowStatusBar = GETSETTINGINT("fStatusBar", TRUE );
+    Settings.lMargins.left = GETSETTINGINT("iMarginLeft", 750 );
+    Settings.lMargins.top = GETSETTINGINT("iMarginTop", 1000 );
+    Settings.lMargins.right = GETSETTINGINT("iMarginRight", 750 );
+    Settings.lMargins.bottom = GETSETTINGINT("iMarginBottom", 1000 );
 
-    LOADSETTINGINT("iWindowPosX", main_rect.left, 0 );
-    LOADSETTINGINT("iWindowPosY", main_rect.top, 0 );
-    dx = GetPrivateProfileInt(PFSECTION, _T("iWindowPosDX"), dx, ProfilePath);
-    dy = GetPrivateProfileInt(PFSECTION, _T("iWindowPosDY"), dy, ProfilePath);
+    Settings.main_rect.left = GETSETTINGINT("iWindowPosX", 0 );
+    Settings.main_rect.top = GETSETTINGINT("iWindowPosY", 0 );
+    dx = GETSETTINGINT("iWindowPosDX", dx);
+    dy = GETSETTINGINT("iWindowPosDY", dy);
 
     LOADSETTINGSTR("searchString", szFindText, "" );
     LOADSETTINGSTR("replaceString", szReplaceText, "" );
@@ -313,17 +312,17 @@ static BOOL LoadSettingsFromProfile(VOID)
 
     if (FileExists(ProfilePath))
         return TRUE;
-    return SaveSettingsFromProfile();
+    return SaveSettingsIni();
 }
 
-static BOOL SaveSettingsFromProfile(VOID)
+static BOOL SaveSettingsIni(VOID)
 {
     TCHAR _savebuf[256];
-#define SAVESETTINGINT(name, value) \
+#define SAVESETTINGINT(key, value) \
             _itot_s( Settings.value, _savebuf, _countof(_savebuf), 10),\
-            WritePrivateProfileString(PFSECTION, _T(name), _savebuf, ProfilePath)
-#define SAVESETTINGSTR(name, value) \
-            WritePrivateProfileString(PFSECTION, _T(name), Settings.value, ProfilePath);
+            WritePrivateProfileString(PFSECTION, _T(key), _savebuf, ProfilePath)
+#define SAVESETTINGSTR(key, str) \
+            WritePrivateProfileString(PFSECTION, _T(key), Settings.str, ProfilePath);
 
     SAVESETTINGINT("lfCharSet", lfFont.lfCharSet );
     SAVESETTINGINT("lfClipPrecision", lfFont.lfClipPrecision );

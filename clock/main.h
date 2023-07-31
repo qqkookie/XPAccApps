@@ -1,7 +1,10 @@
 /*
- * Clock (main.h)
+ *  Clock (winclock.h)
  *
- * Copyright 1998 Marcel Baur <mbaur@g26.ethz.ch>
+ *  Copyright 1998 by Marcel Baur <mbaur@g26.ethz.ch>
+ *  This file is essentially rolex.c by Jim Peterson.
+ *  Please see my winclock.c and/or his rolex.c for references.
+ *
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,6 +21,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
+#include <Windows.h>
+
 #include "clock_res.h"
 
 #define MAX_STRING_LEN      255
@@ -25,20 +30,36 @@
 
 typedef struct
 {
-  LOGFONTW logfont;
-  HFONT   hFont;
-  HANDLE  hInstance;
   HWND    hMainWnd;
-  HMENU   hMainMenu;
+  HANDLE  hInstance;
+//  HMENU   hMainMenu;
+  HFONT   hFont;
+  LOGFONT logfont;
+  HRGN    hCircle;
+
+  int     WinW;
+  int     WinH;
 
   BOOL    bAnalog;
   BOOL    bAlwaysOnTop;
-  BOOL    bWithoutTitle;
+  BOOL    bNoTitleBar;
   BOOL    bSeconds;
-  BOOL    bDate;
+//  BOOL    bDate;
 
-  int     MaxX;
-  int     MaxY;
+  BOOL    b24Hours;
+  BOOL    bDarkColor;
+
+
 } CLOCK_GLOBALS;
 
 extern CLOCK_GLOBALS Globals;
+
+// void AnalogClock(HDC dc, int X, int Y, BOOL bSeconds, BOOL border);
+// void DigitalClock(HDC dc, int X, int Y, BOOL bSeconds, HFONT font);
+
+void DrawClock(void);
+void SetAnalogRegion(void);
+void ResizeFont(void);
+
+void InitPallet(void);
+void ApplyColor(void);

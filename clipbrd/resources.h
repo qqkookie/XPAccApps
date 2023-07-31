@@ -19,6 +19,13 @@
 #define CMD_HELP    115
 #define CMD_ABOUT   116
 
+#define CMD_FONT1   131
+#define CMD_FONT2   132
+#define CMD_FONT3K  133
+#define CMD_FONT4J  134
+#define CMD_FONT5C  135
+#define CMD_FONT6T  136
+
 #define CMD_AUTOMATIC 1000
 
 #define STRING_CLIPBOARD    120

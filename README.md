@@ -4,31 +4,27 @@ XP Acc Apps
 ## Introduction
 Simple Windows XP Accessories ported from Wine/React OS application
 like calculator, notepad, taskmgr, mspinat, wordpad, etc.
-It looks, feels and works like Windows XP desktop accessory tools clone.
-It supports high-DPI monitor like 144 dpi.
+They look, feel and work like Windows XP desktop accessory tools clone.
+They support high-DPI monitor like 144 dpi.
 
 Current vserion: 0.1.5
 
 ## What it has:
 
- * xcalc.exe -
-   XP style calculator app. 64 bits double precision version
-   or multi-precision MPFR version
- * xtaskmgr.exe -
-   XP style task manager
+ * xcalc - XP style calculator app.
+   64 bits double precision or multi-precision MPFR math support.
+ * xtaskmgr - XP style task manager
  * xchcp.exe - Windows chcp.com replacement
- * xnotepad.exe -
-   Simple notepad-like text editor with multi-tab support
- * xmspaint.exe -
-   Simple MS Paint-like image editor
- * xclipbrd -
-   Simple clipboard viewer
+ * xnotepad - Simple notepad-like text editor with multi-tab support
+ * xwordpad - RTF editor
+ * xmspaint - MS Paint-like image editor
+ * xmine - Windows MineSweeper clone game
+ * xclock - Windows clock
+ * xclipbrd - clipboard viewer
 
 ## Build/Install
 
-This project can be built from source using:
- * `CMake/Ninja` build tool: `CMakeList.txt`
- * Visual Studio solution: `WinAccApps.sln`
+This project can be built from source using `CMake/Ninja` build tool: `CMakeList.txt`
 This is developed with Visual Studio 2022 on MS Windows 11
 
 In developer build, all executables are located in directory like

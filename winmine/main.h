@@ -16,6 +16,10 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include "resource.h"
+/*
 #ifndef _WINMINE_H_
 #define _WINMINE_H_
 
@@ -26,6 +30,7 @@
 #include <winuser.h>
 
 #include "resource.h"
+*/
 
 #define BEGINNER_MINES        10
 #define BEGINNER_COLS         9
@@ -42,17 +47,17 @@
 #define MAX_COLS        30
 #define MAX_ROWS        24
 
-#define BOTTOM_MARGIN 20
-#define BOARD_WMARGIN 5
-#define BOARD_HMARGIN 5
+#define _BOTTOM_MARGIN 20
+#define _BOARD_WMARGIN 5
+#define _BOARD_HMARGIN 5
 
 /* mine defines */
-#define MINE_WIDTH       16
-#define MINE_HEIGHT      16
-#define LED_WIDTH        12
-#define LED_HEIGHT       23
-#define FACE_WIDTH       24
-#define FACE_HEIGHT      24
+#define _MINE_WIDTH       16
+#define _MINE_HEIGHT      16
+#define _LED_WIDTH        12
+#define _LED_HEIGHT       23
+#define _FACE_WIDTH       24
+#define _FACE_HEIGHT      24
 
 #define MAX_PLAYER_NAME_SIZE 31
 
@@ -130,6 +135,8 @@ typedef struct tagBOARD
 } BOARD;
 
 void CheckLevel( BOARD *p_board );
+void SaveBoard( BOARD *p_board );
+void ResetResults( BOARD *p_board );
 
 INT_PTR CALLBACK CustomDlgProc( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam );
 
@@ -137,4 +144,6 @@ INT_PTR CALLBACK CongratsDlgProc( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lP
 
 INT_PTR CALLBACK TimesDlgProc( HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam );
 
-#endif /* _WINMINE_H_ */
+#define _countof(arr)    (sizeof(arr)/sizeof(arr[0]))
+
+//  _WINMINE_H

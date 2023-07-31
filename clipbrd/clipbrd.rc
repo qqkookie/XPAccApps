@@ -16,9 +16,9 @@
 // #include <reactos/version.rc>
 
 #define APP_PRODUCTNAME                 "XMSPaint"
-#define APP_PRODVERMINOR                2,0
-#define APP_PRODVERMINOR_STR           "2.0"
-#define APP_FILEVERMINOR               2,40
+#define APP_PRODVERMINOR                3,0
+#define APP_PRODVERMINOR_STR           "3.0"
+#define APP_FILEVERMINOR               3,10
 #define APP_FILEDESCRIPTION           "Paint desktop accessory app"
 #define APP_ORIGINALFILENAME          "xmspaint.exe"
 

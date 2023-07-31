@@ -1,9 +1,10 @@
 CHANGELOG
 =====
 ## v0.1.5
- * 2023-07-27 13:49:00
+ * 2023-07-31 13:32:00
  * Import Wine codebase
  * Wine chcp, clock, notepad, taskmgr, wordpad
+ * fontview, winmine
 
 ### xnotepad
  * Major code rearrange/clean up
@@ -17,6 +18,31 @@ CHANGELOG
  * UpdateWindowLayout() in dialog.c
  * misc.c -> file.c + search
  * MAX_STRING_LEN -> STR_LONG
+ * TODO: BUG - duplicated MRU entry.
+ * TODO: check MRU file ok
+ * TODO: read only file option/ no modify on readonly or view only mode)
+ * TODO: Reload on modify
+
+### xmine
+ * Minesweeper ported. HighDPI OK.
+ * Add reset score
+ * Save to XPAccApps.ini OK
+
+### xclipbrd
+ * font selection
+ * font height adjust
+ * Menu simplify
+
+### xclock
+ * Code clean up, refactoring
+ * winclock.h merged -> main.h
+ * Painting to DrawClock()
+ * Saves settings.
+ * Scale to High Dpi OK
+ *Main menu -> popup menu.
+ * Add 24 hours, dark mode, exit menu
+ * Remove font/date menu (date on titlebar is default)
+ * fix color scheme
 
 ## v0.1.4
  * 2023-07-22 16:16:00
