@@ -50,9 +50,9 @@ typedef struct
   BOOL    bDarkColor;
 
 
-} CLOCK_GLOBALS;
+} CLK_GLOBALS;
 
-extern CLOCK_GLOBALS Globals;
+extern CLK_GLOBALS Globals;
 
 // void AnalogClock(HDC dc, int X, int Y, BOOL bSeconds, BOOL border);
 // void DigitalClock(HDC dc, int X, int Y, BOOL bSeconds, HFONT font);

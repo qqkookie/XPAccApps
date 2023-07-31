@@ -31,7 +31,7 @@
 
 // #define M_PI 3.14159265358979323846
 
-#define DCLOCK_FONT   L"Arial"
+#define DCLK_FONT   L"Arial"
 
 static DWORD LightPalette[5];
 static DWORD DarkPalette[5];
@@ -43,7 +43,7 @@ static DWORD (*Palette)[5];
 #define ShadowColor     ((*Palette)[3])
 #define BackgroundColor ((*Palette)[4]) 
 
-//static const int SHADOW_DEPTH = 2;
+#define TICK_MIN_RADIUS             64
  
 typedef struct
 {
@@ -53,7 +53,8 @@ typedef struct
 
 static HandData HourHand, MinuteHand, SecondHand;
 
-VOID SetAnalogRegion()
+// Set  circle region for analog clock
+void SetAnalogRegion(void)
 {
     RECT rect;
     INT diameter = min( Globals.WinW, Globals.WinH );
@@ -67,20 +68,21 @@ VOID SetAnalogRegion()
     SetWindowRgn( Globals.hMainWnd, Globals.hCircle, TRUE );
 }
 
+// Analog clock ticks
 static void DrawTicks(HDC dc, const POINT* centre, int radius, COLORREF color)
 {
     int t;
     /* Minute divisions */
-    if ( radius > 64 ) {
+    if ( radius > TICK_MIN_RADIUS ) {
         DeleteObject(SelectObject(dc, CreatePen(PS_SOLID, 1 +radius/100 , color)));
 
         for(t=0; t<60; t++) {
             MoveToEx(dc,
-                centre->x + sin(t*M_PI/30)*0.9*radius,
-                centre->y - cos(t*M_PI/30)*0.9*radius, NULL);
+                centre->x + round(sin(t*M_PI/30.0)*0.9*radius),
+                centre->y - round(cos(t*M_PI/30.0)*0.9*radius), NULL);
 	        LineTo(dc,
-		        centre->x + sin(t*M_PI/30)*0.89*radius,
-		        centre->y - cos(t*M_PI/30)*0.89*radius);
+		        centre->x + round(sin(t*M_PI/30.0)*0.89*radius),
+		        centre->y - round(cos(t*M_PI/30.0)*0.89*radius));
 	    }
     }
 
@@ -89,14 +91,15 @@ static void DrawTicks(HDC dc, const POINT* centre, int radius, COLORREF color)
 
     for(t=0; t<12; t++) {
         MoveToEx(dc,
-                 centre->x + sin(t*M_PI/6)*0.9*radius,
-                 centre->y - cos(t*M_PI/6)*0.9*radius, NULL);
+                 centre->x + round(sin(t*M_PI/6.0)*0.9*radius),
+                 centre->y - round(cos(t*M_PI/6.0)*0.9*radius), NULL);
         LineTo(dc,
-               centre->x + sin(t*M_PI/6)*0.8*radius,
-               centre->y - cos(t*M_PI/6)*0.8*radius);
+               centre->x + round(sin(t*M_PI/6.0)*0.8*radius),
+               centre->y - round(cos(t*M_PI/6.0)*0.8*radius));
     }
 }
 
+// Analog clock face and ticks
 static void DrawFace(HDC dc, const POINT* centre, int radius)
 {
     /* Ticks */
@@ -122,12 +125,14 @@ static void DrawFace(HDC dc, const POINT* centre, int radius)
     DeleteObject(SelectObject(dc, GetStockObject(NULL_PEN)));
 }
 
-static void DrawHand(HDC dc,HandData* hand)
+// single hand
+static void DrawHand(HDC dc, HandData* hand)
 {
     MoveToEx(dc, hand->Start.x, hand->Start.y, NULL);
     LineTo(dc, hand->End.x, hand->End.y);
 }
 
+// draw hour, min, sec hands
 static void DrawHands(HDC dc, int radius)
 {
     if (Globals.bSeconds) {
@@ -144,7 +149,7 @@ static void DrawHands(HDC dc, int radius)
 	    DeleteObject(SelectObject(dc, GetStockObject(NULL_PEN)));
     }
 
-    int offset = 1 + radius /150;
+    int offset = 1 + radius / 150;
 
     OffsetWindowOrgEx(dc, -offset, -offset, NULL);
 
@@ -168,10 +173,11 @@ static void DrawHands(HDC dc, int radius)
 static void PositionHand(const POINT* centre, double length, double angle, HandData* hand)
 {
     hand->Start = *centre;
-    hand->End.x = centre->x + sin(angle)*length;
-    hand->End.y = centre->y - cos(angle)*length;
+    hand->End.x = centre->x + round(sin(angle)*length);
+    hand->End.y = centre->y - round(cos(angle)*length);
 }
 
+// set hands position
 static void PositionHands(const POINT* centre, int radius)
 {
     SYSTEMTIME st;
@@ -186,23 +192,23 @@ static void PositionHands(const POINT* centre, int radius)
     minute = st.wMinute + second/60.0;
     hour   = st.wHour % 12 + minute/60.0;
 
-    PositionHand(centre, radius * 0.5,  hour/12   * 2*M_PI, &HourHand);
-    PositionHand(centre, radius * 0.65, minute/60 * 2*M_PI, &MinuteHand);
+    PositionHand(centre, radius * 0.5,  hour/12.0   * 2.0*M_PI, &HourHand);
+    PositionHand(centre, radius * 0.65, minute/60.0 * 2.0*M_PI, &MinuteHand);
     if (Globals.bSeconds)
-        PositionHand(centre, radius * 0.79, second/60 * 2*M_PI, &SecondHand);  
+        PositionHand(centre, radius * 0.79, second/60.0 * 2.0*M_PI, &SecondHand);  
 }
 
-void AnalogClock(HDC dc, int x, int y)
+static void AnalogClock(HDC dc)
 {
     POINT centre;
     int radius;
     
-    radius = min(x, y)/2 - 2 ;/*SHADOW_DEPTH*/
+    radius = min(Globals.WinW, Globals.WinH)/2 - 2 ;
     if (radius < 20)
 	    return;
 
-    centre.x = x/2;
-    centre.y = y/2;
+    centre.x = Globals.WinW/2;
+    centre.y = Globals.WinH/2;
 
     DrawFace(dc, &centre, radius);
 
@@ -210,6 +216,7 @@ void AnalogClock(HDC dc, int x, int y)
     DrawHands(dc, radius);
 }
 
+// Digital clock time
 static LPCWSTR GetTimeString(void)
 {
     static WCHAR szTime[MAX_STRING_LEN];
@@ -220,6 +227,7 @@ static LPCWSTR GetTimeString(void)
             NULL, NULL, szTime, _countof(szTime)) ? szTime : L"") ;
 }
 
+// Auto-resize digital clock font
 void ResizeFont(void)
 {
 #define MEASUREHEIGHT     -24
@@ -229,7 +237,7 @@ void ResizeFont(void)
         LOGFONT lf;
         ZeroMemory(&lf, sizeof(lf));
         lf.lfHeight = MEASUREHEIGHT;
-        wcscpy(lf.lfFaceName, DCLOCK_FONT);
+        wcscpy(lf.lfFaceName, DCLK_FONT);
         measurefont = CreateFontIndirectW(&lf);
         Globals.logfont = lf;
     }
@@ -253,7 +261,7 @@ void ResizeFont(void)
     ReleaseDC(Globals.hMainWnd, dc);
 }
 
-static void DigitalClock(HDC dc, int x, int y)
+static void DigitalClock(HDC dc)
 {
     SIZE extent;
     HFONT oldFont;
@@ -269,17 +277,18 @@ static void DigitalClock(HDC dc, int x, int y)
 
     int offset = extent.cy/80+ 2;
     SetTextColor(dc, ShadowColor);
-    TextOutW(dc, (x - extent.cx)/2 + offset, (y - extent.cy)/2 + offset, szTime, len);
+    TextOutW(dc, (Globals.WinW - extent.cx)/2 + offset,
+        (Globals.WinH - extent.cy)/2 + offset, szTime, len);
 
     SetTextColor(dc, HandColor);
-    TextOutW(dc, (x - extent.cx)/2, (y - extent.cy)/2, szTime, len);
+    TextOutW(dc, (Globals.WinW - extent.cx)/2,
+        (Globals.WinH - extent.cy)/2, szTime, len);
 
     SelectObject(dc, oldFont);
 }
 
 /***********************************************************************
- *
- *           CLOCK_Paint
+ *  Handle WM_PAINT
  */
 void DrawClock(void)
 {
@@ -301,9 +310,9 @@ void DrawClock(void)
     FillRect(dcMem, &ps.rcPaint, GetSysColorBrush(FaceColor));
 
     if(Globals.bAnalog)
-	    AnalogClock(dcMem, Globals.WinW, Globals.WinH);
+	    AnalogClock(dcMem);
     else
-	    DigitalClock(dcMem, Globals.WinW, Globals.WinH);
+	    DigitalClock(dcMem);
 
     /* Blit the changes to the screen */
     BitBlt(dc, 

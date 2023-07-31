@@ -22,12 +22,6 @@
 #include <time.h>
 #include <stdlib.h>
 #include <commctrl.h>
-
-/*
-#include <winbase.h>
-#include <winreg.h>
-#include <wingdi.h>
-
 #include <shellapi.h>
 */
 

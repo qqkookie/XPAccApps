@@ -31,30 +31,43 @@
 #define DRAGBAR_DROP            100      // dragbar drop from top
 #define TIMER_ID 1
 
-CLOCK_GLOBALS Globals;
+CLK_GLOBALS Globals;
 
 static BOOL LoadSettings(VOID);
 static BOOL SaveSettings(VOID);
 
 /***********************************************************************/
 
-// Update Title bar caption / menu and topmost window style
-static VOID CLOCK_UpdateWindowTitleBar(VOID)
+        /* analog clock */
+        CheckMenuRadioItem(hPropertiesMenu, IDM_ANALOG, IDM_DIGITAL, IDM_ANALOG, MF_CHECKED);
+        EnableMenuItem(hPropertiesMenu, IDM_FONT, MF_GRAYED);
+    }
+    else
+    {
+        /* digital clock */
+        CheckMenuRadioItem(hPropertiesMenu, IDM_ANALOG, IDM_DIGITAL, IDM_DIGITAL, MF_CHECKED);
+        EnableMenuItem(hPropertiesMenu, IDM_FONT, 0);
+    }
+
+    CheckMenuItem(hPropertiesMenu, IDM_NOTITLE, (Globals.bWithoutTitle ? MF_CHECKED : MF_UNCHECKED));
+
+    CheckMenuItem(hPropertiesMenu, IDM_ONTOP, (Globals.bAlwaysOnTop ? MF_CHECKED : MF_UNCHECKED));
+    CheckMenuItem(hPropertiesMenu, IDM_SECONDS, (Globals.bSeconds ? MF_CHECKED : MF_UNCHECKED));
+    CheckMenuItem(hPropertiesMenu, IDM_DATE, (Globals.bDate ? MF_CHECKED : MF_UNCHECKED));
+}
+
+static VOID CLOCK_UpdateWindowCaption(VOID)
 {
     WCHAR szCaption[MAX_STRING_LEN];
     int chars = 0;
 
     /* Set frame caption */
-    if (!Globals.bNoTitleBar ) {
+    if (!Globals.bNoTitleBar )
 	    chars = GetDateFormatW(LOCALE_USER_DEFAULT, DATE_LONGDATE, NULL, NULL,
-                               szCaption, _countof(szCaption));
-        if (chars) {
-	        --chars;
-	        szCaption[chars++] = ' ';
-	        szCaption[chars++] = '-';
-	        szCaption[chars++] = ' ';
-	        szCaption[chars] = '\0';
-	    }
+                               szCaption, _countof(szCaption));        
+    if (chars) {
+        wcscpy( szCaption + chars -1, L" - ");
+        chars += 2 ;
     }
     LoadStringW(0, IDS_CLOCK, szCaption + chars, MAX_STRING_LEN - chars);
     SetWindowTextW(Globals.hMainWnd, szCaption);
@@ -69,38 +82,38 @@ static VOID CLOCK_UpdateWindowTitleBar(VOID)
 	    style = (style & ~WS_POPUPWINDOW)| WS_OVERLAPPEDWINDOW;
 //        SetMenu(Globals.hMainWnd, Globals.hMainMenu);
     }
+    SetWindowLongW(Globals.hMainWnd, GWL_STYLE, style);
 
     if (Globals.bNoTitleBar && Globals.bAnalog)
         SetWindowRgn(Globals.hMainWnd, Globals.hCircle, TRUE);
     else
         SetWindowRgn(Globals.hMainWnd, NULL, TRUE);
 
-    SetWindowLongW(Globals.hMainWnd, GWL_STYLE, style);
     SetWindowPos(Globals.hMainWnd,
             (Globals.bAlwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST),
             0,0,0,0,  SWP_DRAWFRAME|SWP_NOMOVE|SWP_NOSIZE);
 }
 
-static VOID CLOCK_ToggleTitle(VOID)
+static VOID Clk_ToggleTitle(VOID)
 {
     Globals.bNoTitleBar = !Globals.bNoTitleBar;
-    CLOCK_UpdateWindowTitleBar();
+    Clk_UpdateWindowTitleBar();
 }
 
-static VOID CLOCK_ToggleOnTop(VOID)
+static VOID Clk_ToggleOnTop(VOID)
 {
     Globals.bAlwaysOnTop = !Globals.bAlwaysOnTop;
 	SetWindowPos(Globals.hMainWnd,
         (Globals.bAlwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST),
-        0,0,0,0, SWP_NOMOVE|SWP_NOSIZE);
+        0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
 }
 
 /***********************************************************************/
 
 // Reset clock period timer by clock 
-static BOOL CLOCK_ResetTimer(void)
+static BOOL Clk_ResetTimer(void)
 {
-    UINT period; /* milliseconds */
+    UINT period; /* in milliseconds */
 
     KillTimer(Globals.hMainWnd, TIMER_ID);
 
@@ -121,7 +134,7 @@ static BOOL CLOCK_ResetTimer(void)
 }
 
 // Choose Font (NOT USED)
- static VOID CLOCK_ChooseFont(VOID)
+static VOID Clk_ChooseFont(VOID)
 {
     LOGFONTW lf;
     CHOOSEFONTW cf;
@@ -142,7 +155,7 @@ static BOOL CLOCK_ResetTimer(void)
 
 #include <windowsx.h>
 
-static VOID CLOCK_SetMenuCheckmarks(HMENU hmpop);
+static VOID Clk_SetMenuCheckmarks(HMENU hmpop);
 
 // Display popup menu
 static VOID DisplayContextMenu(LPARAM lpm) 
@@ -151,16 +164,16 @@ static VOID DisplayContextMenu(LPARAM lpm)
     if (!hmpop) 
         return; 
 
-    CLOCK_SetMenuCheckmarks(hmpop);
+    Clk_SetMenuCheckmarks(hmpop);
     TrackPopupMenu( GetSubMenu(hmpop, 0), TPM_LEFTALIGN | TPM_RIGHTBUTTON,
             GET_X_LPARAM(lpm), GET_Y_LPARAM(lpm), 0, Globals.hMainWnd, NULL);  
-    DestroyMenu(hmpop); 
+    DestroyMenu(hmpop);
 }
 
 // menu action common epilog
 static void ApplyMenu(void)
 {
-    // CLOCK_UpdateMenuCheckmarks();
+    // Clk_UpdateMenuCheckmarks();
     if (!Globals.bAnalog)
 	    ResizeFont();
     InvalidateRect(Globals.hMainWnd, NULL, FALSE);   
@@ -178,8 +191,8 @@ static LPARAM ClientPoint(HWND hWnd, LPARAM lpm)
     return ( PtInRect(&crct, cpt) ? MAKELPARAM( cpt.x, cpt.y ) : 0);
 }
 
-// Set popup menu item check or disabled state
-static VOID CLOCK_SetMenuCheckmarks(HMENU hmpop)
+// Set popup menu item checked or disabled state
+static VOID Clk_SetMenuCheckmarks(HMENU hmpop)
 {
     HMENU hPropertiesMenu = GetSubMenu(hmpop, 0);
     if (!hPropertiesMenu)
@@ -212,7 +225,7 @@ static VOID CLOCK_SetMenuCheckmarks(HMENU hmpop)
  *  All handling of popup menu events
  */
  
-static int CLOCK_MenuCommand (WPARAM wParam)
+static int Clk_MenuCommand (WPARAM wParam)
 {
     WCHAR szApp[MAX_STRING_LEN];
     WCHAR szAppRelease[MAX_STRING_LEN];
@@ -222,34 +235,34 @@ static int CLOCK_MenuCommand (WPARAM wParam)
         case IDM_ANALOG:
         case IDM_DIGITAL: {
             Globals.bAnalog = (wParam == IDM_ANALOG);
-	        CLOCK_ResetTimer();
-            CLOCK_UpdateWindowTitleBar();
+	        Clk_ResetTimer();
+            Clk_UpdateWindowTitleBar();
             ApplyMenu();
             break;
         }
         /* change font */
         /*
         case IDM_FONT: {
-            CLOCK_ChooseFont();
+            Clk_ChooseFont();
             break;
         }
         */
         /* hide title bar */
         case IDM_NOTITLE: {
-	        CLOCK_ToggleTitle();
-            // CLOCK_UpdateMenuCheckmarks();
+	        Clk_ToggleTitle();
+            // Clk_UpdateMenuCheckmarks();
             break;
         }
         /* always on top */
         case IDM_ONTOP: {
-	        CLOCK_ToggleOnTop();
-            // CLOCK_UpdateMenuCheckmarks();
+	        Clk_ToggleOnTop();
+            // Clk_UpdateMenuCheckmarks();
             break;
         }
         /* show or hide seconds */
         case IDM_SECONDS: {
             Globals.bSeconds = !Globals.bSeconds;
-	        CLOCK_ResetTimer();
+	        Clk_ResetTimer();
             ApplyMenu();
             break;
         }
@@ -257,8 +270,8 @@ static int CLOCK_MenuCommand (WPARAM wParam)
         /*
         case IDM_DATE: {
             Globals.bDate = !Globals.bDate;
-            CLOCK_UpdateMenuCheckmarks();
-            CLOCK_UpdateWindowTitleBar();
+            Clk_UpdateMenuCheckmarks();
+            Clk_UpdateWindowTitleBar();
             break;
         }
         */
@@ -292,11 +305,13 @@ static int CLOCK_MenuCommand (WPARAM wParam)
 
 /***********************************************************************
  *
- *           CLOCK_WndProc
+ *           Clk_WndProc
  */
 
-static LRESULT WINAPI CLOCK_WndProc (HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+static LRESULT WINAPI Clk_WndProc (HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+    static time_t last;
+
     switch (msg) {
 	    /* L button drag moves the window */
         case WM_NCHITTEST: {
@@ -311,12 +326,13 @@ static LRESULT WINAPI CLOCK_WndProc (HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
 
         case WM_NCLBUTTONDBLCLK:
         case WM_LBUTTONDBLCLK: {
-	        CLOCK_ToggleTitle();
+	        Clk_ToggleTitle();
             break;
         }
 
         case WM_PAINT: {
-	        DrawClock();
+            DrawClock();
+            last = (time(0)/60) *60; 
             break;
         }
 
@@ -332,15 +348,17 @@ static LRESULT WINAPI CLOCK_WndProc (HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
         }
 
         case WM_COMMAND: {
-            CLOCK_MenuCommand(wParam);
+            Clk_MenuCommand(wParam);
             break;
         }
             
         case WM_TIMER: {
             /* Could just invalidate what has changed,
              * but it doesn't really seem worth the effort
+             * When no second, don't redraw clock each second.
              */
-	        InvalidateRect(Globals.hMainWnd, NULL, FALSE);
+             if ( Globals.bSeconds || time(0) >= last + 58)
+	            InvalidateRect(Globals.hMainWnd, NULL, FALSE);
 	        break;
         }
 
@@ -387,7 +405,7 @@ int PASCAL WinMain (HINSTANCE hInstance, HINSTANCE prev, LPSTR cmdline, int show
 
     if (!prev){
         class.style         = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS;
-        class.lpfnWndProc   = CLOCK_WndProc;
+        class.lpfnWndProc   = Clk_WndProc;
         class.cbClsExtra    = 0;
         class.cbWndExtra    = 0;
         class.hInstance     = hInstance;
@@ -406,7 +424,7 @@ int PASCAL WinMain (HINSTANCE hInstance, HINSTANCE prev, LPSTR cmdline, int show
                     0, 0, hInstance, 0);
 
     Globals.hMainWnd = hWnd;
-    if (!CLOCK_ResetTimer())
+    if (!Clk_ResetTimer())
         return FALSE;
 
     Globals.hInstance = hInstance;
@@ -418,7 +436,7 @@ int PASCAL WinMain (HINSTANCE hInstance, HINSTANCE prev, LPSTR cmdline, int show
 
     SetWindowLong(hWnd, GWL_EXSTYLE, GetWindowLong(hWnd, GWL_EXSTYLE)|WS_EX_TOOLWINDOW );
     ResizeFont();
-    CLOCK_UpdateWindowTitleBar();
+    Clk_UpdateWindowTitleBar();
 
     ShowWindow (hWnd, show);
     UpdateWindow (hWnd);
@@ -524,9 +542,9 @@ static BOOL SaveSettings(VOID) { return FALSE;}
 // Moved to winclock.c: DrawClock()
 /***********************************************************************
  *
- *           CLOCK_Paint
+ *           Clk_Paint
  */
-static VOID CLOCK_Paint(HWND hWnd)
+static VOID Clk_Paint(HWND hWnd)
 {
     PAINTSTRUCT ps;
     HDC dcMem, dc;

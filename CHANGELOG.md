@@ -39,10 +39,11 @@ CHANGELOG
  * Painting to DrawClock()
  * Saves settings.
  * Scale to High Dpi OK
- *Main menu -> popup menu.
+ * Main menu -> popup menu.
  * Add 24 hours, dark mode, exit menu
  * Remove font/date menu (date on titlebar is default)
  * fix color scheme
+ * clock redraw optimization.
 
 ## v0.1.4
  * 2023-07-22 16:16:00

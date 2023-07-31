@@ -2,10 +2,10 @@ XP Acc Apps
 ======
 
 ## Introduction
-Simple Windows XP Accessories ported from Wine/React OS application
+Simple Windows XP Accessories ported from React OS/Wine application
 like calculator, notepad, taskmgr, mspinat, wordpad, etc.
-They look, feel and work like Windows XP desktop accessory tools clone.
-They support high-DPI monitor like 144 dpi.
+It looks, feels and works like Windows XP desktop accessory tools clone.
+It supports high-DPI monitor like 144 dpi.
 
 Current vserion: 0.1.5
 
@@ -16,7 +16,7 @@ Current vserion: 0.1.5
  * xtaskmgr - XP style task manager
  * xchcp.exe - Windows chcp.com replacement
  * xnotepad - Simple notepad-like text editor with multi-tab support
- * xwordpad - RTF editor
+ * xwordpad - Rich text RTF document editor
  * xmspaint - MS Paint-like image editor
  * xmine - Windows MineSweeper clone game
  * xclock - Windows clock
@@ -42,8 +42,8 @@ fallback language for unsupported/missing languages.
 To install and use, copy *.exe binary excutables in release ZIP file
 to any folder in yuor %Path% directories. No instllation is needed.
 
-Setings are saved to and loaded from as "`~/AppData/XPAccApp.ini`" file
-if it exists in AppData folder under user's home.
+Settings of most apps are saved to and loaded from "`~/AppData/Local/XPAccApp.ini`" file
+in AppData folder under user's home. Or loaded/saved to registry branch under users's HKCU tree.
 
 ## NOTICE
 
