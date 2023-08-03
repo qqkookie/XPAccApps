@@ -30,6 +30,12 @@ CLPFILE_ICON ICON "res/clpfile.ico"
 
 // #include <reactos/manifest_exe.rc>
 
+ID_ACCEL ACCELERATORS
+BEGIN
+    VK_DELETE, CMD_DELETE, VIRTKEY
+    "X", CMD_EXIT, VIRTKEY, ALT, NOINVERT
+END
+
 /* UTF-8 */
 #pragma code_page(65001)
 

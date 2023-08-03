@@ -11,6 +11,7 @@
 #include "notepad.h"
 
 #include <commctrl.h>
+#include <RichEdit.h>
 #include <shellapi.h>
 
 #include <assert.h>
@@ -21,9 +22,11 @@ static const TCHAR szDefaultExt[] = _T("txt");
 static const TCHAR txt_files[] = _T("*.txt");
 
 /* Status bar parts index */
-#define SBPART_CURPOS   0
-#define SBPART_EOLN     1
-#define SBPART_ENCODING 2
+#define SBPART_CURPOS       0
+#define SBPART_READONLY     1
+#define SBPART_EOLN         2
+#define SBPART_ENCODING     3
+#define SBPART_MAX          4    
 
 /* Line endings - string resource ID mapping table */
 static UINT EolnToStrId[] = {
@@ -41,11 +44,20 @@ static UINT EncToStrId[] = {
     STRING_UTF16_BE,
 };
 
+static UINT FileModeToStrId[] = {
+    STRING_FM_NORMAL,
+    STRING_FM_READONLY,
+    STRING_FM_EDITING,
+};
+
+
 #define     MAX_NTAB    9       // max number of tabs
 #define     XSP         3       // edit window border thickness
 
-static int TH_Height;
-static int ST_Height;
+static int TH_Height;           // Tab header height
+static int ST_Height;           // Status height
+
+static const int defaultWidths[SBPART_MAX] = { 200, 150, 150, 200 };
 
 /*********************************************************************/
 // update window layout on WM_SIZE
@@ -61,18 +73,18 @@ VOID UpdateWindowLayout(VOID)
         GetWindowRect(Globals.hStatusBar, &rcStatus);
 
         /* Align status bar parts, only if the status bar resize operation succeeds */
-            static const int defaultWidths[] = {200, 200, 200};
         RECT rcStatusBar;
-        int parts[3];
+        int parts[SBPART_MAX];
 
         GetClientRect(Globals.hStatusBar, &rcStatusBar);
 
-        parts[0] = rcStatusBar.right - (defaultWidths[1] + defaultWidths[2]);
-        parts[1] = rcStatusBar.right - defaultWidths[2];
-        parts[2] = -1; // the right edge of the status bar
+        parts[SBPART_CURPOS] = rcStatusBar.right - (defaultWidths[1] + defaultWidths[2] + defaultWidths[3] );
+        parts[SBPART_READONLY] = rcStatusBar.right - (defaultWidths[2] + defaultWidths[3] );
+        parts[SBPART_EOLN] = rcStatusBar.right - defaultWidths[3];
+        parts[SBPART_ENCODING] = -1; // the right edge of the status bar
 
-        parts[0] = max(parts[0], defaultWidths[0]);
-        parts[1] = max(parts[1], defaultWidths[0] + defaultWidths[1]);
+        parts[SBPART_CURPOS] = max(parts[SBPART_CURPOS], defaultWidths[SBPART_CURPOS]);
+        parts[SBPART_READONLY] = max(parts[SBPART_READONLY], defaultWidths[0] + defaultWidths[1]);
 
         SendMessageW(Globals.hStatusBar, SB_SETPARTS, _countof(parts), (LPARAM)parts);
     }
@@ -101,25 +113,6 @@ VOID UpdateWindowLayout(VOID)
 VOID DoShowHideStatusBar(VOID)
 {
     /* Check if status bar object already exists. */
-    if (Globals.hStatusBar == NULL)
-    {
-        /* Try to create the status bar */
-        Globals.hStatusBar = CreateStatusWindow(WS_CHILD | CCS_BOTTOM | SBARS_SIZEGRIP,
-                                                NULL,
-                                                Globals.hMainWnd,
-                                                CMD_STATUSBAR_WND_ID);
-
-        if (Globals.hStatusBar == NULL)
-        {
-            ShowLastError();
-            return;
-        }
-
-        /* Load the string for formatting column/row text output */
-        LOADSTRING( STRING_LINE_COLUMN, Globals.szStatusBarLineCol );
-    }
-
-    /* Update layout of controls */
     SendMessageW(Globals.hMainWnd, WM_SIZE, 0, 0);
 
     if (Globals.hStatusBar == NULL)
@@ -141,6 +134,9 @@ VOID ToggleStatusBar(VOID)
 VOID UpdateStatusBar(VOID)
 {
     StatusBarUpdateCaretPos();
+
+    SendMessageW(Globals.hStatusBar, SB_SETTEXTW, SBPART_READONLY,
+            (LPARAM) GETSTRING(FileModeToStrId[Globals.pEditInfo->Modified]));
 
     SendMessageW(Globals.hStatusBar, SB_SETTEXTW, SBPART_EOLN,
             (LPARAM) GETSTRING(EolnToStrId[Globals.iEoln]));
@@ -194,6 +190,12 @@ VOID UpdateWindowCaption(BOOL clearModifyAlert)
 
     /* Remember the state for later calls */
     Globals.bWasModified = isModified;
+    if (isModified)
+    {
+        Globals.pEditInfo->Modified = FM_EDITING;
+        SendMessageW(Globals.hStatusBar, SB_SETTEXTW, SBPART_READONLY,
+            (LPARAM) GETSTRING(FileModeToStrId[Globals.pEditInfo->Modified]));
+    }
 
     /* Determine if the file has been saved or if this is a new file */
     StringCchCopy(szFilename, _countof(szFilename),
@@ -212,7 +214,8 @@ VOID UpdateWindowCaption(BOOL clearModifyAlert)
 
 #define EDIT_STYLE_WRAP (WS_CHILD | WS_VSCROLL | ES_AUTOVSCROLL | ES_MULTILINE | ES_NOHIDESEL)
 #define EDIT_STYLE      (EDIT_STYLE_WRAP | WS_HSCROLL | ES_AUTOHSCROLL)
-#define EDIT_CLASS      _T("EDIT")
+// #define EDIT_CLASS      _T("EDIT")
+#define EDIT_CLASS      MSFTEDIT_CLASS
 
 LRESULT CALLBACK EDIT_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -293,7 +296,7 @@ VOID DoCreateEditWindow(VOID)
         HeapFree(GetProcessHeap(), 0, pTemp);
 
         if (bModified)
-            SendMessage(Globals.hEdit, EM_SETMODIFY, TRUE, 0);
+            SendMessage(Globals.hEdit, EM_SETMODIFY, TRUE, 0);          
     }
 
     /* Sub-class a new window callback for row/column detection. */
@@ -349,10 +352,35 @@ BOOL AddNewEditTab(VOID)
 // --------------------------------------------------------------------
 //   Multi-Tab service 
 
-// Creates a tab control. Returns TRUE on success.
+// Creates a Status and tab control. Returns TRUE on success.
 // Measure tab header height, status height. 
-BOOL DoCreateTabControl(VOID)
+BOOL CreateStatusTabControl(VOID)
 {
+    RECT rcTab, rcStatus;
+
+    if (Globals.hStatusBar == NULL)
+    {
+        /* Try to create the status bar */
+        Globals.hStatusBar = CreateStatusWindow(WS_CHILD | CCS_BOTTOM | SBARS_SIZEGRIP,
+                                                NULL,
+                                                Globals.hMainWnd,
+                                                CMD_STATUSBAR_WND_ID);
+
+        if (Globals.hStatusBar == NULL)
+        {
+            ShowLastError();
+            return FALSE;
+        }
+
+        /* Load the string for formatting column/row text output */
+        LOADSTRING( STRING_LINE_COLUMN, Globals.szStatusBarLineCol );
+
+        /* Update layout of controls */
+        // SendMessageW(Globals.hMainWnd, WM_SIZE, 0, 0);
+        GetWindowRect(Globals.hStatusBar, &rcStatus);
+        ST_Height = rcStatus.bottom - rcStatus.top;
+    }
+
     // Get the dimensions of the parent window's client area,
     //  and create a tab control child window of that size.
     Globals.hwTabCtrl = CreateWindow(WC_TABCONTROL, L"", 
@@ -360,13 +388,8 @@ BOOL DoCreateTabControl(VOID)
         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 
         Globals.hMainWnd, NULL, Globals.hInstance, NULL);
 
-    RECT rcTab, rcStatus;
-    
     TabCtrl_GetItemRect(Globals.hwTabCtrl, 0, &rcTab);
     TH_Height = rcTab.bottom - rcTab.top + XSP;
-
-    GetWindowRect(Globals.hStatusBar, &rcStatus);
-    ST_Height = rcStatus.bottom - rcStatus.top;
 
     return Globals.hwTabCtrl != NULL;
 }
@@ -394,7 +417,7 @@ VOID OnTabChange(VOID)
     StringCchCopy( Globals.szFileName, _countof(Globals.szFileName), pedi->filePath );
     Globals.encFile = pedi->encFile;
     Globals.iEoln = pedi->iEoln;
-    Globals.bWasModified = pedi->isModified;
+    Globals.bWasModified =  (pedi->Modified == FM_EDITING);; 
 
     Globals.pEditInfo = pedi;
 
@@ -407,6 +430,28 @@ VOID OnTabChange(VOID)
     }
 
     UpdateWindowCaption(FALSE);
+}
+
+// Close a empty tab
+int CloseTab(VOID)
+{
+    int iPage = TabCtrl_GetCurSel(Globals.hwTabCtrl);
+
+    DestroyWindow(Globals.hEdit);
+    free(Globals.pEditInfo);
+    Globals.hEdit = NULL;
+    Globals.pEditInfo = NULL;
+
+    TabCtrl_DeleteItem(Globals.hwTabCtrl, iPage);
+    int ntab = TabCtrl_GetItemCount(Globals.hwTabCtrl);
+
+    if (ntab > 0)
+    {
+        TabCtrl_SetCurSel(Globals.hwTabCtrl, ((iPage == ntab) ? iPage-1 : iPage));
+        OnTabChange();
+    }
+
+    return ntab;
 }
 
 // Set tab header
@@ -559,7 +604,8 @@ DIALOG_FileSaveAs_Hook(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
             SendMessage(hCombo, CB_ADDSTRING, 0, (LPARAM) GETSTRING(STRING_UTF8_BOM));
             SendMessage(hCombo, CB_ADDSTRING, 0, (LPARAM) GETSTRING(STRING_ANSIOEM));
             SendMessage(hCombo, CB_ADDSTRING, 0, (LPARAM) GETSTRING(STRING_UTF16));
-//            SendMessage(hCombo, CB_ADDSTRING, 0, (LPARAM) GETSTRING(STRING_UTF16_BE));
+            if ( Globals.encFile == ENCODING_UTF16BE )
+               SendMessage(hCombo, CB_ADDSTRING, 0, (LPARAM) GETSTRING(STRING_UTF16_BE));
 
             SendMessage(hCombo, CB_SETCURSEL, Globals.encFile, 0);
 
@@ -567,7 +613,8 @@ DIALOG_FileSaveAs_Hook(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 
             SendMessage(hCombo, CB_ADDSTRING, 0, (LPARAM) GETSTRING(STRING_LF));
             SendMessage(hCombo, CB_ADDSTRING, 0, (LPARAM) GETSTRING(STRING_CRLF));
-            SendMessage(hCombo, CB_ADDSTRING, 0, (LPARAM) GETSTRING(STRING_CR));
+            if ( Globals.iEoln == EOLN_CR )
+                SendMessage(hCombo, CB_ADDSTRING, 0, (LPARAM) GETSTRING(STRING_CR));
 
             SendMessage(hCombo, CB_SETCURSEL, Globals.iEoln, 0);
             break;
@@ -648,19 +695,6 @@ VOID DIALOG_FileClose(VOID)
 {
     if (DoCloseFile() == FALSE)
         return;
-
-    int iPage = TabCtrl_GetCurSel(Globals.hwTabCtrl);
-    TabCtrl_DeleteItem(Globals.hwTabCtrl, iPage);
-    int ntab = TabCtrl_GetItemCount(Globals.hwTabCtrl);
-
-    if (ntab == 0)
-    {
-        PostMessage(Globals.hMainWnd, WM_CLOSE, 0, 0);
-        return;
-    }
-
-    TabCtrl_SetCurSel(Globals.hwTabCtrl, ((iPage == ntab) ? iPage-1 : iPage));
-    OnTabChange();
 }
 
 VOID DIALOG_FileExit(VOID)
@@ -702,19 +736,24 @@ VOID DIALOG_EditSelectAll(VOID)
     SendMessage(Globals.hEdit, EM_SETSEL, 0, -1);
 }
 
-VOID DIALOG_EditTimeDate(VOID)
+VOID DIALOG_EditTimeDate(BOOL isotime)
 {
     SYSTEMTIME st;
-    TCHAR szDate[STR_SHORT];
+    TCHAR  szTime[STR_SHORT], szDate[STR_SHORT];
     TCHAR szText[STR_LONG];
 
     GetLocalTime(&st);
 
-    GetTimeFormat(LOCALE_USER_DEFAULT, 0, &st, NULL, szDate, STR_SHORT);
-    _tcscpy(szText, szDate);
-    _tcscat(szText, _T(" "));
-    GetDateFormat(LOCALE_USER_DEFAULT, DATE_LONGDATE, &st, NULL, szDate, STR_SHORT);
-    _tcscat(szText, szDate);
+    GetTimeFormat(LOCALE_USER_DEFAULT, TIME_NOSECONDS, &st, NULL, szTime, STR_SHORT);
+    GetDateFormat(LOCALE_USER_DEFAULT, DATE_SHORTDATE, &st, NULL, szDate, STR_SHORT);
+
+    BOOL datefirst = FALSE;  // date time order like ISO 8601
+    switch(GetUserDefaultLangID()) {
+    case 0x0411:  case 0x0412: case 0x0404:  case 0x0804: // CJKT LCID
+        datefirst = TRUE;
+    }
+    _stprintf(szText, L"%s %s", datefirst ? szDate : szTime, datefirst ?  szTime: szDate);     
+
     SendMessage(Globals.hEdit, EM_REPLACESEL, TRUE, (LPARAM)szText);
 }
 

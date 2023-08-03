@@ -35,10 +35,6 @@ VOID DoOpenFile(LPCTSTR szFileName)
     TCHAR log[5];
     HLOCAL hLocal;
 
-    /* Close any files and prompt to save changes */
-    // if (!DoCloseFile())
-    //     return;
-
     if (FindDupPathTab(szFileName) != -1)
         return;
 
@@ -50,13 +46,13 @@ VOID DoOpenFile(LPCTSTR szFileName)
         goto done;
     }
 
-    BOOL preserve = Globals.szFileName[0]        // old filename
+    BOOL newTab = Globals.szFileName[0]        // old filename
         || SendMessage(Globals.hEdit, EM_GETMODIFY, TRUE, 0); 
 
     SetFileName(szFileName);                   // new filename
     MRU_Add(szFileName);
 
-    if (preserve)
+    if (newTab)
     {
         AddNewEditTab();
     }
@@ -69,7 +65,9 @@ VOID DoOpenFile(LPCTSTR szFileName)
     Globals.pEditInfo->pathOK = TRUE;
 
     /* To make loading file quicker, we use the internal handle of EDIT control */
-    hLocal = (HLOCAL)SendMessageW(Globals.hEdit, EM_GETHANDLE, 0, 0);
+    // hLocal = (HLOCAL)SendMessageW(Globals.hEdit, EM_GETHANDLE, 0, 0);
+    // This optimization does not work for RichEdit, which does not support EM_GETHANDLE
+    hLocal = NULL;      
     if (!ReadText(hFile, &hLocal, &Globals.encFile, &Globals.iEoln))
     {
         ShowLastError();
@@ -78,9 +76,21 @@ VOID DoOpenFile(LPCTSTR szFileName)
 
     Globals.pEditInfo->encFile = Globals.encFile;
     Globals.pEditInfo->iEoln = Globals.iEoln;
+    Globals.pEditInfo->Modified = GetFileAttributes(szFileName) &
+        (FILE_ATTRIBUTE_READONLY|FILE_ATTRIBUTE_HIDDEN|FILE_ATTRIBUTE_SYSTEM) ? FM_READONLY : FM_NORMAL;
 
-    SendMessageW(Globals.hEdit, EM_SETHANDLE, (WPARAM)hLocal, 0);
+    // SendMessageW(Globals.hEdit, EM_SETHANDLE, (WPARAM)hLocal, 0);
     /* No need of EM_SETMODIFY and EM_EMPTYUNDOBUFFER here. EM_SETHANDLE does instead. */
+    LPWSTR pszText;
+    if ( !hLocal || !(pszText = LocalLock(hLocal)) )
+        goto done;
+    SetWindowText(Globals.hEdit, pszText);
+    LocalUnlock(pszText);
+    SendMessage(Globals.hEdit, EM_EMPTYUNDOBUFFER, 0, 0);
+    SendMessage(Globals.hEdit, EM_SETMODIFY, FALSE, 0);
+
+    if (Globals.pEditInfo->Modified == FM_READONLY)
+             SendMessage(Globals.hEdit, EM_SETREADONLY, TRUE, 0);
 
     SetFocus(Globals.hEdit);
 
@@ -92,7 +102,7 @@ VOID DoOpenFile(LPCTSTR szFileName)
         static const TCHAR lf[] = _T("\r\n");
         SendMessage(Globals.hEdit, EM_SETSEL, GetWindowTextLength(Globals.hEdit), -1);
         SendMessage(Globals.hEdit, EM_REPLACESEL, TRUE, (LPARAM)lf);
-        DIALOG_EditTimeDate();
+        DIALOG_EditTimeDate(TRUE);
         SendMessage(Globals.hEdit, EM_REPLACESEL, TRUE, (LPARAM)lf);
     }
 
@@ -204,10 +214,8 @@ BOOL DoCloseFile(VOID)
     SetFileName(NULSTR);
     UpdateWindowCaption(TRUE);
 
-    DestroyWindow(Globals.hEdit);
-    free(Globals.pEditInfo);
-    Globals.hEdit = NULL;
-    Globals.pEditInfo = NULL;
+    if (CloseTab() == 0)
+        PostMessage(Globals.hMainWnd, WM_CLOSE, 0, 0);
 
     return TRUE;
 }
@@ -219,7 +227,6 @@ BOOL DoCloseAllFiles(VOID)
     for ( int iPage = ntab-1 ; iPage >=0; iPage-- )
     {
         TabCtrl_SetCurSel(Globals.hwTabCtrl, iPage);
-        OnTabChange();
         if (!DoCloseFile())
             return FALSE;  // user canceled close all
     }

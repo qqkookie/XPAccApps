@@ -26,10 +26,13 @@
 #include "main.h"
 #include <commctrl.h>
 #include <shellapi.h>
+#include <time.h>
 
 #define INITIAL_WINDOW_SIZE     300
 #define DRAGBAR_DROP            100      // dragbar drop from top
 #define TIMER_ID 1
+
+#define VKCODE_X                0x0058  // VK code 'X'
 
 CLK_GLOBALS Globals;
 
@@ -379,6 +382,14 @@ static LRESULT WINAPI Clk_WndProc (HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
             break;
         }
 
+        case WM_SYSKEYUP:{
+            if ( LOWORD(wParam ) == VKCODE_X && (lParam & (0x01UL <<29)) )
+            {
+                SendMessage( hWnd, WM_COMMAND, IDM_EXIT, 0);
+                return TRUE;
+            }
+        }
+
         default:
             return DefWindowProcW(hWnd, msg, wParam, lParam);
     }
@@ -456,69 +467,50 @@ int PASCAL WinMain (HINSTANCE hInstance, HINSTANCE prev, LPSTR cmdline, int show
 //       SAVE/LOAD settings
 
 #ifdef PRIVATEPROFILE_INI
+
 #include <Shlobj.h>
+#include <stdio.h>
 
-#define PFSECTION L"XClock"
+#define _PFSECTION L"XClock"
 
-static TCHAR ProfilePath[MAX_PATH] = {0};
+static WCHAR _ProfilePath[MAX_PATH] = {0};
 
-static BOOL FileExists(LPCTSTR szFilename)
-{
-    return GetFileAttributes(szFilename) != INVALID_FILE_ATTRIBUTES;
-}
-
-#define GETSETTINGINT(key, def) \
-            GetPrivateProfileInt(PFSECTION, key, def, ProfilePath)
-
-#define LOADSETTINGSTR(key, buf, def) \
-            GetPrivateProfileString(PFSECTION, key, def, \
-            buf, _countof(buf), ProfilePath)
-
-
-#define SAVESETTINGINT(key, value) \
-            _itow_s(value, _savebuf, _countof(_savebuf), 10),\
-            WritePrivateProfileString(PFSECTION, key, _savebuf, ProfilePath)
-#define SAVESETTINGSTR(key, str) \
-            WritePrivateProfileString(PFSECTION, key, str, ProfilePath)
+#define GETINIINT(key, def) \
+    GetPrivateProfileInt(_PFSECTION, key, def, _ProfilePath)
 
 static BOOL LoadSettings(VOID)
 {
-    if (FAILED(SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, ProfilePath)))
+    if (FAILED(SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, _ProfilePath)))
+        return FALSE;
+    wcscat_s(_ProfilePath, MAX_PATH, L"\\" TEXT(PRIVATEPROFILE_INI));
+
+    if ( GetFileAttributes(_ProfilePath) == INVALID_FILE_ATTRIBUTES)
         return FALSE;
 
-    wcscat_s(ProfilePath, MAX_PATH, L"\\" PRIVATEPROFILE_INI);
-
-    int px = GETSETTINGINT(L"PosX", 200);
-    int py = GETSETTINGINT(L"PosY", 200);
-    Globals.WinW = GETSETTINGINT(L"Width", INITIAL_WINDOW_SIZE);
-    Globals.WinH  = GETSETTINGINT(L"Height", INITIAL_WINDOW_SIZE);
+    int px = GETINIINT(L"WinPosX", 200);
+    int py = GETINIINT(L"WinPosY", 200);
+    Globals.WinW = GETINIINT(L"Width", INITIAL_WINDOW_SIZE);
+    Globals.WinH  = GETINIINT(L"Height", INITIAL_WINDOW_SIZE);
     MoveWindow(Globals.hMainWnd, px,py, Globals.WinW, Globals.WinH, FALSE);
 
-    UINT flags = GETSETTINGINT(L"Flags", 0x10);
+    UINT flags = GETINIINT(L"Flags", 0x0);
     Globals.bAnalog         = (BOOL)  flags & (0x1);
     Globals.bAlwaysOnTop    = (BOOL)  flags & (0x01 <<1);
-    Globals.bNoTitleBar   = (BOOL)  flags & (0x01 <<2);
+    Globals.bNoTitleBar     = (BOOL)  flags & (0x01 <<2);
     Globals.bSeconds        = (BOOL)  flags & (0x01 <<3);
     Globals.b24Hours        = (BOOL)  flags & (0x01 <<4);
     Globals.bDarkColor      = (BOOL)  flags & (0x01 <<5);
 //    Globals.bDate           = (BOOL)  flags & (0x01 <<6);
 
-    if (FileExists(ProfilePath))
-        return TRUE;
-    return SaveSettings();
+    return TRUE;
 }
 
 static BOOL SaveSettings(VOID)
 {
-    TCHAR _savebuf[256];
     WINDOWPLACEMENT wp;
     wp.length = sizeof(wp);
     GetWindowPlacement(Globals.hMainWnd, &wp);
     RECT wnr = wp.rcNormalPosition;
-    SAVESETTINGINT(L"PosX", wnr.left);
-    SAVESETTINGINT(L"PosY", wnr.top);
-    SAVESETTINGINT(L"Width", wnr.right - wnr.left);
-    SAVESETTINGINT(L"Height", wnr.bottom - wnr.top);
 
     UINT flags = 0;
     flags |= Globals.bAnalog ? 0x1 : 0;
@@ -529,10 +521,14 @@ static BOOL SaveSettings(VOID)
     flags |= Globals.bDarkColor ? 0x1 <<5 : 0;
 //    flags |= Globals.bDate ? 0x1 <<6 : 0;
 
-    SAVESETTINGINT(L"Flags", flags);
+    WCHAR buf[256];
+    swprintf_s( buf, _countof(buf)-1,
+        L"WinPosX=%d\nWinPosY=%d\nWidth=%d\nHeight=%d\nFlags=%d\n" ,
+         wnr.left, wnr.top, wnr.right - wnr.left, wnr.bottom - wnr.top, flags );
 
-    return FileExists(ProfilePath);
+    return WritePrivateProfileSection(_PFSECTION, buf, _ProfilePath);
 }
+
 #else
 static BOOL LoadSettings(VOID  { return FALSE;}
 static BOOL SaveSettings(VOID) { return FALSE;}

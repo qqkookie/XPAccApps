@@ -54,13 +54,20 @@ typedef enum
     EOLN_CR   = 2  /* "\r" */
 } EOLN; /* End of line (NewLine) type */
 
+typedef enum
+{
+    FM_NORMAL =  0,
+    FM_READONLY =  1,
+    FM_EDITING    =  2,
+} FILEMODE;  // file modification state
+
 // Extra info for each Edit control on eacn Tab.
 typedef struct {
     UINT        cbSize;
     HWND        hwEDIT;
     ENCODING    encFile;
     EOLN        iEoln;
-    BOOL        isModified;
+    FILEMODE    Modified;
 
     BOOL        pathOK;
     TCHAR       filePath[MAX_PATH];

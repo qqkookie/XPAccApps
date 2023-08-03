@@ -36,6 +36,32 @@ IDI_NPICON ICON "res/notepad.ico"
 // app version info resouce
 #include "../version.rc"
 
+ID_ACCEL ACCELERATORS
+BEGIN
+    "^A", CMD_SELECT_ALL
+    "^C", CMD_COPY
+    "^F", CMD_SEARCH
+    "^G", CMD_GOTO
+    "H", CMD_REPLACE, VIRTKEY, CONTROL
+    "^N", CMD_NEW
+    "N", CMD_NEW_WINDOW, VIRTKEY, CONTROL, SHIFT
+    "^O", CMD_OPEN
+    "^P", CMD_PRINT
+    "^S", CMD_SAVE
+    "^V", CMD_PASTE
+    "^X", CMD_CUT
+    "^Z", CMD_UNDO
+    "^W", CMD_CLOSE
+    "X", CMD_EXIT, VIRTKEY, ALT, NOINVERT
+    VK_F1, CMD_HELP_CONTENTS, VIRTKEY
+    VK_F2, CMD_SAVE, VIRTKEY
+    VK_F3, CMD_SEARCH_NEXT, VIRTKEY
+    VK_F4, CMD_SEARCH_PREV, VIRTKEY
+    VK_F5, CMD_RELOAD, VIRTKEY, CONTROL
+    VK_F6, CMD_TIME_DATE, VIRTKEY, CONTROL
+    VK_F6, CMD_TIME_ISO, VIRTKEY, ALT
+END
+
 #ifdef LANGUAGE_BG_BG
     #include "lang/bg-BG.rc"
 #endif

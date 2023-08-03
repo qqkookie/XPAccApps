@@ -94,6 +94,9 @@ void RegistrySettings::Load(INT nCmdShow)
 {
     LoadPresets(nCmdShow);
 
+   if ( LoadSettings())
+    return;
+
     CRegKey paint;
     if (paint.Open(HKEY_CURRENT_USER, _T("Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Paint"), KEY_READ) != ERROR_SUCCESS)
         return;
@@ -176,6 +179,9 @@ void RegistrySettings::Load(INT nCmdShow)
 
 void RegistrySettings::Store()
 {
+    if (SaveSettings())
+        return;
+
     BMPWidth = imageModel.GetWidth();
     BMPHeight = imageModel.GetHeight();
 
@@ -281,3 +287,148 @@ void RegistrySettings::SetMostRecentFile(LPCTSTR szPathName)
         strFiles[0] = szPathName;
     }
 }
+
+// ********************************************************************
+
+#ifdef PRIVATEPROFILE_INI
+
+#include <Shlobj.h>
+#include <atlenc.h>
+
+#define _PFSECTION L"XMSPaint"
+
+static WCHAR _ProfilePath[MAX_PATH] = {0};
+
+const int WPLSIZE       = sizeof(WINDOWPLACEMENT);
+#define HEXFACTOR       2
+
+BOOL RegistrySettings::LoadSettings(VOID)
+{
+    if (FAILED(SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, _ProfilePath)))
+        return FALSE;
+    wcscat_s(_ProfilePath, MAX_PATH, L"\\" TEXT( PRIVATEPROFILE_INI));
+    if ( GetFileAttributes(_ProfilePath) == INVALID_FILE_ATTRIBUTES)
+        return FALSE;
+
+#define READINIINT(k, v)  (v) = GetPrivateProfileInt( _PFSECTION, k, v, _ProfilePath )
+
+    READINIINT( L"BMPHeight",     BMPHeight);
+    READINIINT( L"BMPWidth",      BMPWidth);
+    READINIINT( L"GridExtent",    GridExtent);
+    READINIINT( L"NoStretching",  NoStretching);
+    READINIINT( L"ShowThumbnail", ShowThumbnail);
+    READINIINT( L"SnapToGrid",    SnapToGrid);
+    READINIINT( L"ThumbHeight",   ThumbHeight);
+    READINIINT( L"ThumbWidth",    ThumbWidth);
+    READINIINT( L"ThumbXPos",     ThumbXPos);
+    READINIINT( L"ThumbYPos",     ThumbYPos);
+    READINIINT( L"UnitSetting",   UnitSetting);
+    READINIINT( L"ShowStatusBar", ShowStatusBar);
+
+    WCHAR wbuf[256];
+    if ( GetPrivateProfileString(_PFSECTION, L"WindowPlacement", L"", wbuf, _countof(wbuf), _ProfilePath))
+    {
+        USES_CONVERSION_EX;
+
+        wbuf[WPLSIZE*HEXFACTOR] = '\0';
+        int cbwp = WPLSIZE;
+        AtlHexDecode( CW2A(wbuf, CP_UTF8), WPLSIZE*HEXFACTOR, (LPBYTE) &WindowPlacement, &cbwp);
+    }
+
+    for (INT i = 0; i < MAX_RECENT_FILES; ++i)
+    {
+        WCHAR szName[32];
+        wsprintf(szName, L"MRU.File%u", i + 1);
+        GetPrivateProfileString(_PFSECTION, szName, L"", wbuf, _countof(wbuf), _ProfilePath);
+        strFiles[i] = wbuf;
+    }
+
+    READINIINT( L"Text.Bold",         Bold);
+    READINIINT( L"Text.Italic",       Italic);
+    READINIINT( L"Text.Underline",    Underline);
+    READINIINT( L"Text.CharSet",      CharSet);
+    READINIINT( L"Text.PointSize",    PointSize);
+    READINIINT( L"Text.PositionX",    FontsPositionX);
+    READINIINT( L"Text.PositionY",    FontsPositionY);
+    READINIINT( L"Text.ShowTextTool", ShowTextTool);
+    GetPrivateProfileString(_PFSECTION, L"Text.TypeFaceName", wbuf, wbuf, _countof(wbuf), _ProfilePath);
+    strFontName = wbuf;
+
+    READINIINT( L"General-Bar1.BarID", Bar1ID);
+    READINIINT( L"General-Bar2.BarID", Bar2ID);
+    READINIINT( L"General-Bar3.Visible", ShowToolBox);
+    READINIINT( L"General-Bar4.Visible", ShowPalette);
+
+    // Fix the bitmap size if too large
+    if (BMPWidth > 5000)
+        BMPWidth = (GetSystemMetrics(SM_CXSCREEN) * 6) / 10;
+    if (BMPHeight > 5000)
+        BMPHeight = (GetSystemMetrics(SM_CYSCREEN) * 6) / 10;
+
+   return TRUE;
+}
+
+BOOL RegistrySettings::SaveSettings(VOID)
+{
+    BMPWidth = imageModel.GetWidth();
+    BMPHeight = imageModel.GetHeight();
+
+    CString acc;
+    WCHAR _tmp[256];
+
+#define ADDINIITEM( k, v)    wsprintf( _tmp, k L"=%d\n", v); acc += _tmp
+#define ADDINISTR( k, s)    wsprintf( _tmp, k L"=%s\n", s); acc += _tmp
+
+    ADDINIITEM( L"BMPHeight",     BMPHeight);
+    ADDINIITEM( L"BMPWidth",      BMPWidth);
+    ADDINIITEM( L"GridExtent",    GridExtent);
+    ADDINIITEM( L"NoStretching",  NoStretching);
+    ADDINIITEM( L"ShowThumbnail", ShowThumbnail);
+    ADDINIITEM( L"SnapToGrid",    SnapToGrid);
+    ADDINIITEM( L"ThumbHeight",   ThumbHeight);
+    ADDINIITEM( L"ThumbWidth",    ThumbWidth);
+    ADDINIITEM( L"ThumbXPos",     ThumbXPos);
+    ADDINIITEM( L"ThumbYPos",     ThumbYPos);
+    ADDINIITEM( L"UnitSetting",   UnitSetting);
+    ADDINIITEM( L"ShowStatusBar", ShowStatusBar);
+
+    char bufstr[WPLSIZE*(HEXFACTOR+1)];
+    int cbbuf = sizeof(bufstr);
+    if ( AtlHexEncode( (LPBYTE) &WindowPlacement, WPLSIZE, bufstr, &cbbuf))
+    {   
+        USES_CONVERSION_EX;
+
+        acc += L"WindowPlacement=";
+        bufstr[cbbuf] = '\0';
+        acc += A2CW_EX(bufstr, CP_UTF8);
+        acc += L"\n";
+    }
+
+    for (INT iFile = 0; iFile < MAX_RECENT_FILES; ++iFile)
+    {
+        wsprintf( _tmp, L"MRU.File%u=%s\n", iFile+1, (LPCWSTR) strFiles[iFile]);
+        acc += _tmp;
+    }
+
+    ADDINIITEM( L"Text.Bold",          Bold);
+    ADDINIITEM( L"Text.Italic",        Italic);
+    ADDINIITEM( L"Text.Underline",     Underline);
+    ADDINIITEM( L"Text.CharSet",       CharSet);
+    ADDINIITEM( L"Text.PointSize",     PointSize);
+    ADDINIITEM( L"Text.PositionX",     FontsPositionX);
+    ADDINIITEM( L"Text.PositionY",     FontsPositionY);
+    ADDINIITEM( L"Text.ShowTextTool",  ShowTextTool);
+    ADDINISTR(  L"Text.TypeFaceName",  (LPCWSTR)strFontName);
+
+    ADDINIITEM( L"General-Bar1.BarID", Bar1ID);
+    ADDINIITEM( L"General-Bar2.BarID", Bar2ID);
+    ADDINIITEM( L"General-Bar3.Visible", ShowToolBox);
+    ADDINIITEM( L"General-Bar4.Visible", ShowPalette);
+
+    return WritePrivateProfileSection( _PFSECTION, (LPCWSTR) acc, _ProfilePath);
+} 
+
+#else
+BOOL RegistrySettings::LoadSettings(VOID) {   return FALSE;}
+BOOL RegistrySettings::SaveSettings(VOID) {   return FALSE;}
+#endif

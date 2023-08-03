@@ -1,9 +1,13 @@
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
+/*
+ * Moved to "clipbrd.rc"
+ *
 ID_ACCEL ACCELERATORS
 BEGIN
     VK_DELETE, CMD_DELETE, VIRTKEY
 END
+*/
 
 MAIN_MENU MENU
 BEGIN
@@ -24,7 +28,7 @@ BEGIN
         MENUITEM "&Help Topics", CMD_HELP
         MENUITEM "&About", CMD_ABOUT
         MENUITEM SEPARATOR
-        MENUITEM "E&xit", CMD_EXIT
+        MENUITEM "E&xit\tAlt+X", CMD_EXIT
     END
 /*
     POPUP "&Edit"

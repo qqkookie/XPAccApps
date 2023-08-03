@@ -15,6 +15,8 @@ class RegistrySettings
 {
 private:
     void LoadPresets(INT nCmdShow);
+    BOOL LoadSettings(VOID);
+    BOOL SaveSettings(VOID);
 
 public:
     DWORD BMPHeight;

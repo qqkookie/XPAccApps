@@ -9,6 +9,7 @@ if(DBG)
 endif()
 
 list(APPEND SOURCE
+
     canvas.cpp
     dialogs.cpp
     dib.cpp
@@ -28,19 +29,9 @@ list(APPEND SOURCE
     toolsettings.cpp
     toolsmodel.cpp
     winproc.cpp
-    precomp.h)
-
-add_link_options(/SUBSYSTEM:WINDOWS /MANIFEST:NO)
+    precomp.h
+)
 
 add_executable(xmspaint ${SOURCE} rsrc.rc)
-target_link_libraries(xmspaint comctl32 rpcrt4)
 
-# file(GLOB mspaint_rc_deps icons/*.*)
-# add_rc_deps(rsrc.rc ${mspaint_rc_deps})
-# add_executable(mspaint ${SOURCE} rsrc.rc)
-# set_module_type(mspaint win32gui UNICODE)
-# target_link_libraries(mspaint uuid cpprt atl_classes)
-# set_target_cpp_properties(mspaint WITH_EXCEPTIONS)
-# add_importlibs(mspaint comdlg32 shell32 user32 gdi32 advapi32 comctl32 msvcrt kernel32 rpcrt4 shlwapi ntdll)
-# add_pch(mspaint precomp.h SOURCE)
-# add_cd_file(TARGET mspaint DESTINATION reactos/system32 FOR all)
+target_link_libraries(xmspaint comctl32 rpcrt4)

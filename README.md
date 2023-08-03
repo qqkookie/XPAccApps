@@ -7,7 +7,7 @@ like calculator, notepad, taskmgr, mspinat, wordpad, etc.
 It looks, feels and works like Windows XP desktop accessory tools clone.
 It supports high-DPI monitor like 144 dpi.
 
-Current vserion: 0.1.5
+Current vserion: 0.1.6
 
 ## What it has:
 

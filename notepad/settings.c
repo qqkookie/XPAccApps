@@ -19,18 +19,8 @@ SETTING_DATA Settings;
 static LPCTSTR s_szRegistryKey = _T("Software\\Microsoft\\Notepad");
 static DWORD dwPointSize, dx, dy;
 
-#ifdef PRIVATEPROFILE_INI
-static BOOL LoadSettingsIni(VOID);
-static BOOL SaveSettingsIni(VOID);
-#endif
-
-// Get resource string, returns pointer to internal static buffer.
-LPCTSTR GetString(UINT rid)
-{
-    static TCHAR _strbuf[STR_LONG];
-    return ( LoadString( NULL, rid, _strbuf, _countof(_strbuf)) > 0
-        ? _strbuf : _T(""));
-}
+static BOOL LoadSettings(VOID);
+static BOOL SaveSettings(VOID);
 
 /***********************************************************************
  *           NOTEPAD_LoadSettingsFromRegistry
@@ -74,10 +64,8 @@ VOID LoadAppSettings(VOID)
     LOADSTRING(STRING_PAGESETUP_HEADERVALUE, Settings.szHeader );
     LOADSTRING(STRING_PAGESETUP_FOOTERVALUE, Settings.szFooter );
 
-#ifdef PRIVATEPROFILE_INI
-    if (LoadSettingsIni())
+    if (LoadSettings())
         goto skip_reg;
-#endif
 
     /* Open the target registry key */
     if (RegOpenKey(HKEY_CURRENT_USER, s_szRegistryKey, &hKey) != ERROR_SUCCESS)
@@ -185,10 +173,8 @@ VOID SaveAppSettings(VOID)
     /* round to nearest multiple of 10 */
     dwPointSize -= (dwPointSize+5) % 10 -5;
 
-#ifdef PRIVATEPROFILE_INI
-    if (SaveSettingsIni())
+    if (SaveSettings())
         return;
-#endif
 
     if (RegCreateKeyEx(HKEY_CURRENT_USER, s_szRegistryKey,
                        0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL,
@@ -230,99 +216,101 @@ VOID SaveAppSettings(VOID)
     }
 }
 
+// Get resource string, returns pointer to internal static buffer.
+LPCTSTR GetString(UINT rid)
+{
+    static TCHAR _strbuf[STR_LONG];
+    return ( LoadString( NULL, rid, _strbuf, _countof(_strbuf)) > 0
+        ? _strbuf : _T(""));
+}
+
 #ifdef PRIVATEPROFILE_INI
+
 #include <Shlobj.h>
 
-#define PFSECTION _T("XNotePad")
+#define _PFSECTION L"XNotePad"
 
-static TCHAR ProfilePath[MAX_PATH] = {0};
-
-// read ini file and copy to buffer
-int LoadIniString(LPCTSTR key, LPTSTR buf, int buflen)
-{
-    return GetPrivateProfileString(PFSECTION, key, _T(""),
-        buf, buflen, ProfilePath);
-}
+static WCHAR _ProfilePath[MAX_PATH] = {0};
 
 // read ini file entry and return pointer to internal buffer
 LPCTSTR GetIniString(LPCTSTR key, LPCTSTR defval)
 {
     static TCHAR _inibuf[STR_LONG];
-    return ((GetPrivateProfileString(PFSECTION, key, _T(""),
-            _inibuf, STR_LONG, ProfilePath) > 0) ? _inibuf : defval);
+    return ((GetPrivateProfileString(_PFSECTION, key, _T(""),
+            _inibuf, STR_LONG, _ProfilePath) > 0) ? _inibuf : defval);
 }
 
 // write string to ini file
 VOID PutIniString(LPCTSTR key, LPCTSTR value)
 {
-    WritePrivateProfileString(PFSECTION, key, value, ProfilePath);;
+    WritePrivateProfileString(_PFSECTION, key, value, _ProfilePath);;
 }
 
-static BOOL LoadSettingsIni(VOID)
+static BOOL LoadSettings(VOID)
 {
-#define GETSETTINGINT(key, def) \
-            GetPrivateProfileInt(PFSECTION, _T(key), def, ProfilePath)
+#define GETINIINT(key, def) \
+            GetPrivateProfileInt(_PFSECTION, key, def, _ProfilePath)
 
 #define LOADSETTINGSTR(key, var,def) \
-            GetPrivateProfileString(PFSECTION, _T(key), _T(def), \
-            Settings.var, _countof(Settings.var), ProfilePath)
+            GetPrivateProfileString(_PFSECTION, key, def, \
+            Settings.var, _countof(Settings.var), _ProfilePath)
 
-    if (FAILED(SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, ProfilePath)))
+    if (FAILED(SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, _ProfilePath)))
+        return FALSE;
+    _tcscat_s(_ProfilePath, MAX_PATH, L"\\" TEXT(PRIVATEPROFILE_INI));
+
+    if (!FileExists(_ProfilePath))
         return FALSE;
 
-    _tcscat_s(ProfilePath, MAX_PATH, _T("\\") _T(PRIVATEPROFILE_INI));
+    Settings.lfFont.lfCharSet = GETINIINT(L"lfCharSet", DEFAULT_CHARSET);
+    Settings.lfFont.lfClipPrecision = GETINIINT(L"lfClipPrecision", 0 );
+    Settings.lfFont.lfEscapement = GETINIINT(L"lfEscapement", 0 );
+    Settings.lfFont.lfItalic = GETINIINT(L"lfItalic", 0 );
+    Settings.lfFont.lfOrientation = GETINIINT(L"lfOrientation", 0 );
 
-    Settings.lfFont.lfCharSet = GETSETTINGINT("lfCharSet", DEFAULT_CHARSET);
-    Settings.lfFont.lfClipPrecision = GETSETTINGINT("lfClipPrecision", 0 );
-    Settings.lfFont.lfEscapement = GETSETTINGINT("lfEscapement", 0 );
-    Settings.lfFont.lfItalic = GETSETTINGINT("lfItalic", 0 );
-    Settings.lfFont.lfOrientation = GETSETTINGINT("lfOrientation", 0 );
+    Settings.lfFont.lfOutPrecision =  GETINIINT(L"lfOutPrecision", 0 );
+    Settings.lfFont.lfPitchAndFamily = GETINIINT(L"lfPitchAndFamily", (FIXED_PITCH | FF_MODERN) );
+    Settings.lfFont.lfQuality =  GETINIINT(L"lfQuality", 0 );
+    Settings.lfFont.lfStrikeOut = GETINIINT(L"lfStrikeOut", 0 );
+    Settings.lfFont.lfStrikeOut = GETINIINT(L"lfUnderline", 0 );
+    Settings.lfFont.lfWeight = GETINIINT(L"lfWeight", FW_NORMAL);
+    dwPointSize = GETINIINT(L"iPointSize", 100);
 
-    Settings.lfFont.lfOutPrecision =  GETSETTINGINT("lfOutPrecision", 0 );
-    Settings.lfFont.lfPitchAndFamily = GETSETTINGINT("lfPitchAndFamily", (FIXED_PITCH | FF_MODERN) );
-    Settings.lfFont.lfQuality =  GETSETTINGINT("lfQuality", 0 );
-    Settings.lfFont.lfStrikeOut = GETSETTINGINT("lfStrikeOut", 0 );
-    Settings.lfFont.lfStrikeOut = GETSETTINGINT("lfUnderline", 0 );
-    Settings.lfFont.lfWeight = GETSETTINGINT("lfWeight", FW_NORMAL);
-    dwPointSize = GETSETTINGINT("iPointSize", 100);
+    Settings.bWrapLongLines = GETINIINT(L"fWrap", TRUE );
+    Settings.bShowStatusBar = GETINIINT(L"fStatusBar", TRUE );
+    Settings.lMargins.left = GETINIINT(L"iMarginLeft", 750 );
+    Settings.lMargins.top = GETINIINT(L"iMarginTop", 1000 );
+    Settings.lMargins.right = GETINIINT(L"iMarginRight", 750 );
+    Settings.lMargins.bottom = GETINIINT(L"iMarginBottom", 1000 );
 
-    Settings.bWrapLongLines = GETSETTINGINT("fWrap", TRUE );
-    Settings.bShowStatusBar = GETSETTINGINT("fStatusBar", TRUE );
-    Settings.lMargins.left = GETSETTINGINT("iMarginLeft", 750 );
-    Settings.lMargins.top = GETSETTINGINT("iMarginTop", 1000 );
-    Settings.lMargins.right = GETSETTINGINT("iMarginRight", 750 );
-    Settings.lMargins.bottom = GETSETTINGINT("iMarginBottom", 1000 );
+    Settings.main_rect.left = GETINIINT(L"iWindowPosX", 0 );
+    Settings.main_rect.top = GETINIINT(L"iWindowPosY", 0 );
+    dx = GETINIINT(L"iWindowPosDX", dx);
+    dy = GETINIINT(L"iWindowPosDY", dy);
 
-    Settings.main_rect.left = GETSETTINGINT("iWindowPosX", 0 );
-    Settings.main_rect.top = GETSETTINGINT("iWindowPosY", 0 );
-    dx = GETSETTINGINT("iWindowPosDX", dx);
-    dy = GETSETTINGINT("iWindowPosDY", dy);
+    LOADSETTINGSTR(L"searchString", szFindText, L"" );
+    LOADSETTINGSTR(L"replaceString", szReplaceText, L"" );
 
-    LOADSETTINGSTR("searchString", szFindText, "" );
-    LOADSETTINGSTR("replaceString", szReplaceText, "" );
+    LOADSETTINGSTR(L"lfFaceName", lfFont.lfFaceName, L"");
+    LOADSETTINGSTR(L"szHeader", szHeader, L"" );
+    LOADSETTINGSTR(L"szTrailer", szFooter, L"" );
 
-    LOADSETTINGSTR("lfFaceName", lfFont.lfFaceName, "");
-    LOADSETTINGSTR("szHeader", szHeader, "" );
-    LOADSETTINGSTR("szTrailer", szFooter, "" );
-
-    LOADSETTINGSTR("txtTypeFilter", txtTypeFilter, "*.md;*.mdx" );
-    LOADSETTINGSTR("moreTypeFilter", moreTypeFilter, "" );
+    LOADSETTINGSTR(L"txtTypeFilter", txtTypeFilter, L"*.md;*.mdx" );
+    LOADSETTINGSTR(L"moreTypeFilter", moreTypeFilter, L"" );
 
     MRU_Load();
 
-    if (FileExists(ProfilePath))
-        return TRUE;
-    return SaveSettingsIni();
+    return TRUE;
 }
 
-static BOOL SaveSettingsIni(VOID)
+static BOOL SaveSettings(VOID)
 {
     TCHAR _savebuf[256];
 #define SAVESETTINGINT(key, value) \
             _itot_s( Settings.value, _savebuf, _countof(_savebuf), 10),\
-            WritePrivateProfileString(PFSECTION, _T(key), _savebuf, ProfilePath)
+            WritePrivateProfileString(_PFSECTION, _T(key), _savebuf, _ProfilePath)
 #define SAVESETTINGSTR(key, str) \
-            WritePrivateProfileString(PFSECTION, _T(key), Settings.str, ProfilePath);
+            WritePrivateProfileString(_PFSECTION, _T(key), Settings.str, _ProfilePath);
 
     SAVESETTINGINT("lfCharSet", lfFont.lfCharSet );
     SAVESETTINGINT("lfClipPrecision", lfFont.lfClipPrecision );
@@ -338,7 +326,7 @@ static BOOL SaveSettingsIni(VOID)
     SAVESETTINGINT("lfWeight", lfFont.lfWeight);
 
     _itot_s( dwPointSize, _savebuf, _countof(_savebuf), 10);
-    WritePrivateProfileString(PFSECTION, _T("iPointSize"), _savebuf, ProfilePath);
+    WritePrivateProfileString(_PFSECTION, _T("iPointSize"), _savebuf, _ProfilePath);
 
     SAVESETTINGINT("fWrap", bWrapLongLines ? 1 : 0);
     SAVESETTINGINT("fStatusBar", bShowStatusBar ? 1 : 0);
@@ -361,6 +349,9 @@ static BOOL SaveSettingsIni(VOID)
     MRU_Sort();
     MRU_Save();
 
-    return FileExists(ProfilePath);
+    return FileExists(_ProfilePath);
 }
+#else
+static BOOL LoadSettings(VOID  { return FALSE;}
+static BOOL SaveSettings(VOID) { return FALSE;}
 #endif // PRIVATEPROFILE_INI

@@ -420,3 +420,5 @@
 #define IDM_VIEW_BYTE                   40018
 #define IDM_VIEW_DWORD                  40019
 #define IDM_VIEW_CONVERSION             40020
+
+#define IDM_EDIT_EXIT                   40031

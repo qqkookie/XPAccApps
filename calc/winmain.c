@@ -20,6 +20,8 @@
 
 #include "calc.h"
 
+#define VIEW_MENU_OFFSET    0
+
 #define HTMLHELP_PATH(_pt)  _T("%systemroot%\\Help\\calc.chm::") _T(_pt)
 
 #define MAKE_BITMASK4(_show_b16, _show_b10, _show_b8, _show_b2) \
@@ -79,6 +81,8 @@ typedef struct {
 #define CTRL_V  (0x0001+'V'-'A')
 #define CTRL_Z  (0x0001+'Z'-'A')
 #define CTRL_Q  (0x0001+'Q'-'A')
+
+#define VK_ALT_X   (0x0258)     // VK of 'X' key + ALT_FLG
 
 static const key3code_t key2code[] = {
     /* CONTROL-ID          Key                    asc sta ctl hex dec oct bin */
@@ -301,27 +305,14 @@ static void SaveRegInt(LPCTSTR lpszApp, LPCTSTR lpszKey, int iValue)
     }
 }
 
-#ifdef PRIVATEPROFILE_INI
-#include <Shlobj.h>
-
-TCHAR ProfilePath[MAX_PATH] = {0};
-#define PSECTION _T("XCalc")
-#endif
+static BOOL LoadSettings(VOID);
+static BOOL SaveSettings(VOID);
 
 static void load_config(void)
 {
-#ifdef PRIVATEPROFILE_INI
-    if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, ProfilePath))) {
-        _tcscat_s(ProfilePath, MAX_PATH, _T("\\") _T(PRIVATEPROFILE_INI) );
+    if (LoadSettings())
+        return;
 
-        calc.layout = GetPrivateProfileInt(PSECTION, _T("Layout"), CALC_LAYOUT_STANDARD, ProfilePath);
-        calc.usesep = (BOOL)GetPrivateProfileInt(PSECTION, _T("UseSep"), FALSE, ProfilePath);
-        /* Restore window position */
-        calc.x_coord = GetPrivateProfileInt(PSECTION, _T("WinPosX"), -1, ProfilePath);
-        calc.y_coord = GetPrivateProfileInt(PSECTION, _T("WinPosY"), -1, ProfilePath);
-        goto load_done;
-    }
-#endif
     OSVERSIONINFO osvi;
 
     osvi.dwOSVersionInfoSize = sizeof(osvi);
@@ -346,9 +337,6 @@ static void load_config(void)
         break;
     }
 
-#ifdef PRIVATEPROFILE_INI
-load_done:
-#endif
     /* memory is empty at startup */
     calc.is_memory = FALSE;
     calc.memory.base = calc.base = IDC_RADIO_DEC;
@@ -359,20 +347,9 @@ load_done:
 
 static void save_config(void)
 {
-#ifdef PRIVATEPROFILE_INI
-    if (_taccess(ProfilePath, 06) == 0) {
-        TCHAR buf[256];
-        _itot_s(calc.layout, buf, 255, 10);
-        WritePrivateProfileString(PSECTION, _T("Layout"), buf, ProfilePath);
-        _itot_s(calc.usesep, buf, 255, 10);
-        WritePrivateProfileString(PSECTION, _T("UseSep"), buf, ProfilePath);
-        _itot_s(calc.x_coord, buf, 255, 10);
-        WritePrivateProfileString(PSECTION, _T("WinPosX"), buf, ProfilePath);
-        _itot_s(calc.y_coord, buf, 255, 10);
-        WritePrivateProfileString(PSECTION, _T("WinPosY"), buf, ProfilePath);
+    if (SaveSettings())
         return;
-    }
-#else
+
     TCHAR buf[32];
     OSVERSIONINFO osvi;
 
@@ -392,8 +369,54 @@ static void save_config(void)
         SaveRegInt(_T("SOFTWARE\\Microsoft\\Calc"), _T("UseSep"), calc.usesep);
         break;
     }
-#endif
 }
+
+#ifdef PRIVATEPROFILE_INI
+
+#include <Shlobj.h>
+
+#define _PFSECTION      L"XCalc"
+
+static WCHAR _ProfilePath[MAX_PATH] = {0};
+
+static BOOL LoadSettings(VOID)
+{
+    if (FAILED (SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, _ProfilePath)))
+        return FALSE;
+    wcscat_s(_ProfilePath, MAX_PATH, L"\\" TEXT(PRIVATEPROFILE_INI) ); 
+    if (GetFileAttributes(_ProfilePath) == INVALID_FILE_ATTRIBUTES)
+        return FALSE;
+
+    /* Restore window position */
+    calc.x_coord = GetPrivateProfileInt(_PFSECTION, L"WinPosX", -1, _ProfilePath);
+    calc.y_coord = GetPrivateProfileInt(_PFSECTION, L"WinPosY", -1, _ProfilePath);
+
+    calc.layout = GetPrivateProfileInt(_PFSECTION, L"Layout", CALC_LAYOUT_STANDARD, _ProfilePath);
+    calc.usesep = (BOOL)GetPrivateProfileInt(_PFSECTION, L"UseSep", FALSE, _ProfilePath);
+
+    /* memory is empty at startup */
+    calc.is_memory = FALSE;
+    calc.memory.base = calc.base = IDC_RADIO_DEC;
+
+    /* Get locale info for numbers */
+    UpdateNumberIntl();
+    return TRUE;
+}
+
+static BOOL SaveSettings(VOID)
+{
+    WCHAR buf[256];
+    swprintf_s(buf, _countof(buf)-1,
+        L"WinPosX=%d\nWinPosY=%d\nLayout=%d\nUseSep=%d\n" ,
+        calc.x_coord, calc.y_coord, calc.layout, calc.usesep );
+
+    return WritePrivateProfileSection(_PFSECTION, buf, _ProfilePath);
+}
+
+#else
+static BOOL LoadSettings(VOID) { return FALSE; }
+static BOOL SaveSettings(VOID) { return FALSE; }
+#endif
 
 static LRESULT post_key_press(LPARAM lParam, WORD idc)
 {
@@ -449,15 +472,19 @@ static int vk2ascii(unsigned int vk)
         if (vk >= 'A' && vk <= 'Z' &&
             s >= CTRL_A && s <= CTRL_Z)
             s |= CTRL_FLAG;
+        /*
+        // This code does not work. Alt key has no ascii equivalent.
+        // So ToAsciiEx(alt-key) always fails.
         else
         if (GetAsyncKeyState(VK_MENU) < 0)
             s |= ALT_FLAG;
+        */
         return s;
     }
     return 0;
 }
 
-static int process_vk_key(WPARAM wParam, LPARAM lParam)
+static BOOL process_vk_key(WPARAM wParam, LPARAM lParam)
 {
     const key2code_t *k;
     unsigned int x;
@@ -468,17 +495,17 @@ static int process_vk_key(WPARAM wParam, LPARAM lParam)
         /* Test for "copy" to clipboard */
         if (ch == (CTRL_C|CTRL_FLAG)) {
             SendMessage(calc.hWnd, WM_COMMAND, IDM_EDIT_COPY, 0);
-            return 1;
+            return TRUE;
         }
         /* Test for "paste" from clipboard */
         if (ch == (CTRL_V|CTRL_FLAG)) {
             SendMessage(calc.hWnd, WM_COMMAND, IDM_EDIT_PASTE, 0);
-            return 1;
+            return TRUE;
         }
         /* Test of help menu */
         if (LOWORD(wParam) == VK_F1) {
             SendMessage(calc.hWnd, WM_COMMAND, IDM_HELP_HELP, 0);
-            return 1;
+            return TRUE;
         }
     }
 
@@ -509,7 +536,7 @@ static int process_vk_key(WPARAM wParam, LPARAM lParam)
             k++;
         } while (--x);
     }
-    return 0;
+    return FALSE;
 }
 
 #ifdef USE_KEYBOARD_HOOK
@@ -764,7 +791,7 @@ static const struct _update_check_menus {
 
 static void update_menu(HWND hWnd)
 {
-    HMENU        hMenu = GetSubMenu(GetMenu(hWnd), 1);
+    HMENU        hMenu = GetSubMenu(GetMenu(hWnd), VIEW_MENU_OFFSET);
     unsigned int x;
 
     for (x=0; x<SIZEOF(upd); x++) {
@@ -980,7 +1007,7 @@ static INT_PTR CALLBACK DlgStatProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
 
     switch (msg) {
     case WM_INITDIALOG:
-        return TRUE;
+        return TRUE; 
     case WM_COMMAND:
         switch (LOWORD(wp)) {
         case IDC_LIST_STAT:
@@ -1477,6 +1504,22 @@ static INT_PTR CALLBACK DlgMainProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
     case WM_DRAWITEM:
         return SubclassButtonProc(hWnd, wp, lp);
 
+    case WM_KEYUP:
+    case WM_KEYDOWN:
+        if ( !calc.is_menu_on)
+            return process_vk_key(wp, lp);
+        break;
+
+    case WM_SYSKEYUP:
+    // case WM_SYSKEYDOWN:
+            // Test for Alt-X key
+            if ((LOWORD(wp)|ALT_FLAG) == VK_ALT_X  && (lp & (0x01UL <<29)))
+            {
+                SendMessage(hWnd, WM_COMMAND, IDM_EDIT_EXIT, 0);
+                return TRUE;
+            }
+            break;
+
     case WM_INITDIALOG:
 #ifdef DISABLE_HTMLHELP_SUPPORT
         EnableMenuItem(GetMenu(hWnd), IDM_HELP_HELP, MF_BYCOMMAND | MF_GRAYED);
@@ -1565,6 +1608,9 @@ static INT_PTR CALLBACK DlgMainProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
 #ifndef DISABLE_HTMLHELP_SUPPORT
             calc_HtmlHelp(hWnd, HTMLHELP_PATH("/general_information.htm"), HH_DISPLAY_TOPIC, (DWORD_PTR)NULL);
 #endif
+            return TRUE;
+        case IDM_EDIT_EXIT:
+            PostMessageW(hWnd, WM_CLOSE, 0, 0);
             return TRUE;
         case IDM_VIEW_STANDARD:
             calc.layout = CALC_LAYOUT_STANDARD;
@@ -2047,18 +2093,18 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdL
         HWND hDlg = CreateDialog(hInstance, MAKEINTRESOURCE(dwLayout), NULL, _DlgMainProc);
         if (hDlg == NULL)
             break;
+        EnableWindow(hDlg, TRUE);
 
         extern void AdjustLayout(HWND hDlg, DWORD dwLayout);
         AdjustLayout(hDlg, dwLayout);
 
         while (GetMessage(&msg, NULL, 0, 0)) {
-#ifndef USE_KEYBOARD_HOOK
-            if ((msg.message == WM_KEYUP ||
-                msg.message == WM_KEYDOWN) &&
-                !calc.is_menu_on)
-                process_vk_key(msg.wParam, msg.lParam);
-#endif
             TranslateMessage(&msg);
+#ifndef USE_KEYBOARD_HOOK
+            if ( msg.message == WM_KEYDOWN || msg.message == WM_KEYUP 
+                    || msg.message == WM_SYSKEYDOWN ||msg.message == WM_SYSKEYUP )
+                SendMessage(hDlg, msg.message, msg.wParam, msg.lParam);
+#endif
             DispatchMessage(&msg);
         }
 

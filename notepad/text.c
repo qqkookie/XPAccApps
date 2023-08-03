@@ -171,6 +171,13 @@ ReadText(HANDLE hFile, HLOCAL *phLocal, ENCODING *pencFile, EOLN *piEoln)
     if (dwSize == INVALID_FILE_SIZE)
         goto done;
 
+    if (! *phLocal)
+    {
+        *phLocal = LocalAlloc(LMEM_MOVEABLE, dwSize);
+        if (! *phLocal)
+            goto done;
+    }
+
     if (dwSize == 0) // If file is empty
     {
         hNewLocal = LocalReAlloc(*phLocal, sizeof(UNICODE_NULL), LMEM_MOVEABLE);
@@ -221,67 +228,67 @@ ReadText(HANDLE hFile, HLOCAL *phLocal, ENCODING *pencFile, EOLN *piEoln)
     {
     case ENCODING_UTF16BE:
     case ENCODING_UTF16LE:
-    {
-        /* Re-allocate the buffer for EM_SETHANDLE */
-        pszText = (LPWSTR) &pBytes[dwPos];
-        cchText = (dwSize - dwPos) / sizeof(WCHAR);
-        hNewLocal = LocalReAlloc(*phLocal, (cchText + 1) * sizeof(WCHAR), LMEM_MOVEABLE);
-        pszNewText = LocalLock(hNewLocal);
-        if (pszNewText == NULL)
-            goto done;
-
-        *phLocal = hNewLocal;
-        CopyMemory(pszNewText, pszText, cchText * sizeof(WCHAR));
-
-        if (encFile == ENCODING_UTF16BE) /* big endian; Swap bytes */
         {
-            BYTE tmp, *pb = (LPBYTE)pszNewText;
-            for (i = 0; i < cchText * 2; i += 2)
+            /* Re-allocate the buffer for EM_SETHANDLE */
+            pszText = (LPWSTR) &pBytes[dwPos];
+            cchText = (dwSize - dwPos) / sizeof(WCHAR);
+            hNewLocal = LocalReAlloc(*phLocal, (cchText + 1) * sizeof(WCHAR), LMEM_MOVEABLE);
+            pszNewText = LocalLock(hNewLocal);
+            if (pszNewText == NULL)
+                goto done;
+
+            *phLocal = hNewLocal;
+            CopyMemory(pszNewText, pszText, cchText * sizeof(WCHAR));
+
+            if (encFile == ENCODING_UTF16BE) /* big endian; Swap bytes */
             {
-                tmp = pb[i];
-                pb[i] = pb[i + 1];
-                pb[i + 1] = tmp;
+                BYTE tmp, *pb = (LPBYTE)pszNewText;
+                for (i = 0; i < cchText * 2; i += 2)
+                {
+                    tmp = pb[i];
+                    pb[i] = pb[i + 1];
+                    pb[i + 1] = tmp;
+                }
             }
+            break;
         }
-        break;
-    }
 
     case ENCODING_ANSIOEM:
     case ENCODING_UTF8:
     case ENCODING_UTF8BOM:
-    {
-        iCodePage = ((encFile == ENCODING_UTF8 || encFile == ENCODING_UTF8BOM) ? CP_UTF8 : CP_ACP);
-
-        /* Get ready for ANSI-to-Wide conversion */
-        cbContent = dwSize - dwPos;
-        cchText = 0;
-        if (cbContent > 0)
         {
-            cchText = MultiByteToWideChar(iCodePage, 0, (LPCSTR)&pBytes[dwPos], (INT)cbContent, NULL, 0);
-            if (cchText == 0)
-                goto done;
-        }
+            iCodePage = ((encFile == ENCODING_UTF8 || encFile == ENCODING_UTF8BOM) ? CP_UTF8 : CP_ACP);
 
-        /* Re-allocate the buffer for EM_SETHANDLE */
-        hNewLocal = LocalReAlloc(*phLocal, (cchText + 1) * sizeof(WCHAR), LMEM_MOVEABLE);
-        pszNewText = LocalLock(hNewLocal);
-        if (!pszNewText)
-            goto done;
-        *phLocal = hNewLocal;
-
-        /* Do ANSI-to-Wide conversion */
-        if (cbContent > 0)
-        {
-            if (!MultiByteToWideChar(iCodePage, 0, (LPCSTR)&pBytes[dwPos], (INT)cbContent,
-                                     pszNewText, (INT)cchText))
+            /* Get ready for ANSI-to-Wide conversion */
+            cbContent = dwSize - dwPos;
+            cchText = 0;
+            if (cbContent > 0)
             {
-                goto done;
+                cchText = MultiByteToWideChar(iCodePage, 0, (LPCSTR)&pBytes[dwPos], (INT)cbContent, NULL, 0);
+                if (cchText == 0)
+                    goto done;
             }
-        }
-        break;
-    }
 
-    DEFAULT_UNREACHABLE;
+            /* Re-allocate the buffer for EM_SETHANDLE */
+            hNewLocal = LocalReAlloc(*phLocal, (cchText + 1) * sizeof(WCHAR), LMEM_MOVEABLE);
+            pszNewText = LocalLock(hNewLocal);
+            if (!pszNewText)
+                goto done;
+            *phLocal = hNewLocal;
+
+            /* Do ANSI-to-Wide conversion */
+            if (cbContent > 0)
+            {
+                if (!MultiByteToWideChar(iCodePage, 0, (LPCSTR)&pBytes[dwPos], (INT)cbContent,
+                                         pszNewText, (INT)cchText))
+                {
+                    goto done;
+                }
+            }
+            break;
+        }
+
+        DEFAULT_UNREACHABLE;
     }
 
     pszNewText[cchText] = UNICODE_NULL;

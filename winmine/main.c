@@ -43,8 +43,8 @@ int FACE_HEIGHT;
 VOID DoDPIScale(VOID);
 
 #ifdef PRIVATEPROFILE_INI
-static BOOL LoadSettingsIni(BOARD *p_board );
-static BOOL SaveSettingsIni(BOARD *p_board);
+static BOOL LoadSettings(BOARD *p_board );
+static BOOL SaveSettings(BOARD *p_board);
 #endif
 
 WINE_DEFAULT_DEBUG_CHANNEL(winemine);
@@ -82,10 +82,8 @@ static void LoadBoard( BOARD *p_board )
     WCHAR key_name[8];
     unsigned i;
 
-#ifdef PRIVATEPROFILE_INI
-    if(LoadSettingsIni(p_board))
+    if(LoadSettings(p_board))
         return;
-#endif
 
     RegOpenKeyExW( HKEY_CURRENT_USER, registry_key, 0, KEY_QUERY_VALUE, &hkey );
 
@@ -173,10 +171,8 @@ void SaveBoard( BOARD *p_board )
     WCHAR data[MAX_PLAYER_NAME_SIZE+1];
     WCHAR key_name[8];
 
-#ifdef PRIVATEPROFILE_INI
-    if(SaveSettingsIni(p_board))
+    if(SaveSettings(p_board))
         return;
-#endif
 
     if( RegCreateKeyExW( HKEY_CURRENT_USER, registry_key,
 	        0, NULL,
@@ -1110,38 +1106,41 @@ VOID DoDPIScale(VOID)
 }
 
 #ifdef PRIVATEPROFILE_INI
+
 #include <Shlobj.h>
 
-#define PFSECTION L"XMine"
+#define _PFSECTION L"XWinMine"
 
-static TCHAR ProfilePath[MAX_PATH] = {0};
+static WCHAR _ProfilePath[MAX_PATH] = {0};
 
-BOOL FileExists(LPCTSTR szFilename)
+#define GETINIINT(key, def) \
+    GetPrivateProfileInt(_PFSECTION, key, def, _ProfilePath)
+
+#define LOADINISTR(key, buf, def) \
+    GetPrivateProfileString(_PFSECTION, key, def, buf, _countof(buf), _ProfilePath)
+
+#define SAVEINIINT(key, value) \
+            _itow_s(value, _savebuf, _countof(_savebuf), 10),\
+            WritePrivateProfileString(_PFSECTION, key, _savebuf, _ProfilePath)
+#define SAVEINISTR(key, str) \
+            WritePrivateProfileString(_PFSECTION, key, str, _ProfilePath)
+
+static BOOL LoadSettings(BOARD *p_board)
 {
-    return GetFileAttributes(szFilename) != INVALID_FILE_ATTRIBUTES;
-}
+    if (FAILED(SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, _ProfilePath)))
+        return FALSE;
+    wcscat_s(_ProfilePath, MAX_PATH, L"\\" TEXT( PRIVATEPROFILE_INI));
 
-static BOOL LoadSettingsIni(BOARD *p_board)
-{
-#define GETSETTINGINT(key, def) \
-            GetPrivateProfileInt(PFSECTION, key, def, ProfilePath)
-
-#define LOADSETTINGSTR(key, buf, def) \
-            GetPrivateProfileString(PFSECTION, key, def, \
-            buf, _countof(buf), ProfilePath)
-
-    if (FAILED(SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, ProfilePath)))
+    if ( GetFileAttributes(_ProfilePath) == INVALID_FILE_ATTRIBUTES)
         return FALSE;
 
-    wcscat_s(ProfilePath, MAX_PATH, L"\\" PRIVATEPROFILE_INI);
-
-    p_board->pos.x  = GETSETTINGINT( L"Xpos", 100);
-    p_board->pos.y  = GETSETTINGINT( L"Ypos", 100);
-    p_board->difficulty  = GETSETTINGINT( L"difficulty", BEGINNER);
-    p_board->rows  = GETSETTINGINT( L"Height", BEGINNER_ROWS);
-    p_board->cols  = GETSETTINGINT( L"Width", BEGINNER_COLS);
-    p_board->mines  = GETSETTINGINT( L"Mines", BEGINNER_MINES);
-    p_board->IsMarkQ  = GETSETTINGINT( L"Mark", TRUE);
+    p_board->pos.x  = GETINIINT( L"Xpos", 100);
+    p_board->pos.y  = GETINIINT( L"Ypos", 100);
+    p_board->difficulty  = GETINIINT( L"difficulty", BEGINNER);
+    p_board->rows  = GETINIINT( L"Height", BEGINNER_ROWS);
+    p_board->cols  = GETINIINT( L"Width", BEGINNER_COLS);
+    p_board->mines  = GETINIINT( L"Mines", BEGINNER_MINES);
+    p_board->IsMarkQ  = GETINIINT( L"Mark", TRUE);
 
     WCHAR key_name[10], nobody[MAX_PLAYER_NAME_SIZE+1];
     LoadString(NULL, IDS_NOBODY, nobody, _countof(nobody));
@@ -1149,33 +1148,25 @@ static BOOL LoadSettingsIni(BOARD *p_board)
     for( int i = 0; i < _countof(p_board->best_name); i++ )
     {
         wsprintfW( key_name, L"Name%u", i+1 );
-        LOADSETTINGSTR( key_name, p_board->best_name[i], nobody);
+        LOADINISTR( key_name, p_board->best_name[i], nobody);
 
         wsprintfW( key_name, L"Time%u", i+1 );
-        p_board->best_time[i] = GETSETTINGINT( key_name, 999);
+        p_board->best_time[i] = GETINIINT( key_name, 999);
     }
-
-    if (FileExists(ProfilePath))
-        return TRUE;
-    return SaveSettingsIni(p_board);
+    return TRUE;
 }
 
-static BOOL SaveSettingsIni(BOARD *p_board)
+static BOOL SaveSettings(BOARD *p_board)
 {
     TCHAR _savebuf[256];
-#define SAVESETTINGINT(key, value) \
-            _itow_s(value, _savebuf, _countof(_savebuf), 10),\
-            WritePrivateProfileString(PFSECTION, key, _savebuf, ProfilePath)
-#define SAVESETTINGSTR(key, str) \
-            WritePrivateProfileString(PFSECTION, key, str, ProfilePath)
 
-    SAVESETTINGINT( L"Xpos", p_board->pos.x);
-    SAVESETTINGINT( L"Ypos", p_board->pos.y);
-    SAVESETTINGINT( L"Difficulty", p_board->difficulty);
-    SAVESETTINGINT( L"Height", p_board->rows);
-    SAVESETTINGINT( L"Width", p_board->cols);
-    SAVESETTINGINT( L"Mines", p_board->mines);
-    SAVESETTINGINT( L"Mark", p_board->IsMarkQ);
+    SAVEINIINT( L"Xpos", p_board->pos.x);
+    SAVEINIINT( L"Ypos", p_board->pos.y);
+    SAVEINIINT( L"Difficulty", p_board->difficulty);
+    SAVEINIINT( L"Height", p_board->rows);
+    SAVEINIINT( L"Width", p_board->cols);
+    SAVEINIINT( L"Mines", p_board->mines);
+    SAVEINIINT( L"Mark", p_board->IsMarkQ);
 
     WCHAR key_name[10], nobody[MAX_PLAYER_NAME_SIZE+1];
     LoadString(NULL, IDS_NOBODY, nobody, _countof(nobody));
@@ -1183,13 +1174,17 @@ static BOOL SaveSettingsIni(BOARD *p_board)
     for( int i = 0; i < _countof(p_board->best_name); i++ )
     {
         wsprintfW( key_name, L"Name%u", i+1 );
-        SAVESETTINGSTR( key_name, p_board->best_name[i]);
+        SAVEINISTR( key_name, p_board->best_name[i]);
 
         wsprintfW( key_name, L"Time%u", i+1 );
-        SAVESETTINGINT( key_name, p_board->best_time[i]);
+        SAVEINIINT( key_name, p_board->best_time[i]);
     }
     WINE_TRACE("Board has been saved.\n");
 
-    return FileExists(ProfilePath);
+    return GetFileAttributes(_ProfilePath) != INVALID_FILE_ATTRIBUTES;
 }
+
+#else
+static BOOL LoadSettings(BOARD *p_board) { return FALSE; }
+static BOOL SaveSettings(BOARD *p_board) { return FALSE; }
 #endif // PRIVATEPROFILE_INI

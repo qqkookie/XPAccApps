@@ -126,36 +126,14 @@ void Theme_Stop(void)
     hUxTheme = NULL;
 }
 
-// -----------------------------------
+// ********************************************************************
 
-/*
- * To make tooltip work, include Common Control 6.0 as dependancy
- * in embedded "manifest.xml". It should have <dependentAssembly> entry like: 
- * "name="Microsoft.Windows.Common-Controls" version="6.0.0.0" ...
- * And set SS_NOTIFY flag on the button/text control style.
- */
+static void AdjustMemoryButtons(HWND hDlg, int RH);
+static void SetBoldFontButtons(HWND hDlg, int dpi);
 
-static HWND CreateToolTip(TOOLINFO *pToolInfo, HINSTANCE hInst)
-{
-    if (!pToolInfo || !pToolInfo->hwnd || !pToolInfo->lpszText || !hInst)
-        return NULL;
-
-    HWND hwTip = CreateWindowEx(
-                    0, TOOLTIPS_CLASS, NULL, WS_POPUP | TTS_ALWAYSTIP | TTS_BALLOON,
-                    CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-                    pToolInfo->hwnd, NULL, hInst, NULL);
-    if (!hwTip)
-        return NULL;
-
-    SetWindowPos(hwTip, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-
-    if (!SendMessage(hwTip, TTM_ADDTOOL, 0, (LPARAM)pToolInfo)) {
-        DestroyWindow(hwTip);
-        hwTip = NULL;
-    }
-    pToolInfo->lParam = (LPARAM) hwTip;
-    return hwTip;
-}
+// #define BTN_BOLDFONT    L"MS Shell Dlg"
+#define BTN_BOLDFONT    L"Tahoma"
+#define BTN_BOLDSIZE    10
 
 #include <stdlib.h>
 
@@ -197,7 +175,7 @@ int string_number(TCHAR sbuff[], calc_number_t *pnum)
 }
 
 // Move/resize control 
-static HWND MoveControl(HWND hDlg, int item, int dx, int dy, int dw, int dh, BOOL bReaint)
+static HWND MoveControl(HWND hDlg, int item, int dx, int dy, int dw, int dh)
 {
     HWND hctr = GetDlgItem(hDlg, item);
     RECT cr;
@@ -205,7 +183,7 @@ static HWND MoveControl(HWND hDlg, int item, int dx, int dy, int dw, int dh, BOO
     POINT coord = {cr.left, cr.top};
     ScreenToClient(hDlg, &coord);
     MoveWindow(hctr, coord.x + dx, coord.y + dy,
-                cr.right - cr.left + dw, cr.bottom - cr.top + dh, bReaint);
+                cr.right - cr.left + dw, cr.bottom - cr.top + dh, FALSE);
     return hctr;
 }
 
@@ -215,7 +193,7 @@ void AdjustLayout(HWND hDlg, DWORD dwLayout)
     int dpi = GetDeviceCaps( GetDC(NULL), LOGPIXELSY);
     int RH = MulDiv(30, dpi, 96);    // button row height
 
-#define MOVE(iid, dx, dy) MoveControl(hDlg, iid, (dx), (dy), 0, 0, TRUE)
+#define MOVE(iid, dx, dy) MoveControl(hDlg, iid, (dx), (dy), 0, 0)
 
     if (dwLayout == IDD_DIALOG_SCIENTIFIC) {
         MOVE( IDC_BUTTON_Xe3,-1000, -1000);
@@ -233,8 +211,8 @@ void AdjustLayout(HWND hDlg, DWORD dwLayout)
         MoveWindow(hDlg, dwr.left, dwr.top, dwr.right - dwr.left + 0,
             dwr.bottom - dwr.top + RH, TRUE);
 
-        MOVE( IDC_TEXT_PARENT, -1000, -1000); // remove spurious residue
-        MOVE( IDC_TEXT_PARENT, 1000, 1000);
+        // MOVE( IDC_TEXT_PARENT, -1000, -1000); // remove spurious residue
+        // MOVE( IDC_TEXT_PARENT, 1000, 1000);
         MOVE( IDC_BUTTON_SQRT, -1000, -1000); // Remove button
 
         MOVE( IDC_BUTTON_7, 0, RH);
@@ -256,15 +234,54 @@ void AdjustLayout(HWND hDlg, DWORD dwLayout)
         MOVE( IDC_BUTTON_RX, 0, -2*RH -RH/8);
         MOVE( IDC_BUTTON_MP, 0, RH);
 
-        MoveControl(hDlg, IDC_BUTTON_ADD, 0, 0, 0, RH, TRUE); // enlarge
-        MoveControl(hDlg, IDC_BUTTON_EQU, 0, 0, 0, RH, TRUE);
+        MoveControl(hDlg, IDC_BUTTON_ADD, 0, 0, 0, RH); // enlarge
+        MoveControl(hDlg, IDC_BUTTON_EQU, 0, 0, 0, RH);
     }
 
-    HWND display = MoveControl(hDlg, IDC_TEXT_OUTPUT, 0, 0, 0, 5, TRUE);
-    SendMessage(display, WM_SETFONT, 0, MAKELPARAM(FALSE, 0));
+    HWND display = MoveControl(hDlg, IDC_TEXT_OUTPUT, 0, 0, 0, 5);
+    // SendMessage(display, WM_SETFONT, 0, MAKELPARAM(FALSE, 0));
     SendMessage(display, WM_SETTEXT, 0, (LPARAM) _T("Hello"));
 
-    MoveControl(hDlg, IDC_TEXT_MEMORY, -1000, -1000, 0, RH, TRUE); // Remove M indicator
+    AdjustMemoryButtons(hDlg, RH);
+    SetBoldFontButtons(hDlg, dpi);
+
+    InvalidateRect(hDlg, NULL, TRUE);
+}
+
+// ********************************************************************
+
+/*
+ * To make tooltip work, include Common Control 6.0 as dependancy
+ * in embedded "manifest.xml". It should have <dependentAssembly> entry like: 
+ * "name="Microsoft.Windows.Common-Controls" version="6.0.0.0" ...
+ * And set SS_NOTIFY flag on the button/text control style.
+ */
+
+static HWND CreateToolTip(TOOLINFO *pToolInfo, HINSTANCE hInst)
+{
+    if (!pToolInfo || !pToolInfo->hwnd || !pToolInfo->lpszText || !hInst)
+        return NULL;
+
+    HWND hwTip = CreateWindowEx(
+                    0, TOOLTIPS_CLASS, NULL, WS_POPUP | TTS_ALWAYSTIP | TTS_BALLOON,
+                    CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+                    pToolInfo->hwnd, NULL, hInst, NULL);
+    if (!hwTip)
+        return NULL;
+
+    SetWindowPos(hwTip, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+
+    if (!SendMessage(hwTip, TTM_ADDTOOL, 0, (LPARAM)pToolInfo)) {
+        DestroyWindow(hwTip);
+        hwTip = NULL;
+    }
+    pToolInfo->lParam = (LPARAM) hwTip;
+    return hwTip;
+}
+
+static void AdjustMemoryButtons(HWND hDlg, int RH)
+{
+    MoveControl(hDlg, IDC_TEXT_MEMORY, -1000, -1000, 0, RH); // Remove M indicator
 
     HWND hwmem = GetDlgItem(hDlg, IDC_BUTTON_MR);
     long style = GetWindowLong(hwmem, GWL_STYLE);
@@ -297,5 +314,57 @@ void AdjustLayout(HWND hDlg, DWORD dwLayout)
         calc.memory_ToolTip = &mem_ti;
         SendMessage(hwTip, TTM_ACTIVATE, TRUE, 0);
     }
-    SendMessage(hDlg, WM_PAINT, 0,0);
+    // SendMessage(hDlg, WM_PAINT, 0,0);
+}
+
+// ********************************************************************
+
+static void SetBoldFontButtons(HWND hDlg, int dpi)
+{
+    LOGFONT lf;
+    ZeroMemory(&lf, sizeof(lf));
+    lf.lfHeight = -MulDiv(BTN_BOLDSIZE, dpi, 72);
+    lf.lfWeight = FW_SEMIBOLD;
+    wcscpy(lf.lfFaceName, BTN_BOLDFONT);
+    HFONT hf = CreateFontIndirect(&lf);
+
+#define SETBTNFONT(id) \
+        SendMessage(GetDlgItem(hDlg, id), WM_SETFONT, (WPARAM) hf, FALSE)
+
+    SETBTNFONT( IDC_TEXT_OUTPUT );
+
+    SETBTNFONT( IDC_BUTTON_7 );
+    SETBTNFONT( IDC_BUTTON_4 );
+    SETBTNFONT( IDC_BUTTON_1 );
+    SETBTNFONT( IDC_BUTTON_0 );
+
+    SETBTNFONT( IDC_BUTTON_8 );
+    SETBTNFONT( IDC_BUTTON_5 );
+    SETBTNFONT( IDC_BUTTON_2 );
+    SETBTNFONT( IDC_BUTTON_SIGN );
+
+    SETBTNFONT( IDC_BUTTON_9 );
+    SETBTNFONT( IDC_BUTTON_6 );
+    SETBTNFONT( IDC_BUTTON_3 );
+    SETBTNFONT( IDC_BUTTON_DOT );
+
+    SETBTNFONT( IDC_BUTTON_DIV );
+    SETBTNFONT( IDC_BUTTON_MULT );
+    SETBTNFONT( IDC_BUTTON_SUB );
+    SETBTNFONT( IDC_BUTTON_ADD );
+
+//    SETBTNFONT( IDC_BUTTON_SQRT );
+//    SETBTNFONT( IDC_BUTTON_PERCENT );
+//    SETBTNFONT( IDC_BUTTON_RX );
+    SETBTNFONT( IDC_BUTTON_EQU );
+
+    SETBTNFONT( IDC_BUTTON_MC );
+    SETBTNFONT( IDC_BUTTON_MR );
+    SETBTNFONT( IDC_BUTTON_MS );
+    SETBTNFONT( IDC_BUTTON_MP );
+    SETBTNFONT( IDC_BUTTON_MM );
+
+    SETBTNFONT( IDC_BUTTON_LEFTPAR );
+    SETBTNFONT( IDC_BUTTON_RIGHTPAR );
+
 }

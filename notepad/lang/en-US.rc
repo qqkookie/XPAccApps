@@ -1,29 +1,5 @@
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
-ID_ACCEL ACCELERATORS
-BEGIN
-    "^A", CMD_SELECT_ALL
-    "^C", CMD_COPY
-    "^F", CMD_SEARCH
-    "^G", CMD_GOTO
-    "H", CMD_REPLACE, VIRTKEY, CONTROL
-    "^N", CMD_NEW
-    "N", CMD_NEW_WINDOW, VIRTKEY, CONTROL, SHIFT
-    "^O", CMD_OPEN
-    "^P", CMD_PRINT
-    "^S", CMD_SAVE
-    "^V", CMD_PASTE
-    "^X", CMD_CUT
-    "^Z", CMD_UNDO
-    "^W", CMD_CLOSE
-    VK_F1, CMD_HELP_CONTENTS, VIRTKEY
-    VK_F2, CMD_SAVE, VIRTKEY
-    VK_F3, CMD_SEARCH_NEXT, VIRTKEY
-    VK_F4, CMD_SEARCH_PREV, VIRTKEY
-    VK_F5, CMD_RELOAD, VIRTKEY, CONTROL
-    VK_F6, CMD_TIME_DATE, VIRTKEY, CONTROL
-END
-
 MAIN_MENU MENU
 BEGIN
     POPUP "&File"
@@ -44,7 +20,7 @@ BEGIN
         MENUITEM "&Print...\tCtrl+P", CMD_PRINT
         MENUITEM SEPARATOR
         MENUITEM "&Close\tCtrl+W", CMD_CLOSE
-        MENUITEM "E&xit", CMD_EXIT
+        MENUITEM "E&xit\tAlt+X", CMD_EXIT
     END
     POPUP "&Edit"
     BEGIN
@@ -62,7 +38,7 @@ BEGIN
         MENUITEM "&Go To...\tCtrl+G", CMD_GOTO
         MENUITEM SEPARATOR
         MENUITEM "Select &All\tCtrl+A", CMD_SELECT_ALL
-        MENUITEM "Time/&Date\tF5", CMD_TIME_DATE
+        MENUITEM "Time/&Date\tCtrl+F6", CMD_TIME_DATE
     END
 /*
     POPUP "F&ormat"
@@ -189,13 +165,19 @@ task.\nClose one or more applications to increase the amount of\nfree memory."
 
     STRING_ANSIOEM "ANSI/OEM"
     STRING_UTF8 "UTF-8"
-    STRING_UTF8_BOM "UTF-8 with BOM"
+    STRING_UTF8_BOM "UTF-8 BOM"
     STRING_UTF16 "UTF-16 Unicode"
     STRING_UTF16_BE "UTF-16 Unicode (big endian)"
 
-    STRING_CRLF "Windows (CR+LF)"
+    STRING_CRLF "Windows (CRLF)"
     STRING_LF "Unix (LF)"
     STRING_CR "Mac (CR)"
+
+    STRING_FM_NORMAL "OK"
+    STRING_FM_READONLY "Read Only"
+    STRING_FM_EDITING "Editing"
+
+
     STRING_LINE_COLUMN "Line %d, column %d"
     STRING_PRINTERROR "Cannot print the file '%s'.\n\n\
 Make sure that the printer is turned on and is configured properly."

@@ -26,13 +26,13 @@
 
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 
-#define APP_PRODUCTNAME		        "XMined"
+#define APP_PRODUCTNAME		        "XWinMine"
 #define APP_PRODVERMINOR            1,0
 #define APP_PRODVERMINOR_STR	    "1.0"
 #define APP_FILEVERMINOR            1,5
 #define APP_FILEDESCRIPTION	        "Winmine clone game"
-#define APP_INTERNALNAME	        "xmine"
-#define APP_ORIGINALFILENAME	    "xmine.exe"
+#define APP_INTERNALNAME	        "xwinmine"
+#define APP_ORIGINALFILENAME	    "xwinmine.exe"
 
 // app version info resouce
 #include "../version.rc"

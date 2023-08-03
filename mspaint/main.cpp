@@ -8,7 +8,7 @@
 
 #include "precomp.h"
 
-int DPIScale = 200;
+int DPIScale = 100;
 
 POINT start;
 POINT last;

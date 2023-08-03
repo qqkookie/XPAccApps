@@ -45,7 +45,8 @@ static int NOTEPAD_MenuCommand(WPARAM wParam)
     case CMD_PASTE:      DIALOG_EditPaste(); break;
     case CMD_DELETE:     DIALOG_EditDelete(); break;
     case CMD_SELECT_ALL: DIALOG_EditSelectAll(); break;
-    case CMD_TIME_DATE:  DIALOG_EditTimeDate(); break;
+    case CMD_TIME_DATE:  DIALOG_EditTimeDate(FALSE); break;
+    case CMD_TIME_ISO:   DIALOG_EditTimeDate(TRUE); break;
 
     case CMD_SEARCH:      DIALOG_Search(); break;
     case CMD_SEARCH_NEXT: DIALOG_SearchNext(TRUE); break;
@@ -115,6 +116,7 @@ static VOID NOTEPAD_InitData(HINSTANCE hInstance)
     Globals.hDevMode = NULL;
     Globals.hDevNames = NULL;
 
+    LoadLibrary(L"Msftedit.dll");
     // Initialize common controls.
     INITCOMMONCONTROLSEX iccx;
     iccx.dwSize = sizeof(iccx);
@@ -201,10 +203,9 @@ NOTEPAD_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         DragAcceptFiles(hWnd, TRUE); /* Accept Drag & Drop */
 
         /* Create controls */
-        DoShowHideStatusBar();
-        DoCreateTabControl();
-
+        CreateStatusTabControl();
         DIALOG_FileNew(); /* Initialize file info */
+        DoShowHideStatusBar();
 
         // For now, the "Help" dialog is disabled due to the lack of HTML Help support
         EnableMenuItem(Globals.hMenu, CMD_HELP_CONTENTS, MF_BYCOMMAND | MF_GRAYED);
@@ -310,6 +311,7 @@ NOTEPAD_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 static BOOL HandleCommandLine(LPTSTR cmdline)
 {
     BOOL opt_print = FALSE;
+    BOOL opt_readonly = FALSE;
     TCHAR szPath[MAX_PATH];
 
     while (*cmdline == _T(' ') || *cmdline == _T('-') || *cmdline == _T('/'))
@@ -322,11 +324,14 @@ static BOOL HandleCommandLine(LPTSTR cmdline)
         if (option) cmdline++;
         while (*cmdline == _T(' ')) cmdline++;
 
-        switch(option)
+        switch(tolower(option))
         {
             case 'p':
-            case 'P':
                 opt_print = TRUE;
+                break;
+            case 'v':
+            case 'r':
+                opt_readonly = TRUE;
                 break;
         }
     }
@@ -372,11 +377,15 @@ static BOOL HandleCommandLine(LPTSTR cmdline)
         if (file_exists)
         {
             DoOpenFile(szPath);
+ 
             InvalidateRect(Globals.hMainWnd, NULL, FALSE);
             if (opt_print)
             {
                 DIALOG_FilePrint();
                 return FALSE;
+            }
+            else if ( opt_readonly )
+            {
             }
         }
         else

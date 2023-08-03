@@ -5,8 +5,8 @@ BEGIN
     IDS_APPNAME         "WineMine"
     IDS_NOBODY          "Nobody"
     IDS_ABOUT           "Copyright 2000 Joshua Thielen"
-    IDC_CONFIRMTITLE,   "Reset Results"
-    IDC_CONFIRMTEXT,    "All results will be lost. Are you sure?"    
+    IDC_CONFIRMTITLE,   "Reset score"
+    IDC_CONFIRMTEXT,    "All scores will be lost. Are you sure?"    
 END
 
 IDM_WINEMINE MENU
@@ -22,7 +22,7 @@ BEGIN
         MENUITEM "&Expert", IDM_EXPERT
         MENUITEM "&Custom...", IDM_CUSTOM
         MENUITEM SEPARATOR
-        MENUITEM "&Fastest Times...", IDM_TIMES
+        MENUITEM "&Best Times...", IDM_TIMES
         MENUITEM "&About", IDM_ABOUT
         MENUITEM SEPARATOR
         MENUITEM "E&xit\tAlt+X", IDM_EXIT
@@ -38,12 +38,12 @@ END
 
 DLG_TIMES DIALOGEX 0, 0, 170, 80
 STYLE DS_MODALFRAME | WS_VISIBLE | WS_CAPTION | WS_SYSMENU | WS_POPUP | DS_SHELLFONT
-CAPTION "Fastest Times"
+CAPTION "Best Times"
 FONT 8, "MS Shell Dlg"
 BEGIN
     GROUPBOX "Fastest Times",   -1,  10,  10, 150,  45
     LTEXT "Beginner",           -1,  20,  20,  60,   8
-    LTEXT "Advanced",           -1,  20,  30,  60,   8
+    LTEXT "Intermediate",       -1,  20,  30,  60,   8
     LTEXT "Expert",             -1,  20,  40,  60,   8
     LTEXT "999",         IDC_TIME1,  80,  20,  15,   8
     LTEXT "999",         IDC_TIME2,  80,  30,  15,   8
@@ -52,7 +52,7 @@ BEGIN
     LTEXT "",            IDC_NAME2, 100,  30,  55,   8
     LTEXT "",            IDC_NAME3, 100,  40,  55,   8
     DEFPUSHBUTTON "OK",  IDOK,      115,  60,  40,  15
-    PUSHBUTTON      "Reset Results", IDC_RESET,  15,  60,  90,  15
+    PUSHBUTTON      "Reset Scores", IDC_RESET,  15,  60,  60,  15
 END
 
 DLG_CONGRATS DIALOGEX 0, 0, 160, 60

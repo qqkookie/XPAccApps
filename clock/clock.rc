@@ -53,8 +53,11 @@ BEGIN
         MENUITEM "Dar&k Color"    IDM_DARKCOLOR
 //        MENUITEM "&Font...", IDM_FONT
         MENUITEM SEPARATOR
-        MENUITEM "A&bout Clock", IDM_ABOUT
-        MENUITEM "E&xit", IDM_EXIT
+        MENUITEM "A&bout XClock", IDM_ABOUT
+        MENUITEM "E&xit\tAlt+X", IDM_EXIT
+
+//        MENUITEM "Date on Titlebar", IDM_DATE
+//        MENUITEM "&Font...", IDM_FONT
     END
 END
 

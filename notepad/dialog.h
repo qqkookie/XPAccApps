@@ -18,9 +18,10 @@ VOID UpdateWindowCaption(BOOL clearModifyAlert);
 
 VOID DoCreateEditWindow(VOID);
 
-BOOL DoCreateTabControl(VOID);
+BOOL CreateStatusTabControl(VOID);
 BOOL AddNewEditTab(VOID);
 VOID OnTabChange(VOID);
+int  CloseTab(VOID);
 VOID SetTabHeader(VOID);
 int  FindDupPathTab(LPCTSTR filePath);
 
@@ -41,7 +42,7 @@ VOID DIALOG_EditCopy(VOID);
 VOID DIALOG_EditPaste(VOID);
 VOID DIALOG_EditDelete(VOID);
 VOID DIALOG_EditSelectAll(VOID);
-VOID DIALOG_EditTimeDate(VOID);
+VOID DIALOG_EditTimeDate(BOOL isotime);
 
 VOID EnableSearchMenu(VOID);
 VOID DIALOG_Search(VOID);

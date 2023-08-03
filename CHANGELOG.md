@@ -1,10 +1,47 @@
 CHANGELOG
 =====
+
+## v0.1.6
+ * 2023-08-01 00:00:00
+ * All "CMakeLists.txt" clean up
+
+### xclac
+ * Alt-X key to quit
+ * Bold buttons
+ * Simplified menu
+
+### xclipbrd
+ * Alt-X key to quit
+ * Accelerator resource to "clipbrd.rc"
+ 
+### xclock
+ * Alt-X key to quit
+
+### xmspaint
+ * Alt-X key to quit
+ * F2 key to save
+ * Accelerator resource to "rsrc.rc"
+ * Uses Ini file, not windows registry
+
+### xnotepad
+ * Alt-X key to quit
+ * Accelerator resource to "rsrc.rc"
+ * Readonly mode
+ * Insert datetime to short date/time 
+ * TODO: ISO date
+ *
+
+### xtaskmgr, xwordpad
+TODO: save setting inifile
+TODO: High Dpi
+TODO: Alt-X to quit
+
+
 ## v0.1.5
  * 2023-07-31 13:32:00
  * Import Wine codebase
- * Wine chcp, clock, notepad, taskmgr, wordpad
- * fontview, winmine
+ * Wine chcp, clock, notepad, taskmgr, wordpad, winemine
+ * fontview, winmine from ROS
 
 ### xnotepad
  * Major code rearrange/clean up
