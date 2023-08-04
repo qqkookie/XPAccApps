@@ -41,25 +41,8 @@ static BOOL SaveSettings(VOID);
 
 /***********************************************************************/
 
-        /* analog clock */
-        CheckMenuRadioItem(hPropertiesMenu, IDM_ANALOG, IDM_DIGITAL, IDM_ANALOG, MF_CHECKED);
-        EnableMenuItem(hPropertiesMenu, IDM_FONT, MF_GRAYED);
-    }
-    else
-    {
-        /* digital clock */
-        CheckMenuRadioItem(hPropertiesMenu, IDM_ANALOG, IDM_DIGITAL, IDM_DIGITAL, MF_CHECKED);
-        EnableMenuItem(hPropertiesMenu, IDM_FONT, 0);
-    }
-
-    CheckMenuItem(hPropertiesMenu, IDM_NOTITLE, (Globals.bWithoutTitle ? MF_CHECKED : MF_UNCHECKED));
-
-    CheckMenuItem(hPropertiesMenu, IDM_ONTOP, (Globals.bAlwaysOnTop ? MF_CHECKED : MF_UNCHECKED));
-    CheckMenuItem(hPropertiesMenu, IDM_SECONDS, (Globals.bSeconds ? MF_CHECKED : MF_UNCHECKED));
-    CheckMenuItem(hPropertiesMenu, IDM_DATE, (Globals.bDate ? MF_CHECKED : MF_UNCHECKED));
-}
-
-static VOID CLOCK_UpdateWindowCaption(VOID)
+// update title bar and topmost state
+static VOID Clk_UpdateWindowTitleBar(VOID)
 {
     WCHAR szCaption[MAX_STRING_LEN];
     int chars = 0;
@@ -77,14 +60,11 @@ static VOID CLOCK_UpdateWindowCaption(VOID)
 
     LONG style = GetWindowLongW(Globals.hMainWnd, GWL_STYLE);
 
-    if (Globals.bNoTitleBar) {
+    if (Globals.bNoTitleBar)
 	    style = (style & ~WS_OVERLAPPEDWINDOW) | WS_POPUPWINDOW ;
-//	    SetMenu(Globals.hMainWnd, 0);
-    }
-    else {
+    else 
 	    style = (style & ~WS_POPUPWINDOW)| WS_OVERLAPPEDWINDOW;
-//        SetMenu(Globals.hMainWnd, Globals.hMainMenu);
-    }
+
     SetWindowLongW(Globals.hMainWnd, GWL_STYLE, style);
 
     if (Globals.bNoTitleBar && Globals.bAnalog)
@@ -94,7 +74,7 @@ static VOID CLOCK_UpdateWindowCaption(VOID)
 
     SetWindowPos(Globals.hMainWnd,
             (Globals.bAlwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST),
-            0,0,0,0,  SWP_DRAWFRAME|SWP_NOMOVE|SWP_NOSIZE);
+             0, 0, 0, 0,  SWP_DRAWFRAME|SWP_NOMOVE|SWP_NOSIZE);
 }
 
 static VOID Clk_ToggleTitle(VOID)

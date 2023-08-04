@@ -9,7 +9,7 @@ list(APPEND SOURCE
     main.c
     dialog.c
     main.h
-    ../wordpad/debug.c
+    ../wordpad_ROS/debug.c
 )
 
 link_libraries(comctl32 )

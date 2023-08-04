@@ -21,9 +21,20 @@
 
 #pragma makedep po
 
+#define APP_PRODUCTNAME                 "XWordpad"
+#define APP_PRODVERMINOR                1,0
+#define APP_PRODVERMINOR_STR            "1.0"
+#define APP_FILEVERMINOR                1,10
+#define APP_FILEDESCRIPTION             "Simple wordpad app"
+#define APP_INTERNALNAME                "xwordpad"
+#define APP_ORIGINALFILENAME            "xwordpad.exe"
+
+// app version info resouce
+#include "../version.rc"
+
 LANGUAGE LANG_ENGLISH, SUBLANG_DEFAULT
 
-IDM_MAINMENU MENUEX
+IDM_MAINMENU MENU
 BEGIN
     POPUP "&File"
     BEGIN
@@ -81,7 +92,7 @@ BEGIN
     POPUP "F&ormat"
     BEGIN
         MENUITEM "&Font...",                     ID_FONTSETTINGS
-        POPUP "&Lists",                          ID_LISTMENU
+        POPUP "&Lists"  // ,                          ID_LISTMENU
         BEGIN
             MENUITEM "&Bullet points",                ID_BULLET
             MENUITEM "Numbers",                       ID_NUMBERING
@@ -179,10 +190,10 @@ BEGIN
     STRING_PREVIEW_CLOSE,            "Close"
     STRING_PREVIEW_PAGE,             "Page"
     STRING_PREVIEW_PAGES,            "Pages"
-    STRING_UNITS_CM,                 "#msgctxt#unit: centimeter#cm"
-    STRING_UNITS_IN,                 "#msgctxt#unit: inch#in"
+    STRING_UNITS_CM,                 "cm"	// "#msgctxt#unit: centimeter#cm"
+    STRING_UNITS_IN,                 "inch"	// "#msgctxt#unit: inch#in"
     STRING_UNITS_INCH,               "inch"
-    STRING_UNITS_PT,                 "#msgctxt#unit: point#pt"
+    STRING_UNITS_PT,                 "pt"	// "#msgctxt#unit: point#pt"
 END
 
 STRINGTABLE
@@ -191,9 +202,9 @@ BEGIN
     STRING_PROMPT_SAVE_CHANGES,  "Save changes to '%s'?"
     STRING_SEARCH_FINISHED,      "Finished searching the document."
     STRING_LOAD_RICHED_FAILED,   "Failed to load the RichEdit library."
-    STRING_SAVE_LOSEFORMATTING,  "You have chosen to save in plain text format, " \
-                                 "which will cause all formatting to be lost. " \
-                                 "Are you sure that you wish to do this?"
+    STRING_SAVE_LOSEFORMATTING,  "You have chosen to save in plain text format, \
+which will cause all formatting to be lost. \
+Are you sure that you wish to do this?"
     STRING_INVALID_NUMBER,       "Invalid number format."
     STRING_OLE_STORAGE_NOT_SUPPORTED, "OLE storage documents are not supported."
     STRING_WRITE_FAILED,              "Could not save the file."
@@ -280,6 +291,7 @@ BEGIN
     "1",          ID_BACK_1,          VIRTKEY, CONTROL
     "2",          ID_BACK_2,          VIRTKEY, CONTROL
     VK_F3,        ID_FIND_NEXT,       VIRTKEY
+/*
     "#msgctxt#accelerator Align Left#L",   ID_ALIGN_LEFT, VIRTKEY, CONTROL
     "#msgctxt#accelerator Align Center#E", ID_ALIGN_CENTER, VIRTKEY, CONTROL
     "#msgctxt#accelerator Align Right#R",  ID_ALIGN_RIGHT, VIRTKEY, CONTROL
@@ -297,12 +309,30 @@ BEGIN
     "#msgctxt#accelerator Open#O",         ID_FILE_OPEN, VIRTKEY, CONTROL
     "#msgctxt#accelerator Save#S",         ID_FILE_SAVE, VIRTKEY, CONTROL
     "#msgctxt#accelerator Print#P",        ID_PRINT, VIRTKEY, CONTROL
+*/
+    "L",          ID_ALIGN_LEFT, VIRTKEY, CONTROL
+    "E",          ID_ALIGN_CENTER, VIRTKEY, CONTROL
+    "R",          ID_ALIGN_RIGHT, VIRTKEY, CONTROL
+    "F",          ID_FIND, VIRTKEY, CONTROL
+    "H",          ID_REPLACE, VIRTKEY, CONTROL
+    "A",          ID_EDIT_SELECTALL, VIRTKEY, CONTROL
+    "X",          ID_EDIT_CUT, VIRTKEY, CONTROL
+    "C",          ID_EDIT_COPY, VIRTKEY, CONTROL
+    "Z",          ID_EDIT_UNDO, VIRTKEY, CONTROL
+    "Y",          ID_EDIT_REDO, VIRTKEY, CONTROL
+    "B",          ID_FORMAT_BOLD, VIRTKEY, CONTROL
+    "I",          ID_FORMAT_ITALIC, VIRTKEY, CONTROL
+    "U",          ID_FORMAT_UNDERLINE, VIRTKEY, CONTROL
+    "N",          ID_FILE_NEW, VIRTKEY, CONTROL
+    "O",          ID_FILE_OPEN, VIRTKEY, CONTROL
+    "S",          ID_FILE_SAVE, VIRTKEY, CONTROL
+    "P",          ID_PRINT, VIRTKEY, CONTROL
 END
 
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 
 /* @makedep: wordpad.manifest */
-1 RT_MANIFEST wordpad.manifest
+// 1 RT_MANIFEST wordpad.manifest
 
 /* @makedep: toolbar.bmp */
 IDB_TOOLBAR BITMAP "toolbar.bmp"

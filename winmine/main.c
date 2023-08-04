@@ -23,10 +23,9 @@
 #include <stdlib.h>
 #include <commctrl.h>
 #include <shellapi.h>
-*/
 
 // #include <wine/debug.h>
-#include "../wordpad/debug.h"
+#include "../wordpad_ROS/debug.h"
 
 int BOTTOM_MARGIN;
 int BOARD_WMARGIN;

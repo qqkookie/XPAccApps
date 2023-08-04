@@ -37,6 +37,9 @@
 
 #include "wordpad.h"
 
+#define RICHEDIT_CLASS20W       L"RichEdit20"
+#define ARRAY_SIZE(x)             _countof(x)
+
 /* use LoadString */
 static const WCHAR wszAppTitle[] = {'W','i','n','e',' ','W','o','r','d','p','a','d',0};
 

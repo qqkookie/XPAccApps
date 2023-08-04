@@ -2,9 +2,9 @@
 
 project(XChCp)
 
-# include_directories(../conutils)
+include_directories(../conutils)
 
-add_executable(xchcp main.c chcp.rc ../wordpad_ROS/debug.c)
+add_executable(xchcp chcp.c chcp.rc)
 
 add_compile_definitions(CONSOLE_APP NOMAINFEST)
 

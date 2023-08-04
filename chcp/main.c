@@ -20,7 +20,7 @@
 #include <stdlib.h>
 #include "resource.h"
 
-#include "wine/debug.h"
+// #include "../wordpad_ROS/debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(chcp);
 
@@ -56,7 +56,7 @@ static void output_formatstring(const WCHAR *fmt, va_list va_args)
                          fmt, 0, 0, (WCHAR *)&str, 0, &va_args);
     if (!len && GetLastError() != ERROR_NO_WORK_DONE)
     {
-        WINE_FIXME("Could not format string: le=%lu, fmt=%s\n", GetLastError(), wine_dbgstr_w(fmt));
+        //WINE_FIXME("Could not format string: le=%lu, fmt=%s\n", GetLastError(), wine_dbgstr_w(fmt));
         return;
     }
     output_writeconsole(str, len);
@@ -71,7 +71,7 @@ static void WINAPIV output_message(unsigned int id, ...)
 
     if (!(len = LoadStringW(GetModuleHandleW(NULL), id, (WCHAR *)&fmt, 0)))
     {
-        WINE_FIXME("LoadString failed with %ld\n", GetLastError());
+        //WINE_FIXME("LoadString failed with %ld\n", GetLastError());
         return;
     }
 
@@ -118,10 +118,10 @@ int __cdecl wmain(int argc, WCHAR *argv[])
         return !success;
     }
 
-    WINE_FIXME("unexpected arguments:");
+    // WINE_FIXME("unexpected arguments:");
     for (i = 0; i < argc; i++)
-        WINE_FIXME(" %s", wine_dbgstr_w(argv[i]));
-    WINE_FIXME("\n");
+     //   WINE_FIXME(" %s", wine_dbgstr_w(argv[i]));
+    //WINE_FIXME("\n");
 
     return 0;
 }

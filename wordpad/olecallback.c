@@ -25,7 +25,8 @@
 #include <ole2.h>
 #include <richole.h>
 
-#include "wine/debug.h"
+//#include "wine/debug.h"
+#include "../wordpad_ROS/debug.h"
 #include "wordpad.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(wordpad);
