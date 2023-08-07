@@ -4,10 +4,12 @@ project(XChCp)
 
 # include_directories(../conutils)
 
-add_executable(xchcp main.c chcp.rc ../wordpad_ROS/debug.c)
+list(APPEND SOURCE main.c  ../debug.h)
+
+add_executable(xchcp main.c chcp.rc)
 
 add_compile_definitions(CONSOLE_APP NOMAINFEST)
 
-target_link_libraries(xchcp conutils ${PSEH_LIB})
+target_link_libraries(xchcp ${PSEH_LIB})
 
 add_link_options(/SUBSYSTEM:CONSOLE)

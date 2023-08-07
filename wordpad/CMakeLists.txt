@@ -15,7 +15,7 @@ list(APPEND SOURCE
     registry.c
     wordpad.c
     wordpad.h
-    ../wordpad_ROS/debug.c
+    ../debug.h
 )
 
 add_executable(xwordpad ${SOURCE} wordpad.rc)

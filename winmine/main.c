@@ -25,7 +25,7 @@
 #include <shellapi.h>
 
 // #include <wine/debug.h>
-#include "../wordpad_ROS/debug.h"
+#include "../debug.h"
 
 int BOTTOM_MARGIN;
 int BOARD_WMARGIN;

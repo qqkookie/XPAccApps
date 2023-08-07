@@ -21,7 +21,7 @@ set( CMAKE_RUNTIME_OUTPUT_DIRECTORY out )
 # add_subdirectory(docs)
 
 # Console programs
-add_subdirectory(conutils)
+# add_subdirectory(conutils)
 add_subdirectory(chcp)
 
 # Window apps

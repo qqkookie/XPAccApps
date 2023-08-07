@@ -16,10 +16,11 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#include <windef.h>
+
 
 /* Translation IDs */
 
-#define STRING_ACTIVE_CODE_PAGE   100
-#define STRING_INVALID_CODE_PAGE  101
-#define STRING_USAGE              102
+#define STRING_ACTIVE_CODE_PAGE         201
+#define STRING_CHCP_HELP                202
+#define STRING_ERR_INVALID_CODE_PAGE    203
+#define STRING_ERR_INVALID_PARAM        204
