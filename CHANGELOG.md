@@ -2,8 +2,12 @@ CHANGELOG
 =====
 
 ## v0.1.6
- * 2023-08-01 00:00:00
+ * 2023-08-12 00:00:00
  * All "CMakeLists.txt" clean up
+ * Wine debug.c -> debug.h
+ xnotepad major update.
+ xchcp ydate
+
 
 ### xclac
  * Alt-X key to quit
@@ -26,16 +30,24 @@ CHANGELOG
 ### xnotepad
  * Alt-X key to quit
  * Accelerator resource to "rsrc.rc"
- * Readonly mode
- * Insert datetime to short date/time 
- * TODO: ISO date
- *
+ * Readonly mode (-v -r option)
+ * Insert datetime to short date/time
+ * TODO : MRU on menu :DONE
+ * TODO : ISO date on ALt-F6:DONE
+ * TODO : BUG - duplicated MRU entry. DONE
+ * TODO : check MRU file ok: DONE
+ * TODO : read only file option/ no modify on readonly or view only mode) :DONE
+ * TODO : Reload on modify DONE
+
+### xchcp
+ * based on Wine version.
+ * code clean up.
+ * debug.c, consutils dependancy removed. 
 
 ### xtaskmgr, xwordpad
 TODO: save setting inifile
 TODO: High Dpi
 TODO: Alt-X to quit
-
 
 ## v0.1.5
  * 2023-07-31 13:32:00
@@ -55,10 +67,6 @@ TODO: Alt-X to quit
  * UpdateWindowLayout() in dialog.c
  * misc.c -> file.c + search
  * MAX_STRING_LEN -> STR_LONG
- * TODO: BUG - duplicated MRU entry.
- * TODO: check MRU file ok
- * TODO: read only file option/ no modify on readonly or view only mode)
- * TODO: Reload on modify
 
 ### xmine
  * Minesweeper ported. HighDPI OK.

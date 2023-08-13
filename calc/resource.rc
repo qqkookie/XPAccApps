@@ -38,9 +38,9 @@ IDI_CALC ICON DISCARDABLE "res/calc.ico"
 #pragma code_page(65001)
 
 #define APP_PRODUCTNAME		"XCalc"
-#define APP_PRODVERMINOR	4,0
-#define APP_PRODVERMINOR_STR	"4.0"
-#define APP_FILEVERMINOR	4,35
+#define APP_PRODVERMINOR	5,0
+#define APP_PRODVERMINOR_STR	"5.0"
+#define APP_FILEVERMINOR	5,40
 #define APP_FILEDESCRIPTION	"Calculator accessory app"
 #define APP_ORIGINALFILENAME	"xcalc.exe"
 

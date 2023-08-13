@@ -26,9 +26,9 @@
 #pragma code_page(65001)
 
 #define APP_PRODUCTNAME		    "XChcp"
-#define APP_PRODVERMINOR	    3,0
+#define APP_PRODVERMINOR	    4,0
 #define APP_PRODVERMINOR_STR	"3.0"
-#define APP_FILEVERMINOR	    3,20
+#define APP_FILEVERMINOR	    4,25
 #define APP_FILEDESCRIPTION	    "Codepage utility command"
 #define APP_ORIGINALFILENAME	"xchcp.exe"
 
@@ -42,8 +42,101 @@ STRINGTABLE
 BEGIN
     STRING_ACTIVE_CODE_PAGE, "Active code page: %1!u!\n"
     STRING_CHCP_HELP, "Sets or displays active console code page.\n\
-    -  CHCP [949|euc-kr] \n\
-    -  arg: new console codepage to activcate. Numeric or name:\n\n"
+    -  CHCP [<nnnn>|<CP name>] \n\
+    -  arg: new console codepage to activcate, numeric or name:\n\n"
     STRING_ERR_INVALID_CODE_PAGE, "Invalid code page\n"
     STRING_ERR_INVALID_PARAM "Invalid parameter format - %s\n"
 END
+
+#ifdef LANGUAGE_CS_CZ
+
+#endif
+
+#ifdef LANGUAGE_DE_DE
+LANGUAGE LANG_GERMAN, SUBLANG_NEUTRAL
+
+STRINGTABLE
+BEGIN
+    STRING_ACTIVE_CODE_PAGE, "Aktive Codepage: %1!u!\n"
+    STRING_CHCP_HELP, "Zeigt die aktuelle Codepage an oder wechselt diese.\n\
+    -  CHCP [<nnnn>|<CP name>] \n\
+    -  Codepage angeben: Der Befehl CHCP ohne Parameter zeigt die Nummer der aktuellen Codepage an:\n\n"
+    STRING_ERR_INVALID_CODE_PAGE, "Ungültige Codepage\n"
+    STRING_ERR_INVALID_PARAM "Ungültiges Parameterformat - %s\n"
+END
+
+#endif
+#ifdef LANGUAGE_EL_GR
+
+#endif
+#ifdef LANGUAGE_EN_US
+
+#endif
+#ifdef LANGUAGE_ES_ES
+
+#endif
+#ifdef LANGUAGE_ET_EE
+
+#endif
+#ifdef LANGUAGE_FR_FR
+
+#endif
+#ifdef LANGUAGE_HU_HU
+
+#endif
+#ifdef LANGUAGE_ID_ID
+
+#endif
+#ifdef LANGUAGE_IT_IT
+
+#endif
+#ifdef LANGUAGE_NB_NO
+
+#endif
+#ifdef LANGUAGE_JA_JP
+
+#endif
+#ifdef LANGUAGE_KO_KR
+LANGUAGE LANG_KOREAN, SUBLANG_DEFAULT
+
+STRINGTABLE
+BEGIN
+    STRING_ACTIVE_CODE_PAGE, "현재 코드페이지: %1!u!\n"
+    STRING_CHCP_HELP, "콘솔의 코드페이지를 설정하기나 표시한다.\n\
+    -  CHCP [<nnnn>|<CP name>] \n\
+    -  인수: 설정할 코드페이지, 숫자 또는 이름:\n\n"
+    STRING_ERR_INVALID_CODE_PAGE, "코드페이지가 잘못됨\n"
+    STRING_ERR_INVALID_PARAM "인자 값의 형식이 잘못됨 - %s\n"
+END
+#endif
+#ifdef LANGUAGE_PL_PL
+
+#endif
+#ifdef LANGUAGE_RO_RO
+
+#endif
+#ifdef LANGUAGE_RU_RU
+
+#endif
+#ifdef LANGUAGE_SK_SK
+
+#endif
+#ifdef LANGUAGE_SV_SE
+
+#endif
+#ifdef LANGUAGE_SQ_AL
+
+#endif
+#ifdef LANGUAGE_TR_TR
+
+#endif
+#ifdef LANGUAGE_UK_UA
+
+#endif
+#ifdef LANGUAGE_ZH_CN
+
+#endif
+#ifdef LANGUAGE_ZH_TW
+
+#endif
+

@@ -403,14 +403,16 @@ static BOOL LoadSettings(VOID)
     return TRUE;
 }
 
+
 static BOOL SaveSettings(VOID)
 {
     WCHAR buf[256];
-    swprintf_s(buf, _countof(buf)-1,
-        L"WinPosX=%d\nWinPosY=%d\nLayout=%d\nUseSep=%d\n" ,
+    swprintf_s(buf, _countof(buf)-3,
+        L"WinPosX=%d\r\nWinPosY=%d\r\nLayout=%d\r\nUseSep=%d" ,
         calc.x_coord, calc.y_coord, calc.layout, calc.usesep );
 
-    return WritePrivateProfileSection(_PFSECTION, buf, _ProfilePath);
+    buf[wcslen(buf)+1] = '\0';  // WritePrivateProfileSection() needs two nulls.
+    return  WritePrivateProfileSection(_PFSECTION, buf, _ProfilePath);
 }
 
 #else

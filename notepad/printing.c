@@ -57,11 +57,11 @@ static INT GetSelectionTextLength(HWND hWnd)
     return dwEnd - dwStart;
 }
 
-static INT GetSelectionText(HWND hWnd, LPTSTR lpString, INT nMaxCount)
+static INT GetSelectionText(HWND hWnd, LPWSTR lpString, INT nMaxCount)
 {
     DWORD dwStart = 0, dwEnd = 0;
     INT cchText = GetWindowTextLength(hWnd);
-    LPTSTR pszText;
+    LPWSTR pszText;
     HLOCAL hLocal;
     HRESULT hr;
 
@@ -70,7 +70,7 @@ static INT GetSelectionText(HWND hWnd, LPTSTR lpString, INT nMaxCount)
         return 0;
 
     hLocal = (HLOCAL)SendMessage(hWnd, EM_GETHANDLE, 0, 0);
-    pszText = (LPTSTR)LocalLock(hLocal);
+    pszText = (LPWSTR)LocalLock(hLocal);
     if (!pszText)
         return 0;
 
@@ -100,7 +100,7 @@ typedef struct
     SYSTEMTIME stNow;
     HFONT hHeaderFont;
     HFONT hBodyFont;
-    LPTSTR pszText;
+    LPWSTR pszText;
     DWORD ich;
     DWORD cchText;
     INT cyHeader;
@@ -117,10 +117,10 @@ typedef struct
  * https://support.microsoft.com/en-us/windows/changing-header-and-footer-commands-in-notepad-c1b0e27b-497d-c478-c4c1-0da491cac148
  */
 static VOID
-DrawHeaderOrFooter(HDC hDC, LPRECT pRect, LPCTSTR pszFormat, INT nPageNo, const SYSTEMTIME *pstNow)
+DrawHeaderOrFooter(HDC hDC, LPRECT pRect, LPCWSTR pszFormat, INT nPageNo, const SYSTEMTIME *pstNow)
 {
-    TCHAR szText[256], szField[128];
-    const TCHAR *pchFormat;
+    WCHAR szText[256], szField[128];
+    const WCHAR *pchFormat;
     UINT uAlign = DT_CENTER, uFlags = DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX;
     HGDIOBJ hOldPen, hOldBrush;
 
@@ -137,7 +137,7 @@ DrawHeaderOrFooter(HDC hDC, LPRECT pRect, LPCTSTR pszFormat, INT nPageNo, const 
 
     for (pchFormat = pszFormat; *pchFormat; ++pchFormat)
     {
-        if (*pchFormat != _T('&'))
+        if (*pchFormat != L'&')
         {
             StringCchCatN(szText, _countof(szText), pchFormat, 1);
             continue;
@@ -149,51 +149,51 @@ DrawHeaderOrFooter(HDC hDC, LPRECT pRect, LPCTSTR pszFormat, INT nPageNo, const 
 
         switch (_totupper(*pchFormat)) /* Make it uppercase */
         {
-            case _T('&'): /* Found double ampersand */
+            case L'&': /* Found double ampersand */
                 StringCchCat(szText, _countof(szText), TEXT("&"));
                 break;
 
-            case _T('L'): /* Left */
+            case L'L': /* Left */
                 DrawText(hDC, szText, -1, pRect, uAlign | uFlags);
                 szText[0] = 0;
                 uAlign = DT_LEFT;
                 break;
 
-            case _T('C'): /* Center */
+            case L'C': /* Center */
                 DrawText(hDC, szText, -1, pRect, uAlign | uFlags);
                 szText[0] = 0;
                 uAlign = DT_CENTER;
                 break;
 
-            case _T('R'): /* Right */
+            case L'R': /* Right */
                 DrawText(hDC, szText, -1, pRect, uAlign | uFlags);
                 szText[0] = 0;
                 uAlign = DT_RIGHT;
                 break;
 
-            case _T('D'): /* Date */
+            case L'D': /* Date */
                 GetDateFormat(LOCALE_USER_DEFAULT, 0, pstNow, NULL,
                               szField, (INT)_countof(szField));
                 StringCchCat(szText, _countof(szText), szField);
                 break;
 
-            case _T('T'): /* Time */
+            case L'T': /* Time */
                 GetTimeFormat(LOCALE_USER_DEFAULT, 0, pstNow, NULL,
                               szField, (INT)_countof(szField));
                 StringCchCat(szText, _countof(szText), szField);
                 break;
 
-            case _T('F'): /* Filename */
+            case L'F': /* Filename */
                 StringCchCat(szText, _countof(szText), Globals.szFileTitle);
                 break;
 
-            case _T('P'): /* Page number */
+            case L'P': /* Page number */
                 StringCchPrintf(szField, _countof(szField), TEXT("%u"), nPageNo);
                 StringCchCat(szText, _countof(szText), szField);
                 break;
 
             default: /* Otherwise */
-                szField[0] = _T('&');
+                szField[0] = L'&';
                 szField[1] = *pchFormat;
                 szField[2] = 0;
                 StringCchCat(szText, _countof(szText), szField);
@@ -231,9 +231,9 @@ static BOOL DoPrintBody(PPRINT_DATA pData, DWORD PageCount, BOOL bSkipPage)
     /* The drawing-body loop */
     for (ichStart = pData->ich, xStart = xLeft; pData->ich < pData->cchText; )
     {
-        TCHAR ch = pData->pszText[pData->ich];
+        WCHAR ch = pData->pszText[pData->ich];
 
-        if (ch == _T('\r'))
+        if (ch == L'\r')
         {
             DO_FLUSH();
 
@@ -242,7 +242,7 @@ static BOOL DoPrintBody(PPRINT_DATA pData, DWORD PageCount, BOOL bSkipPage)
             continue;
         }
 
-        if (ch == _T('\n'))
+        if (ch == L'\n')
         {
             DO_FLUSH();
 
@@ -252,7 +252,7 @@ static BOOL DoPrintBody(PPRINT_DATA pData, DWORD PageCount, BOOL bSkipPage)
         }
         else
         {
-            if (ch == _T('\t'))
+            if (ch == L'\t')
             {
                 INT nStepWidth = tabWidth - ((xLeft - printRect.left) % tabWidth);
 
@@ -271,7 +271,7 @@ static BOOL DoPrintBody(PPRINT_DATA pData, DWORD PageCount, BOOL bSkipPage)
             /* Insert a line break if the next position reached the right edge */
             if (xLeft + charMetrics.cx >= printRect.right)
             {
-                if (ch != _T('\t'))
+                if (ch != L'\t')
                     DO_FLUSH();
 
                 /* Next line */
@@ -281,7 +281,7 @@ static BOOL DoPrintBody(PPRINT_DATA pData, DWORD PageCount, BOOL bSkipPage)
         }
 
         pData->ich++; /* Next char */
-        if (ch == _T('\t') || ch == _T('\n'))
+        if (ch == L'\t' || ch == L'\n')
             ichStart = pData->ich;
 
         if (yTop + tmText.tmHeight >= printRect.bottom - pData->cyFooter)
@@ -406,7 +406,7 @@ static BOOL DoPrintDocument(PPRINT_DATA printData)
         printData->cchText = GetWindowTextLength(Globals.hEdit);
 
     /* Allocate a buffer for the text */
-    printData->pszText = HeapAlloc(GetProcessHeap(), 0, (printData->cchText + 1) * sizeof(TCHAR));
+    printData->pszText = HeapAlloc(GetProcessHeap(), 0, (printData->cchText + 1) * sizeof(WCHAR));
     if (!printData->pszText)
     {
         printData->status = STRING_PRINTFAILED;
@@ -488,8 +488,8 @@ static DWORD WINAPI PrintThreadFunc(LPVOID arg)
 static INT_PTR CALLBACK
 DIALOG_Printing_DialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    TCHAR szText[STR_LONG];
-    static TCHAR s_szPage[STR_SHORT];
+    WCHAR szText[STR_LONG];
+    static WCHAR s_szPage[STR_SHORT];
     static PPRINT_DATA s_pData = NULL;
     static HANDLE s_hThread = NULL;
 
@@ -643,8 +643,8 @@ static UINT_PTR CALLBACK DIALOG_PAGESETUP_Hook(HWND hDlg, UINT uMsg, WPARAM wPar
                 case IDHELP:
                     {
                         /* FIXME: Bring this to work */
-                        static const TCHAR sorry[] = _T("Sorry, no help available");
-                        static const TCHAR help[] = _T("Help");
+                        static const WCHAR sorry[] = L"Sorry, no help available";
+                        static const WCHAR help[] = L"Help";
                         MessageBox(Globals.hMainWnd, sorry, help, MB_ICONEXCLAMATION);
                         return TRUE;
                     }

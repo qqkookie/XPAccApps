@@ -143,20 +143,20 @@ static VOID Clk_SetMenuCheckmarks(HMENU hmpop);
 // Display popup menu
 static VOID DisplayContextMenu(LPARAM lpm) 
 { 
-    HMENU hmpop = LoadMenu(Globals.hInstance,  MAKEINTRESOURCEW(POPUP_MENU));
-    if (!hmpop) 
-        return; 
+    HMENU hmMenu = LoadMenu(Globals.hInstance,  MAKEINTRESOURCEW(POPUP_MENU));
+    if (!hmMenu) 
+        return;
+    HMENU hmctx = GetSubMenu(hmMenu, 0);
 
-    Clk_SetMenuCheckmarks(hmpop);
-    TrackPopupMenu( GetSubMenu(hmpop, 0), TPM_LEFTALIGN | TPM_RIGHTBUTTON,
+    Clk_SetMenuCheckmarks(hmctx);
+    TrackPopupMenu( hmctx, TPM_LEFTALIGN | TPM_RIGHTBUTTON,
             GET_X_LPARAM(lpm), GET_Y_LPARAM(lpm), 0, Globals.hMainWnd, NULL);  
-    DestroyMenu(hmpop);
+    DestroyMenu(hmMenu);
 }
 
 // menu action common epilog
 static void ApplyMenu(void)
 {
-    // Clk_UpdateMenuCheckmarks();
     if (!Globals.bAnalog)
 	    ResizeFont();
     InvalidateRect(Globals.hMainWnd, NULL, FALSE);   
@@ -175,33 +175,23 @@ static LPARAM ClientPoint(HWND hWnd, LPARAM lpm)
 }
 
 // Set popup menu item checked or disabled state
-static VOID Clk_SetMenuCheckmarks(HMENU hmpop)
+static VOID Clk_SetMenuCheckmarks(HMENU hmctx)
 {
-    HMENU hPropertiesMenu = GetSubMenu(hmpop, 0);
-    if (!hPropertiesMenu)
-	    return;
-
     if(Globals.bAnalog) {
-        /* analog clock */
-        CheckMenuRadioItem(hPropertiesMenu, IDM_ANALOG, IDM_DIGITAL, IDM_ANALOG, MF_CHECKED);
-//        EnableMenuItem(hPropertiesMenu, IDM_FONT, MF_GRAYED);
-        EnableMenuItem(hPropertiesMenu, IDM_24HOURS, MF_GRAYED);
+        CheckMenuRadioItem(hmctx, IDM_ANALOG, IDM_DIGITAL, IDM_ANALOG, MF_CHECKED);
+        EnableMenuItem(hmctx, IDM_24HOURS, MF_GRAYED);
     }
     else
     {
-        /* digital clock */
-        CheckMenuRadioItem(hPropertiesMenu, IDM_ANALOG, IDM_DIGITAL, IDM_DIGITAL, MF_CHECKED);
-//        EnableMenuItem(hPropertiesMenu, IDM_FONT, MF_ENABLED);
-        EnableMenuItem(hPropertiesMenu, IDM_24HOURS, MF_ENABLED);
+        CheckMenuRadioItem(hmctx, IDM_ANALOG, IDM_DIGITAL, IDM_DIGITAL, MF_CHECKED);
+        EnableMenuItem(hmctx, IDM_24HOURS, MF_ENABLED);
     }
-//    EnableMenuItem(hPropertiesMenu, IDM_DATE, Globals.bNoTitleBar ? MF_GRAYED : MF_ENABLED);
 
-    CheckMenuItem(hPropertiesMenu, IDM_NOTITLE, (Globals.bNoTitleBar ? MF_CHECKED : MF_UNCHECKED));
-    CheckMenuItem(hPropertiesMenu, IDM_ONTOP, (Globals.bAlwaysOnTop ? MF_CHECKED : MF_UNCHECKED));
-    CheckMenuItem(hPropertiesMenu, IDM_SECONDS, (Globals.bSeconds ? MF_CHECKED : MF_UNCHECKED));
-//    CheckMenuItem(hPropertiesMenu, IDM_DATE, (Globals.bDate ? MF_CHECKED : MF_UNCHECKED));
-    CheckMenuItem(hPropertiesMenu, IDM_24HOURS, (Globals.b24Hours ? MF_CHECKED : MF_UNCHECKED));
-    CheckMenuItem(hPropertiesMenu, IDM_DARKCOLOR, (Globals.bDarkColor ? MF_CHECKED : MF_UNCHECKED));
+    CheckMenuItem(hmctx, IDM_NOTITLE, (Globals.bNoTitleBar ? MF_CHECKED : MF_UNCHECKED));
+    CheckMenuItem(hmctx, IDM_ONTOP, (Globals.bAlwaysOnTop ? MF_CHECKED : MF_UNCHECKED));
+    CheckMenuItem(hmctx, IDM_SECONDS, (Globals.bSeconds ? MF_CHECKED : MF_UNCHECKED));
+    CheckMenuItem(hmctx, IDM_24HOURS, (Globals.b24Hours ? MF_CHECKED : MF_UNCHECKED));
+    CheckMenuItem(hmctx, IDM_DARKCOLOR, (Globals.bDarkColor ? MF_CHECKED : MF_UNCHECKED));
 }
 
 /***********************************************************************
@@ -392,7 +382,6 @@ int PASCAL WinMain (HINSTANCE hInstance, HINSTANCE prev, LPSTR cmdline, int show
     Globals.WinW = Globals.WinH = INITIAL_WINDOW_SIZE;
     Globals.bAnalog         = TRUE;
     Globals.bSeconds        = TRUE;
-//    Globals.bDate           = TRUE;
 
     if (!prev){
         class.style         = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS;
@@ -421,9 +410,6 @@ int PASCAL WinMain (HINSTANCE hInstance, HINSTANCE prev, LPSTR cmdline, int show
     Globals.hInstance = hInstance;
     LoadSettings();
     InitPallet();
-
-    // Globals.hMainMenu = LoadMenuW(0, MAKEINTRESOURCEW(MAIN_MENU));
-    // SetMenu(hWnd, Globals.hMainMenu);
 
     SetWindowLong(hWnd, GWL_EXSTYLE, GetWindowLong(hWnd, GWL_EXSTYLE)|WS_EX_TOOLWINDOW );
     ResizeFont();
@@ -502,10 +488,11 @@ static BOOL SaveSettings(VOID)
 //    flags |= Globals.bDate ? 0x1 <<6 : 0;
 
     WCHAR buf[256];
-    swprintf_s( buf, _countof(buf)-1,
-        L"WinPosX=%d\nWinPosY=%d\nWidth=%d\nHeight=%d\nFlags=%d\n" ,
+    swprintf_s( buf, _countof(buf)-3,
+        L"WinPosX=%d\r\nWinPosY=%d\r\nWidth=%d\r\nHeight=%d\r\nFlags=%d" ,
          wnr.left, wnr.top, wnr.right - wnr.left, wnr.bottom - wnr.top, flags );
 
+    buf[wcslen(buf)+1] = '\0';  // WritePrivateProfileSection() needs two nulls.
     return WritePrivateProfileSection(_PFSECTION, buf, _ProfilePath);
 }
 
@@ -514,48 +501,3 @@ static BOOL LoadSettings(VOID  { return FALSE;}
 static BOOL SaveSettings(VOID) { return FALSE;}
 #endif
 
-#if 0
-// Moved to winclock.c: DrawClock()
-/***********************************************************************
- *
- *           Clk_Paint
- */
-static VOID Clk_Paint(HWND hWnd)
-{
-    PAINTSTRUCT ps;
-    HDC dcMem, dc;
-    HBITMAP bmMem, bmOld;
-
-    dc = BeginPaint(hWnd, &ps);
-
-    /* Use an offscreen dc to avoid flicker */
-    dcMem = CreateCompatibleDC(dc);
-    bmMem = CreateCompatibleBitmap(dc, ps.rcPaint.right - ps.rcPaint.left,
-				    ps.rcPaint.bottom - ps.rcPaint.top);
-
-    bmOld = SelectObject(dcMem, bmMem);
-
-    SetViewportOrgEx(dcMem, -ps.rcPaint.left, -ps.rcPaint.top, NULL);
-    /* Erase the background */
-    FillRect(dcMem, &ps.rcPaint, GetSysColorBrush(COLOR_3DFACE));
-
-    if(Globals.bAnalog)
-	    AnalogClock(dcMem, Globals.MaxX, Globals.MaxY, Globals.bSeconds, Globals.bNoTitleBar);
-    else
-	    DigitalClock(dcMem, Globals.MaxX, Globals.MaxY, Globals.bSeconds, Globals.hFont);
-
-    /* Blit the changes to the screen */
-    BitBlt(dc, 
-	   ps.rcPaint.left, ps.rcPaint.top,
-	   ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top,
-           dcMem,
-	   ps.rcPaint.left, ps.rcPaint.top,
-           SRCCOPY);
-
-    SelectObject(dcMem, bmOld);
-    DeleteObject(bmMem);
-    DeleteDC(dcMem);
-    
-    EndPaint(hWnd, &ps);
-}
-#endif

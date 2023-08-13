@@ -23,7 +23,10 @@ BOOL AddNewEditTab(VOID);
 VOID OnTabChange(VOID);
 int  CloseTab(VOID);
 VOID SetTabHeader(VOID);
-int  FindDupPathTab(LPCTSTR filePath);
+VOID SetFileName(LPCWSTR szFileName);
+int  FindDupPathTab(LPCWSTR filePath);
+VOID TryOpenFile(LPCWSTR szFileName, BOOL bNewFile);
+BOOL TrySaveFile(VOID);
 
 VOID DIALOG_FileNew(VOID);
 VOID DIALOG_FileNewWindow(VOID);
@@ -33,8 +36,11 @@ VOID DIALOG_EditWrap(VOID);
 
 BOOL DIALOG_FileSave(VOID);
 BOOL DIALOG_FileSaveAs(VOID);
+BOOL DoCloseFile(VOID);
+BOOL DoCloseAllFiles(VOID);
 VOID DIALOG_FileClose(VOID);
 VOID DIALOG_FileExit(VOID);
+VOID CheckFileModeChange(VOID);
 
 VOID DIALOG_EditUndo(VOID);
 VOID DIALOG_EditCut(VOID);
@@ -56,11 +62,11 @@ VOID DIALOG_HelpContents(VOID);
 VOID DIALOG_HelpAboutNotepad(VOID);
 
 VOID ShowLastError(VOID);
-int  StringMsgBox( int formatId, LPCTSTR szString, DWORD dwFlags);
+int  StringMsgBox( int formatId, LPCWSTR szString, DWORD dwFlags);
 
-VOID AlertFileNotFound(LPCTSTR szFileName);
-int  AlertFileNotExist(LPCTSTR szFileName);
-int  AlertFileNotSaved(LPCTSTR szFileName);
+VOID AlertFileNotFound(LPCWSTR szFileName);
+int  AlertFileNotExist(LPCWSTR szFileName);
+int  AlertFileNotSaved(LPCWSTR szFileName);
 int  AlertUnicodeCharactersLost(LPCWSTR szFileName);
 
 // ----- printing.c ------------

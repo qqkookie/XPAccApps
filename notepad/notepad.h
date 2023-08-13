@@ -25,7 +25,6 @@
     #define _CRTDBG_MAP_ALLOC
     #include <crtdbg.h>
 #endif
-#include <malloc.h>
 
 #include "dialog.h"
 #include "notepad_res.h"
@@ -45,7 +44,7 @@ typedef enum
 
 } ENCODING;
 
-#define ENCODING_DEFAULT    ENCODING_UTF8 // ENCODING_ANSIOEM
+#define ENCODING_DEFAULT    ENCODING_UTF8
 
 typedef enum
 {
@@ -54,11 +53,15 @@ typedef enum
     EOLN_CR   = 2  /* "\r" */
 } EOLN; /* End of line (NewLine) type */
 
+#define EOLN_DEFAULT    EOLN_LF
+
 typedef enum
 {
-    FM_NORMAL =  0,
-    FM_READONLY =  1,
-    FM_EDITING    =  2,
+    FM_NORMAL   = 0,
+    FM_READONLY = 1,
+    FM_OUTDATE  = 2,    // not modified, but externally modified. 
+    FM_EDITING  = 3,    // modified
+    FM_CLASH    = 4,    // modified and externally modified, too.
 } FILEMODE;  // file modification state
 
 // Extra info for each Edit control on eacn Tab.
@@ -67,10 +70,11 @@ typedef struct {
     HWND        hwEDIT;
     ENCODING    encFile;
     EOLN        iEoln;
-    FILEMODE    Modified;
+    FILEMODE    FileMode;
+    FILETIME    FileTime;
 
     BOOL        pathOK;
-    TCHAR       filePath[MAX_PATH];
+    WCHAR       filePath[MAX_PATH];
 } EDITINFO;
 
 typedef struct
@@ -97,16 +101,16 @@ typedef struct
     HGLOBAL hDevMode;
     HGLOBAL hDevNames;
 
-    TCHAR szFileName[MAX_PATH];
-    TCHAR szFileTitle[MAX_PATH];
-    TCHAR szStatusBarLineCol[STR_LONG];
-    TCHAR szFilter[STR_LONG*3];
+    WCHAR szFileName[MAX_PATH];
+    WCHAR szFileTitle[MAX_PATH];
+    WCHAR szStatusBarLineCol[STR_LONG];
+    WCHAR szFilter[STR_LONG*3];
 
 } NOTEPAD_GLOBALS;
 
 extern NOTEPAD_GLOBALS Globals;
 
-TCHAR G_STR_NOTEPAD[];
+WCHAR G_STR_NOTEPAD[];
 
 // ----- settings.c ------------
 
@@ -116,15 +120,15 @@ typedef struct
     LOGFONT lfFont;
     BOOL bWrapLongLines;
     BOOL bShowStatusBar;
-    TCHAR szFindText[STR_LONG];
-    TCHAR szReplaceText[STR_LONG];
+    WCHAR szFindText[STR_LONG];
+    WCHAR szReplaceText[STR_LONG];
 
     RECT lMargins; /* The margin values in 100th millimeters */
-    TCHAR szHeader[STR_SHORT];
-    TCHAR szFooter[STR_SHORT];
+    WCHAR szHeader[STR_SHORT];
+    WCHAR szFooter[STR_SHORT];
 
-    TCHAR txtTypeFilter[STR_LONG];
-    TCHAR moreTypeFilter[STR_LONG*2];
+    WCHAR txtTypeFilter[STR_LONG];
+    WCHAR moreTypeFilter[STR_LONG*2];
 } SETTING_DATA;
 
 extern SETTING_DATA Settings;
@@ -132,41 +136,37 @@ extern SETTING_DATA Settings;
 VOID LoadAppSettings(VOID);
 VOID SaveAppSettings(VOID);
 
-LPCTSTR GetString(UINT rid);
+LPCWSTR GetString(UINT rid);
 #define GETSTRING(id)           GetString(id)
 #define LOADSTRING(id, buf)     LoadString( NULL, id, buf, _countof(buf))
 
-int LoadIniString(LPCTSTR key, LPTSTR buf, int buflen);
-LPCTSTR GetIniString(LPCTSTR key, LPCTSTR defval);
-VOID PutIniString(LPCTSTR key, LPCTSTR value);
-#define LOADINISTRING(key, buf) LoadProfileString(key, buf, _countof(buf))
+LPCWSTR ReadIniString(LPCWSTR key, LPCWSTR defval);
+VOID WriteIniString(LPCWSTR key, LPCWSTR value);
 
 // ----- text.c ---------------
-BOOL ReadText(HANDLE hFile, HLOCAL *phLocal, ENCODING *pencFile, EOLN *piEoln);
-BOOL WriteText(HANDLE hFile, LPCWSTR pszText, DWORD dwTextLen, ENCODING encFile, EOLN iEoln);
+// BOOL ReadText(HANDLE hFile, LPWSTR *ppszText, ENCODING *pencFile, EOLN *piEoln);
+// BOOL WriteText(HANDLE hFile, LPCWSTR szText, DWORD dwTextLen, ENCODING encFile, EOLN iEoln);
 
 // ----- file.c ---------------
-VOID SetFileName(LPCTSTR szFileName);
+BOOL DoOpenFile(LPCWSTR szFileName);
 BOOL DoSaveFile(VOID);
-BOOL DoCloseFile(VOID);
-BOOL DoCloseAllFiles(VOID);
-VOID DoOpenFile(LPCTSTR szFileName);
 
 BOOL Search_FindNext(FINDREPLACE *pFindReplace, BOOL bReplace, BOOL bShowAlert);
 VOID EventSearchReplace (FINDREPLACE *pFindReplace);
 
 VOID MRU_Init(VOID);
-VOID MRU_Add(LPCTSTR newpath);
+VOID MRU_Add(LPCWSTR newpath);
 VOID MRU_Sort(VOID);
-LPCTSTR MRU_Enum(int n);
+LPCWSTR MRU_Enum(int n);
 VOID MRU_Load(VOID);
 VOID MRU_Save(VOID);
 
-VOID UpdateMenuRecentList(HMENU menuMain);
+VOID UpdateMenuRecentList(HMENU menuSub);
 
-VOID ShortenPath(LPTSTR szStr, int maxlen);
-BOOL FileExists(LPCTSTR szFilename);
-BOOL HasFileExtension(LPCTSTR szFilename);
+VOID ShortenPath(LPWSTR szStr, int maxlen);
+BOOL FileExists(LPCWSTR szFilename);
+BOOL HasFileExtension(LPCWSTR szFilename);
+int FileTimeCompare( FILETIME * ta, FILETIME *tb );
 
 // ------------------------------
 /* utility macros */
@@ -174,5 +174,5 @@ BOOL HasFileExtension(LPCTSTR szFilename);
 #define ZEROMEM(mem)    ZeroMemory(&mem, sizeof(mem))
 
 #define STROK(s) ((s) && *(s))
-#define STRBAD(s) ((!s)||!*(s))
-#define NULSTR  _T("")
+#define STRNOT(s) ((!s)||!*(s))
+#define NULSTR  L""

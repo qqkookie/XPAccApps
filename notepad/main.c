@@ -16,7 +16,7 @@
 
 NOTEPAD_GLOBALS Globals;
 
-TCHAR G_STR_NOTEPAD[STR_SHORT] ={0};
+WCHAR G_STR_NOTEPAD[STR_SHORT] ={0};
 
 static ATOM aFINDMSGSTRING;
 
@@ -80,26 +80,31 @@ static int NOTEPAD_MenuCommand(WPARAM wParam)
  */
 static VOID NOTEPAD_InitData(HINSTANCE hInstance)
 {
-    LPTSTR p;
-    static const TCHAR txt_files[] = _T("*.txt;");
-    static const TCHAR all_files[] = _T("*.*");
+    LPWSTR p;
+#define TXT_TYPE    L"*.txt"
+#define ALL_TYPE    L"*.*"
 
     ZEROMEM(Globals);
     Globals.hInstance = hInstance;
     Globals.encFile = ENCODING_DEFAULT;
 
+    LoadAppSettings();
+
     p = Globals.szFilter;
 
     p += LoadString(NULL, STRING_TEXT_FILES_TXT, p, STR_SHORT) + 1;
-    _tcscpy(p, txt_files);
-    _tcscat(p, Settings.txtTypeFilter);  // additinal text-like types.
+
+    if (STRNOT(Settings.txtTypeFilter))
+        LoadString(NULL, STRING_TEXT_TYPE_FILTER, Settings.txtTypeFilter, STR_SHORT);
+
+    _stprintf( p, L"%s;%s", TXT_TYPE, Settings.txtTypeFilter );    // additinal text-like types.
     p += _tcslen(p) +1;
 
     p += LoadString(NULL, STRING_ALL_FILES, p, STR_SHORT) + 1;
-    _tcscpy(p, all_files);
+    _tcscpy(p, ALL_TYPE);
     p += _tcslen(p) +1;
 
-    if (Settings.moreTypeFilter[0])
+    if (STROK(Settings.moreTypeFilter))
         _tcscpy(p, Settings.moreTypeFilter);
     else
         LoadString(NULL, STRING_MORE_TYPE_FILTER, p, _countof(Settings.moreTypeFilter));
@@ -117,6 +122,7 @@ static VOID NOTEPAD_InitData(HINSTANCE hInstance)
     Globals.hDevNames = NULL;
 
     LoadLibrary(L"Msftedit.dll");
+
     // Initialize common controls.
     INITCOMMONCONTROLSEX iccx;
     iccx.dwSize = sizeof(iccx);
@@ -125,18 +131,18 @@ static VOID NOTEPAD_InitData(HINSTANCE hInstance)
 
     LOADSTRING(STRING_UNTITLED, Globals.szFileTitle );
     LOADSTRING(STRING_NOTEPAD, G_STR_NOTEPAD);
-
-    MRU_Init();
 }
 
 /***********************************************************************
  * Enable/disable items on the menu based on control state
  */
-static VOID NOTEPAD_InitMenuPopup(HMENU menu, LPARAM index)
+static VOID NOTEPAD_InitMenuPopup(HMENU menuhit, LPARAM index)
 {
     int enable;
 
     UNREFERENCED_PARAMETER(index);
+
+    HMENU menu = Globals.hMenu;
 
     CheckMenuItem(menu, CMD_WRAP, (Settings.bWrapLongLines ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(menu, CMD_STATUSBAR, (Settings.bShowStatusBar ? MF_CHECKED : MF_UNCHECKED));
@@ -153,8 +159,8 @@ static VOID NOTEPAD_InitMenuPopup(HMENU menu, LPARAM index)
     EnableMenuItem(menu, CMD_SELECT_ALL,
         GetWindowTextLength(Globals.hEdit) ? MF_ENABLED : MF_GRAYED);
 
-    UpdateMenuRecentList(menu);
-
+    if (index == 0)
+        UpdateMenuRecentList(menuhit);
 }
 
 LRESULT CALLBACK EDIT_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -220,9 +226,10 @@ NOTEPAD_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_CLOSE:
-        if (DoCloseFile()) {
-            DestroyWindow(hWnd);
-        }
+        if (Globals.hEdit)
+            DoCloseFile();
+
+        DestroyWindow(hWnd);
         break;
 
     case WM_QUERYENDSESSION:
@@ -262,17 +269,18 @@ NOTEPAD_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         return 1;
 
     case WM_SETFOCUS:
+        CheckFileModeChange();
         SetFocus(Globals.hEdit);
         break;
 
     case WM_DROPFILES:
     {
-        TCHAR szFileName[MAX_PATH];
+        WCHAR szFileName[MAX_PATH];
         HDROP hDrop = (HDROP) wParam;
 
         DragQueryFile(hDrop, 0, szFileName, _countof(szFileName));
         DragFinish(hDrop);
-        DoOpenFile(szFileName);
+        TryOpenFile(szFileName, FALSE);
         break;
     }
 
@@ -308,21 +316,21 @@ NOTEPAD_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 //***********************************************************************
 
-static BOOL HandleCommandLine(LPTSTR cmdline)
+static BOOL HandleCommandLine(LPWSTR cmdline)
 {
     BOOL opt_print = FALSE;
     BOOL opt_readonly = FALSE;
-    TCHAR szPath[MAX_PATH];
+    WCHAR szPath[MAX_PATH];
 
-    while (*cmdline == _T(' ') || *cmdline == _T('-') || *cmdline == _T('/'))
+    while (*cmdline == L' ' || *cmdline == L'-' || *cmdline == L'/')
     {
-        TCHAR option;
+        WCHAR option;
 
-        if (*cmdline++ == _T(' ')) continue;
+        if (*cmdline++ == L' ') continue;
 
         option = *cmdline;
         if (option) cmdline++;
-        while (*cmdline == _T(' ')) cmdline++;
+        while (*cmdline == L' ') cmdline++;
 
         switch(tolower(option))
         {
@@ -336,14 +344,14 @@ static BOOL HandleCommandLine(LPTSTR cmdline)
         }
     }
 
-    if (*cmdline)
+    if (STROK(cmdline))
     {
         /* file name is passed in the command line */
-        LPCTSTR file_name = NULL;
+        LPCWSTR file_name = NULL;
         BOOL file_exists = FALSE;
-        TCHAR buf[MAX_PATH];
+        WCHAR buf[MAX_PATH];
 
-        if (cmdline[0] == _T('"'))
+        if (cmdline[0] == L'"')
         {
             cmdline++;
             cmdline[lstrlen(cmdline) - 1] = 0;
@@ -356,7 +364,7 @@ static BOOL HandleCommandLine(LPTSTR cmdline)
         }
         else if (!HasFileExtension(cmdline))
         {
-            static const TCHAR txt[] = _T(".txt");
+            static const WCHAR txt[] = L".txt";
 
             /* try to find file with ".txt" extension */
             if (!_tcscmp(txt, cmdline + _tcslen(cmdline) - _tcslen(txt)))
@@ -376,7 +384,7 @@ static BOOL HandleCommandLine(LPTSTR cmdline)
 
         if (file_exists)
         {
-            DoOpenFile(szPath);
+            TryOpenFile(szPath, FALSE);
  
             InvalidateRect(Globals.hMainWnd, NULL, FALSE);
             if (opt_print)
@@ -393,7 +401,7 @@ static BOOL HandleCommandLine(LPTSTR cmdline)
             switch (AlertFileNotExist(file_name))
             {
             case IDYES:
-                DoOpenFile(szPath);
+                TryOpenFile(szPath, TRUE);
                 break;
 
             case IDNO:
@@ -407,7 +415,7 @@ static BOOL HandleCommandLine(LPTSTR cmdline)
 
 //***********************************************************************/
 //            WinMain
-int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE prev, LPTSTR cmdline, int show)
+int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE prev, LPWSTR cmdline, int show)
 {
     MSG msg;
     HACCEL hAccel;
@@ -416,8 +424,8 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE prev, LPTSTR cmdline, int sh
     MONITORINFO info;
     INT x, y;
     RECT rcIntersect;
-    static const TCHAR className[] = _T("Notepad");
-    static const TCHAR winName[] = _T("Notepad");
+    static const WCHAR className[] = L"Notepad";
+    static const WCHAR winName[] = L"Notepad";
 
 #ifdef _DEBUG
     /* Report any memory leaks on exit */
@@ -437,9 +445,6 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE prev, LPTSTR cmdline, int sh
     UNREFERENCED_PARAMETER(prev);
 
     aFINDMSGSTRING = (ATOM)RegisterWindowMessage(FINDMSGSTRING);
-
-    NOTEPAD_InitData(hInstance);
-    LoadAppSettings();
 
     ZEROMEM(wndclass);
     wndclass.cbSize = sizeof(wndclass);
@@ -463,6 +468,7 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE prev, LPTSTR cmdline, int sh
     }
 
     /* Setup windows */
+    NOTEPAD_InitData(hInstance);
 
     monitor = MonitorFromRect(&Settings.main_rect, MONITOR_DEFAULTTOPRIMARY);
     info.cbSize = sizeof(info);

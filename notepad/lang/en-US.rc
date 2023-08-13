@@ -173,10 +173,11 @@ task.\nClose one or more applications to increase the amount of\nfree memory."
     STRING_LF "Unix (LF)"
     STRING_CR "Mac (CR)"
 
-    STRING_FM_NORMAL "OK"
-    STRING_FM_READONLY "Read Only"
-    STRING_FM_EDITING "Editing"
-
+    STRING_FM_NORMAL        "OK"
+    STRING_FM_READONLY      "Read Only"
+    STRING_FM_OUTDATE       "Outdated"
+    STRING_FM_EDITING       "Editing"
+    STRING_FM_CLASH         "Edit *CLASH*"
 
     STRING_LINE_COLUMN "Line %d, column %d"
     STRING_PRINTERROR "Cannot print the file '%s'.\n\n\
@@ -190,7 +191,7 @@ Make sure that the printer is turned on and is configured properly."
     STRING_PRINTFAILED "Printing is failed."
 
     STRING_TEXT_DOCUMENT "Text Document"
-    STRING_TEXT_TYPE_FILTER "*.md;*.mdx"
+    STRING_TEXT_TYPE_FILTER "*.txt;*.md;*.mdx"
     STRING_MORE_TYPE_FILTER "\
 Source file (cpp h js jav py...)\n\
 *.cpp;*.cc;*.c;*.h;*.hpp;*.rc;*.java;*.py;*.js;*.cs;*.vb;*.vbs;*.bat\n\
@@ -199,7 +200,8 @@ Data file (json xml html log...)\n\
 *.rst;*.conf;*.srt;*.git*;*.bash*;*.log;*.diff;*.patch;*.m3u;*.bak;*.orig\n\n"
 
     STRING_NOTEPAD_AUTHORS "Copyright 1997,98 Marcel Baur, 2000 Mike McCormack, \
-2002 Sylvain Petreolle, 2002 Andriy Palamarchuk\r\n"
+2002 Sylvain Petreolle, 2002 Andriy Palamarchuk, \
+2023 Song PineWood\r\n"
     STRING_LOSS_OF_UNICODE_CHARACTERS,         "%1\n\
 This file contains foreign characters that cannot be \
 prepresented and saved in the %2 encoding file.\n\

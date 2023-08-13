@@ -6,246 +6,395 @@
 
 #include "notepad.h"
 
-#include <shlobj.h>
-
 #include <assert.h>
 #include <strsafe.h>
 
 /**********************************************************************/
-// File Open Close Save
+// Low-level file I/O
 
-// Sets Global File Name.
-VOID SetFileName(LPCTSTR szFileName)
+#define LINE_MAXSIZE 4100
+#define WSIZE  sizeof(WCHAR)
+
+// Detect codepage encoding.
+// int *bom receives byte size of BOM premeble.
+static ENCODING AnalyzeEncoding(const LPBYTE pBytes, int dwSize, int* bom)
 {
-    if ( szFileName && szFileName[0])
-        StringCchCopy(Globals.szFileName, _countof(Globals.szFileName), szFileName);
-    else 
-        LOADSTRING( STRING_UNTITLED, Globals.szFileName );
+    static const char bom_utf8[] = { 0xef, 0xbb, 0xbf };
+    static const char bom_utf16le[] = { 0xff, 0xfe };
+    static const char bom_utf16be[] = { 0xfe, 0xff };
 
-    Globals.szFileTitle[0] = 0;
-    GetFileTitle(szFileName, Globals.szFileTitle, _countof(Globals.szFileTitle));
+    if (bom && dwSize >= sizeof(bom_utf16le))
+    {
+        if (dwSize >= sizeof(bom_utf8) && !memcmp(pBytes, bom_utf8, sizeof(bom_utf8)))
+        {
+            *bom = sizeof(bom_utf8);
+            return ENCODING_UTF8;
+        }
+        if (memcmp(pBytes, bom_utf16le, sizeof(bom_utf16le)) == 0)
+        {
+            *bom = sizeof(bom_utf16le);
+            return ENCODING_UTF16LE;
+        }
+        if ( memcmp(pBytes, bom_utf16be, sizeof(bom_utf16be)) == 0 )
+        {
+            *bom = sizeof(bom_utf16be);
+            return ENCODING_UTF16BE;
+        }
+    }
 
-    if (szFileName && szFileName[0])
-        SHAddToRecentDocs(SHARD_PATHW, szFileName);
+    int utf16mask =  IS_TEXT_UNICODE_SIGNATURE|IS_TEXT_UNICODE_STATISTICS;
+    if (IsTextUnicode(pBytes, dwSize, &utf16mask))
+        return ENCODING_UTF16LE;
+
+    utf16mask = IS_TEXT_UNICODE_REVERSE_SIGNATURE;
+    if (IsTextUnicode(pBytes, dwSize, &utf16mask))
+        return ENCODING_UTF16BE;
+
+    for ( signed char *pch = pBytes; *pch > 0 ; pch++) 
+    {
+        if ( pch >= pBytes + dwSize -1 )    // Pure ascii to the end
+            return (ENCODING_ANSIOEM);
+    }
+
+    /* is it UTF-8? */
+    if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, (LPCSTR)pBytes, dwSize, NULL, 0) > 0)
+        return ENCODING_UTF8;
+
+    return (ENCODING_ANSIOEM);
 }
 
-VOID DoOpenFile(LPCTSTR szFileName)
+// Detect end of line discipline
+static EOLN CountLineEndings(LPWSTR szText, int cchText)
+{
+    WCHAR old_ch = 0;
+    int n_lf, n_crlf, n_cr;
+    n_lf = n_crlf = n_cr = 0;
+
+    for (int ich = 0; ich < cchText; ++ich)
+    {
+        WCHAR ch = szText[ich];
+
+        if (ch == UNICODE_NULL)
+            szText[ich] = L' ';     // Replace L'\0' with unicode SPACE. 
+        else if (ch == L'\r')
+            n_cr++;
+        else if (ch == L'\n')
+        {
+            if (old_ch == L'\r')
+            {
+                n_cr--;
+                n_crlf++;
+            }
+            else
+                n_lf++;
+        }
+        old_ch = ch;
+    }
+
+    /* Choose the newline code */
+    if (n_cr > (n_lf + n_crlf ))
+        return EOLN_CR;
+    else if (n_crlf > (n_lf + n_cr))
+        return EOLN_CRLF;
+
+    return EOLN_LF;
+}
+
+// Read text from file. Data is saved in allocated memory heap and
+// ppszText is address of pointer to receive memory handle from process heap.
+// On successful read, buffer must be freed by caller with HeapFree().
+// 
+// Ex)  LPWSTR pszText = NULL; ReadText(hFile, &pszText,...)
+//      HeapFree(GetProcessHeap(), 0, pszText);
+static BOOL ReadText(HANDLE hFile, LPWSTR *ppszText, ENCODING *pencFile, EOLN *piEoln)
+{
+    BOOL bSuccess = FALSE;
+    ENCODING encFile = ENCODING_DEFAULT;
+    HANDLE hHeap = GetProcessHeap();
+    DWORD dwSize = GetFileSize(hFile, NULL);
+    HANDLE hMapping = NULL;
+    LPBYTE fileMapView = NULL;
+    int cchTextLen = 0;
+
+    if ( !hFile || !ppszText || dwSize == INVALID_FILE_SIZE)
+        return FALSE;
+
+    LPWSTR TextBuf = HeapAlloc( hHeap, 0, dwSize * WSIZE + 8);
+    if (!TextBuf)
+        return FALSE;
+    if ( dwSize == 0 )
+        goto empty_file;
+
+    hMapping = CreateFileMappingW(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
+    fileMapView = MapViewOfFile(hMapping, FILE_MAP_READ, 0, 0, dwSize);
+    if (hMapping == NULL  || !fileMapView)
+        goto done;
+
+    int bomlen = 0;
+    encFile = AnalyzeEncoding(fileMapView, dwSize, &bomlen);
+
+    const LPBYTE FileBytes =  &fileMapView[bomlen];    // skip BOM
+    LPCWSTR FileText = (LPCWSTR) FileBytes;
+    int cByteSize = dwSize - bomlen;
+
+    LPWSTR Resized;
+    UINT iCodePage = CP_UTF8;
+
+    if ( dwSize == 0 || cByteSize == 0)
+        goto empty_file;
+
+    switch(encFile)
+    {
+
+    case ENCODING_UTF16BE:
+        /* big endian; Swap bytes */
+        _swab(FileBytes, FileBytes, cByteSize);
+        /*FALLTHRU*/
+
+    case ENCODING_UTF16LE:
+        cchTextLen = (cByteSize +1)/WSIZE;
+        Resized = HeapReAlloc( hHeap, 0, TextBuf, (cchTextLen+1)*WSIZE);
+        if (Resized)
+            TextBuf = Resized;
+            
+        CopyMemory(TextBuf, FileBytes, cchTextLen*WSIZE);
+        TextBuf[cchTextLen] = UNICODE_NULL;
+        break;
+
+    case ENCODING_ANSIOEM:
+        iCodePage = CP_ACP;
+        /*FALLTHRU*/
+
+    case ENCODING_UTF8:
+    case ENCODING_UTF8BOM:
+        cchTextLen = MultiByteToWideChar(iCodePage, 0, FileBytes, cByteSize, NULL, 0);
+        if (cchTextLen == 0)
+            goto done;
+        Resized = HeapReAlloc( hHeap, 0, TextBuf, (cchTextLen+1)*WSIZE);
+        if (Resized)
+            TextBuf = Resized;
+
+        MultiByteToWideChar(iCodePage, 0, FileBytes, cByteSize, TextBuf, cchTextLen);
+        TextBuf[cchTextLen] = UNICODE_NULL;
+        break;
+
+        DEFAULT_UNREACHABLE;
+    }
+
+    *piEoln = CountLineEndings(TextBuf, cchTextLen);
+
+empty_file:
+    TextBuf[cchTextLen] = UNICODE_NULL;
+    *ppszText = TextBuf;
+    *pencFile = encFile;
+    bSuccess = TRUE;
+
+done:
+    if (fileMapView) UnmapViewOfFile(fileMapView);
+    if (hMapping) CloseHandle(hMapping);
+    if (!bSuccess && TextBuf)
+        HeapFree(hHeap, 0, TextBuf);
+
+    return bSuccess;
+}
+
+// Write a line to file in give codepage and EOL discipline.
+// Maximum line length limited to ~4k bytes in file.
+// szLine and cchLen does not include EOL.
+// EOL is added automatically according to iEoln. If iEoln == -1, no EOLN added.
+static BOOL WriteOneLine(HANDLE hFile, LPCWSTR szLine, int cchLen, ENCODING encFile, EOLN iEoln)
+{
+    static LPCWSTR WideEOL[] = { L"\n", L"\r\n", L"\r" };
+    static LPCSTR CharEOL[]  = { "\n", "\r\n", "\r" };
+    HANDLE hHeap = GetProcessHeap();
+    UINT iCodePage =  CP_UTF8;
+    int cbWrite = 0, cbeol;
+    char WriteBuf[LINE_MAXSIZE];
+
+    assert( cchLen == 0 || (szLine[cchLen-1] != '\r' && szLine[cchLen-1] != '\n'));
+
+    switch(encFile)
+    {
+        case ENCODING_UTF16LE:
+        case ENCODING_UTF16BE:
+
+            cbWrite = cchLen * WSIZE;
+            memcpy(WriteBuf, szLine, cbWrite);
+            if ( iEoln >= 0 )
+            {
+                cbeol = (iEoln == EOLN_CRLF) ? 4: 2;
+                memcpy(WriteBuf +cbWrite, WideEOL[iEoln], cbeol);
+                cbWrite += cbeol;
+            }
+              
+            if (encFile == ENCODING_UTF16BE)
+                _swab(WriteBuf, WriteBuf, cbWrite);
+            break;
+
+        case ENCODING_ANSIOEM:
+            iCodePage = CP_ACP;
+            /*FALLTHRU*/
+        case ENCODING_UTF8:
+        case ENCODING_UTF8BOM:
+
+            if ( cchLen > 0)
+            {
+                cbWrite = WideCharToMultiByte(iCodePage, 0,
+                    szLine, cchLen, WriteBuf, sizeof(WriteBuf), NULL, NULL);
+                if (cbWrite <= 0) 
+                    return FALSE;
+            }
+
+            if ( iEoln >= 0 )
+            {
+                cbeol = (iEoln == EOLN_CRLF) ? 2: 1;
+                memcpy(WriteBuf +cbWrite, CharEOL[iEoln], cbeol);
+                cbWrite += cbeol;
+            }
+            assert(cbWrite < sizeof(WriteBuf));
+            break;
+
+        default:
+            return FALSE;
+    }
+
+    int outBytes;
+    if (! WriteFile(hFile, WriteBuf, cbWrite, &outBytes, NULL))
+        return FALSE;
+    assert(cbWrite == outBytes);
+
+    return TRUE;
+}
+
+// Write wide string buffer to file.
+static BOOL WriteText(HANDLE hFile, LPCWSTR pszText, DWORD dwTextLen, ENCODING encFile, EOLN iEoln)
+{
+    /* Write the proper byte order marks if not ANSI or UTF-8 without BOM */
+    if (encFile != ENCODING_ANSIOEM && encFile != ENCODING_UTF8)
+    {
+        WCHAR wcBom = 0xFEFF;
+        if (!WriteOneLine(hFile, &wcBom, 1, encFile, -1))
+            return FALSE;
+    }
+
+    DWORD dwPos = 0, dwNext = 0;
+    while(dwNext < dwTextLen)
+    {
+        // Find the next eoln 
+        if (pszText[dwNext] == L'\n' || pszText[dwNext] == L'\r')
+        {
+            if (!WriteOneLine(hFile, pszText + dwPos, dwNext - dwPos, encFile, iEoln))
+                return FALSE;
+
+            dwNext += (pszText[dwNext] == L'\r' && pszText[dwNext+1] ==  L'\n') ? 2:1;     // Skip EOL
+            dwPos = dwNext;
+        }
+        else 
+            dwNext++;
+    }
+    if ( dwNext > dwPos )
+    {
+        if (!WriteOneLine(hFile, pszText + dwPos, dwNext - dwPos, encFile, -1))
+            return FALSE;
+    }
+    return TRUE;
+}
+
+/**********************************************************************/
+// File Open Close Save
+
+BOOL DoOpenFile(LPCWSTR szFileName)
 {
     HANDLE hFile;
-    TCHAR log[5];
-    HLOCAL hLocal;
-
-    if (FindDupPathTab(szFileName) != -1)
-        return;
+    BOOL ok = FALSE;
 
     hFile = CreateFile(szFileName, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
                        OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE)
-    {
-        ShowLastError();
+       return FALSE;
+
+    LPWSTR pszText = NULL;
+    if (!ReadText(hFile, &pszText, &Globals.encFile, &Globals.iEoln)
+        || !pszText )
         goto done;
-    }
-
-    BOOL newTab = Globals.szFileName[0]        // old filename
-        || SendMessage(Globals.hEdit, EM_GETMODIFY, TRUE, 0); 
-
-    SetFileName(szFileName);                   // new filename
-    MRU_Add(szFileName);
-
-    if (newTab)
-    {
-        AddNewEditTab();
-    }
-    else
-    {
-        SetTabHeader();
-    }
-
-    StringCchCopy(Globals.pEditInfo->filePath, _countof(Globals.pEditInfo->filePath), szFileName);
-    Globals.pEditInfo->pathOK = TRUE;
-
-    /* To make loading file quicker, we use the internal handle of EDIT control */
-    // hLocal = (HLOCAL)SendMessageW(Globals.hEdit, EM_GETHANDLE, 0, 0);
-    // This optimization does not work for RichEdit, which does not support EM_GETHANDLE
-    hLocal = NULL;      
-    if (!ReadText(hFile, &hLocal, &Globals.encFile, &Globals.iEoln))
-    {
-        ShowLastError();
-        goto done;
-    }
 
     Globals.pEditInfo->encFile = Globals.encFile;
     Globals.pEditInfo->iEoln = Globals.iEoln;
-    Globals.pEditInfo->Modified = GetFileAttributes(szFileName) &
+    Globals.pEditInfo->FileMode = GetFileAttributes(szFileName) &
         (FILE_ATTRIBUTE_READONLY|FILE_ATTRIBUTE_HIDDEN|FILE_ATTRIBUTE_SYSTEM) ? FM_READONLY : FM_NORMAL;
 
-    // SendMessageW(Globals.hEdit, EM_SETHANDLE, (WPARAM)hLocal, 0);
-    /* No need of EM_SETMODIFY and EM_EMPTYUNDOBUFFER here. EM_SETHANDLE does instead. */
-    LPWSTR pszText;
-    if ( !hLocal || !(pszText = LocalLock(hLocal)) )
-        goto done;
     SetWindowText(Globals.hEdit, pszText);
-    LocalUnlock(pszText);
+    HeapFree(GetProcessHeap(), 0, pszText);
     SendMessage(Globals.hEdit, EM_EMPTYUNDOBUFFER, 0, 0);
     SendMessage(Globals.hEdit, EM_SETMODIFY, FALSE, 0);
 
-    if (Globals.pEditInfo->Modified == FM_READONLY)
+    if (Globals.pEditInfo->FileMode == FM_READONLY)
              SendMessage(Globals.hEdit, EM_SETREADONLY, TRUE, 0);
 
-    SetFocus(Globals.hEdit);
-
-    /*  If the file starts with .LOG, add a time/date at the end and set cursor after
-     *  See http://web.archive.org/web/20090627165105/http://support.microsoft.com/kb/260563
-     */
-    if (GetWindowText(Globals.hEdit, log, _countof(log)) && !_tcscmp(log, _T(".LOG")))
-    {
-        static const TCHAR lf[] = _T("\r\n");
-        SendMessage(Globals.hEdit, EM_SETSEL, GetWindowTextLength(Globals.hEdit), -1);
-        SendMessage(Globals.hEdit, EM_REPLACESEL, TRUE, (LPARAM)lf);
-        DIALOG_EditTimeDate(TRUE);
-        SendMessage(Globals.hEdit, EM_REPLACESEL, TRUE, (LPARAM)lf);
-    }
-
-    // SetFileName(szFileName);
-    UpdateWindowCaption(TRUE);
-    EnableSearchMenu();
-    UpdateStatusBar();
+    GetFileTime(hFile, NULL, NULL, &(Globals.pEditInfo->FileTime));
+    ok = TRUE;
 
 done:
-    if (hFile != INVALID_HANDLE_VALUE)
-        CloseHandle(hFile);
+    CloseHandle(hFile);
+    return ok;
 }
 
 // --------------------------------------------------------------------
 BOOL DoSaveFile(VOID)
 {
-    BOOL bRet = FALSE;
-    HANDLE hFile;
-    DWORD cchText;
+    BOOL ok = FALSE;
+    HANDLE hFile = NULL;
+    int len = GetWindowTextLengthW(Globals.hEdit) +2;
+    HANDLE hHeap = GetProcessHeap();
+    LPWSTR szText = HeapAlloc( hHeap, 0, len*WSIZE);
+    if (szText == NULL)
+        goto done;
 
-    cchText = GetWindowTextLengthW(Globals.hEdit);
-    if (cchText <= 0)
-        return TRUE;
+    int cchText = GetWindowText(Globals.hEdit, szText, len);
+    if (cchText == 0 )
+        goto done;
 
-    if ( Globals.encFile == ENCODING_ANSIOEM)
-    {
-        // test for conversion error to ANSI/OEM CP
-        int len = min(cchText, 10000);
-        TCHAR *txt = malloc(sizeof(TCHAR)* (len+1));
-        int cctxt = GetWindowTextW(Globals.hEdit, txt, len);
-        int conv_error; 
-        WideCharToMultiByte(CP_OEMCP, WC_NO_BEST_FIT_CHARS, txt, cctxt,
-            NULL, 0, NULL, &conv_error);
-        free(txt);
-        if (conv_error )
-        {
-            int choice =  AlertUnicodeCharactersLost(Globals.szFileName);
-            if ( choice == IDRETRY)
-            {
-                return DIALOG_FileSaveAs();
-            }
-            else if ( choice == IDABORT)
-                return FALSE;
-        }
-    }
+    szText[cchText] = L'\0';
 
-    HLOCAL hLocal = (HLOCAL)SendMessageW(Globals.hEdit, EM_GETHANDLE, 0, 0);
-    LPWSTR pszText = LocalLock(hLocal);
-    if (!pszText)
-    {
-        ShowLastError();
-        return FALSE;
-    }
-  
     hFile = CreateFileW(Globals.szFileName, GENERIC_WRITE, FILE_SHARE_WRITE,
                     NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile != INVALID_HANDLE_VALUE)
-    {
-        bRet = WriteText(hFile, pszText, cchText, Globals.encFile, Globals.iEoln);
-        if (bRet)
-            SetEndOfFile(hFile);
-        CloseHandle(hFile);
-    }
+    if (hFile == INVALID_HANDLE_VALUE)
+        return FALSE;
 
-    LocalUnlock(hLocal);
-
-    if (bRet)
+    ok = WriteText(hFile, szText, cchText, Globals.encFile, Globals.iEoln);
+    if (ok)
     {
+        SetEndOfFile(hFile);
         SendMessage(Globals.hEdit, EM_SETMODIFY, FALSE, 0);
-        SetFileName(Globals.szFileName);
+
+        FILETIME ft;
+        GetFileTime(hFile, NULL, NULL, &ft );
+        Globals.pEditInfo->FileTime = ft;
+
         MRU_Add(Globals.szFileName);
     }
-    else
-    {
-        ShowLastError();
-    }
-    return bRet;
-}
 
-/**
- * Returns:
- *   TRUE  - User agreed to close (both save/don't save)
- *   FALSE - User cancelled close by selecting "Cancel"
- */
-BOOL DoCloseFile(VOID)
-{
-    int nResult;
-
-    if (SendMessage(Globals.hEdit, EM_GETMODIFY, 0, 0))
-    {
-        /* prompt user to save changes */
-        nResult = AlertFileNotSaved(Globals.szFileName);
-        switch (nResult)
-        {
-            case IDYES:
-                if(!DIALOG_FileSave())
-                    return FALSE;
-                break;
-
-            case IDNO:
-                break;
-
-            case IDCANCEL:
-            default:
-                return FALSE;
-        }
-    }
-
-    SetFileName(NULSTR);
-    UpdateWindowCaption(TRUE);
-
-    if (CloseTab() == 0)
-        PostMessage(Globals.hMainWnd, WM_CLOSE, 0, 0);
-
-    return TRUE;
-}
-
-// Cloase all open files and ask to save unsaved files.
-BOOL DoCloseAllFiles(VOID)
-{
-    int ntab = TabCtrl_GetItemCount(Globals.hwTabCtrl);
-    for ( int iPage = ntab-1 ; iPage >=0; iPage-- )
-    {
-        TabCtrl_SetCurSel(Globals.hwTabCtrl, iPage);
-        if (!DoCloseFile())
-            return FALSE;  // user canceled close all
-    }
-    return TRUE;
+done:
+    if ( hFile )
+        CloseHandle(hFile);
+    if ( szText)
+        HeapFree( hHeap, 0, szText);
+    return ok;
 }
 
 /**********************************************************************/
 // Search FindNext
 
-static BOOL FindTextAt(FINDREPLACE *pFindReplace, LPCTSTR pszText, INT iTextLength, DWORD dwPosition);
+static BOOL FindTextAt(FINDREPLACE *pFindReplace, LPCWSTR pszText, INT iTextLength, DWORD dwPosition);
 
 BOOL Search_FindNext(FINDREPLACE *pFindReplace, BOOL bReplace, BOOL bShowAlert)
 {
     int iTextLength, iTargetLength;
     size_t iAdjustment = 0;
-    LPTSTR pszText = NULL;
+    LPWSTR pszText = NULL;
     DWORD dwPosition, dwBegin, dwEnd;
     BOOL bMatches = FALSE;
-    TCHAR szText[STR_LONG];
+    WCHAR szText[STR_LONG];
     BOOL bSuccess;
 
     iTargetLength = (int) _tcslen(pFindReplace->lpstrFindWhat);
@@ -254,7 +403,7 @@ BOOL Search_FindNext(FINDREPLACE *pFindReplace, BOOL bReplace, BOOL bShowAlert)
     iTextLength = GetWindowTextLength(Globals.hEdit);
     if (iTextLength > 0)
     {
-        pszText = (LPTSTR) HeapAlloc(GetProcessHeap(), 0, (iTextLength + 1) * sizeof(TCHAR));
+        pszText = (LPWSTR) HeapAlloc(GetProcessHeap(), 0, (iTextLength + 1) * WSIZE);
         if (!pszText)
             return FALSE;
 
@@ -341,11 +490,11 @@ BOOL Search_FindNext(FINDREPLACE *pFindReplace, BOOL bReplace, BOOL bShowAlert)
 }
 
 // --------------------------------------------------------------------
-static BOOL FindTextAt(FINDREPLACE *pFindReplace, LPCTSTR pszText, INT iTextLength, DWORD dwPosition)
+static BOOL FindTextAt(FINDREPLACE *pFindReplace, LPCWSTR pszText, INT iTextLength, DWORD dwPosition)
 {
     BOOL bMatches;
     size_t iTargetLength;
-    LPCTSTR pchPosition;
+    LPCWSTR pchPosition;
 
     if (!pFindReplace || !pszText)
         return FALSE;
@@ -363,12 +512,12 @@ static BOOL FindTextAt(FINDREPLACE *pFindReplace, LPCTSTR pszText, INT iTextLeng
     {
         if (dwPosition > 0)
         {
-            if (_istalnum(*(pchPosition - 1)) || *(pchPosition - 1) == _T('_'))
+            if (_istalnum(*(pchPosition - 1)) || *(pchPosition - 1) == L'_')
                 bMatches = FALSE;
         }
         if ((INT)dwPosition + iTargetLength < iTextLength)
         {
-            if (_istalnum(pchPosition[iTargetLength]) || pchPosition[iTargetLength] == _T('_'))
+            if (_istalnum(pchPosition[iTargetLength]) || pchPosition[iTargetLength] == L'_')
                 bMatches = FALSE;
         }
     }
@@ -412,12 +561,12 @@ VOID EventSearchReplace (FINDREPLACE *pFindReplace)
 // MRU Most recently used file list service
 
 #define MRU_MAX    10
-#define MRU_key   _T("MRU%02d")
+#define MRU_key   L"MRU%02d"
 
 typedef struct {
     int seq;
     int index;
-    TCHAR path[MAX_PATH];
+    WCHAR path[MAX_PATH];
 } MRU_item_st;
 
 static MRU_item_st MRU[MRU_MAX];
@@ -440,7 +589,7 @@ VOID MRU_Init(VOID)
 
 #define MRUDATA(ii) (MRU[MRU[(ii)].index].path)
 
-VOID MRU_Add(LPCTSTR newpath)
+VOID MRU_Add(LPCWSTR newpath)
 {
     youngest++;
     
@@ -453,7 +602,6 @@ VOID MRU_Add(LPCTSTR newpath)
         }
     }
 
-    // _KOOKIE_ TODO: BUG - Duplicated entry.
     // new to list. Replace oldest with new path.
     MRU[oldest].seq = youngest; 
     StringCchCopy(MRUDATA(oldest), MAX_PATH, newpath);
@@ -498,7 +646,7 @@ VOID MRU_Sort(VOID)
 }
 
 // get n-th younest item. n = 0 : most recently used.
-LPCTSTR MRU_Enum(int n)
+LPCWSTR MRU_Enum(int n)
 {
     assert(n >= 0 && n < MRU_MAX);
     return MRUDATA(MRU_MAX - n-1);
@@ -507,12 +655,13 @@ LPCTSTR MRU_Enum(int n)
 // Load ols MRU from "~\AppData\Local\XPAccApps.ini" file.
 VOID MRU_Load(VOID)
 {
-    TCHAR keyname[32];
+    MRU_Init();
+
+    WCHAR keyname[32];
     for (int ii = MRU_MAX-1; ii >=0 ; ii--)
     {
         _stprintf_s(keyname, _countof(keyname), MRU_key, ii);
-        // GetPrivateProfileString(PFSECTION, keyname, _T(""), path, _countof(path), ProfilePath);
-        LPCTSTR path = GetIniString( keyname, _T(""));
+        LPCWSTR path = ReadIniString( keyname, L"");
         if (path[0] && FileExists(path))
             MRU_Add(path);
     }
@@ -521,33 +670,39 @@ VOID MRU_Load(VOID)
 VOID MRU_Save(VOID)
 {
     // MRU00 = youngest, ..., MRU09 = oldest, empty slot not stored.
-    TCHAR keyname[32], path[MAX_PATH];
-    for (int ii = 0, jj = 0; ii < MRU_MAX ; ii++)
+    WCHAR keyname[32], path[MAX_PATH];
+    int ii = 0;
+    for (int jj = 0 ; jj < MRU_MAX ; jj++)
     {
-        _tcscpy(path, MRU_Enum(ii));
+        _tcscpy(path, MRU_Enum(jj));
         if (path[0])
         {
-            _stprintf_s(keyname, _countof(keyname), MRU_key, jj++);
+            _stprintf_s(keyname, _countof(keyname), MRU_key, ii++);
             // WritePrivateProfileString(PFSECTION, keyname, path, ProfilePath);
-            PutIniString(keyname, path);
+            WriteIniString(keyname, path);
         }
+    }
+    while ( ii < MRU_MAX)
+    {
+        _stprintf_s(keyname, _countof(keyname), MRU_key, ii++);
+        WriteIniString(keyname, L"");
     }
 }
 
 // --------------------------------------------------------------------
-VOID UpdateMenuRecentList(HMENU menuMain)
+VOID UpdateMenuRecentList(HMENU menuFile)
 {
-    TCHAR szTitle[MAX_PATH] = {0}, szMenu[MAX_PATH] = {0};
+    WCHAR szTitle[MAX_PATH] = {0}, szMenu[MAX_PATH] = {0};
 
     MRU_Sort();
 
 #define MENUOFFSET_RECENTLYUSED   6
 
-    HMENU hmsubMRU = GetSubMenu(menuMain, MENUOFFSET_RECENTLYUSED);
-    int nmi = GetMenuItemCount(hmsubMRU);
+    HMENU hmMRU = GetSubMenu(menuFile, MENUOFFSET_RECENTLYUSED);
+    int nmi = GetMenuItemCount(hmMRU);
     for (int imi = 0; imi < nmi; imi++)
     {
-        DeleteMenu(hmsubMRU, 0, MF_BYPOSITION);
+        DeleteMenu(hmMRU, 0, MF_BYPOSITION);
     }
 
     for (int ii = 0; ii < MRU_MAX; ii++ )
@@ -557,16 +712,15 @@ VOID UpdateMenuRecentList(HMENU menuMain)
             break;
         StringCchPrintf(szMenu, _countof(szMenu), L"&%d  %s", ii+1, szTitle);
         ShortenPath(szMenu, 0);
-        /*
-        * _KOOKIE_: Fix MRU....
+
+        AppendMenu(hmMRU, MF_BYPOSITION|MF_STRING, MENU_RECENT1 +ii, szMenu);
+
         if (ii < 3 )
         {
-            DeleteMenu(menuMain, MENUOFFSET_RECENTLYUSED +ii +1, MF_BYPOSITION);
-            InsertMenu(menuMain, MENUOFFSET_RECENTLYUSED +ii +1,
-            MF_BYPOSITION|MF_STRING, MENU_RECENT1 +ii, szMenu );
+            DeleteMenu(menuFile, MENUOFFSET_RECENTLYUSED +ii +1, MF_BYPOSITION);
+            InsertMenu(menuFile, MENUOFFSET_RECENTLYUSED +ii +1,
+                MF_BYPOSITION|MF_STRING, MENU_RECENT1 +ii, szMenu );
         }
-        */
-        AppendMenu(hmsubMRU, MF_BYPOSITION|MF_STRING, MENU_RECENT1 +ii, szMenu);
     }
 }
 
@@ -574,7 +728,7 @@ VOID UpdateMenuRecentList(HMENU menuMain)
 // Utility functions
 
 // Shorten path string to limited langth
-VOID ShortenPath(LPTSTR szStr, int maxlen)
+VOID ShortenPath(LPWSTR szStr, int maxlen)
 {
     int len = _tcslen(szStr);
     if ( maxlen == 0 )
@@ -591,17 +745,194 @@ VOID ShortenPath(LPTSTR szStr, int maxlen)
  *   TRUE  - if file exists
  *   FALSE - if file does not exist
  */
-BOOL FileExists(LPCTSTR szFilename)
+BOOL FileExists(LPCWSTR szFilename)
 {
     return GetFileAttributes(szFilename) != INVALID_FILE_ATTRIBUTES;
 }
 
-BOOL HasFileExtension(LPCTSTR szFilename)
+BOOL HasFileExtension(LPCWSTR szFilename)
 {
-    LPCTSTR s;
+    LPCWSTR s;
 
-    s = _tcsrchr(szFilename, _T('\\'));
+    s = _tcsrchr(szFilename, L'\\');
     if (s)
         szFilename = s;
-    return _tcsrchr(szFilename, _T('.')) != NULL;
+    return _tcsrchr(szFilename, L'.') != NULL;
 }
+
+// file time compare. slack time: 0.1 sec.
+int FileTimeCompare( FILETIME * ta, FILETIME *tb )
+{
+    int dt = ta->dwHighDateTime - tb->dwHighDateTime;
+    if ( dt != 0 )
+        return dt;
+    dt = (ta->dwLowDateTime - tb->dwLowDateTime)/1000000;
+    return dt;
+}
+
+
+#if 0
+static VOID
+ReplaceNewLines(LPWSTR pszNew, SIZE_T cchNew, LPCWSTR pszOld, SIZE_T cchOld)
+{
+    BOOL bPrevCR = FALSE;
+    SIZE_T ichNew, ichOld;
+
+    for (ichOld = ichNew = 0; ichOld < cchOld; ++ichOld)
+    {
+        WCHAR ch = pszOld[ichOld];
+
+        if (ch == L'\n')
+        {
+            if (!bPrevCR)
+            {
+                pszNew[ichNew++] = L'\r';
+                pszNew[ichNew++] = L'\n';
+            }
+        }
+        else if (ch == '\r')
+        {
+            pszNew[ichNew++] = L'\r';
+            pszNew[ichNew++] = L'\n';
+        }
+        else
+        {
+            pszNew[ichNew++] = ch;
+        }
+
+        bPrevCR = (ch == L'\r');
+    }
+
+    pszNew[ichNew] = UNICODE_NULL;
+    assert(ichNew == cchNew);
+}
+
+
+static BOOL
+ProcessNewLinesAndNulls(HANDLE hHeap, LPWSTR *ppszText, SIZE_T *pcchText, EOLN *piEoln)
+{
+    SIZE_T ich, cchText = *pcchText, adwEolnCount[3] = { 0, 0, 0 }, cNonCRLFs;
+    LPWSTR pszText = *ppszText;
+    EOLN iEoln;
+    BOOL bPrevCR = FALSE;
+
+    /* Replace '\0' with SPACE. Count newlines. */
+    for (ich = 0; ich < cchText; ++ich)
+    {
+        WCHAR ch = pszText[ich];
+        if (ch == UNICODE_NULL)
+            pszText[ich] = L' ';
+
+        if (ch == L'\n')
+        {
+            if (bPrevCR)
+            {
+                adwEolnCount[EOLN_CR]--;
+                adwEolnCount[EOLN_CRLF]++;
+            }
+            else
+            {
+                adwEolnCount[EOLN_LF]++;
+            }
+        }
+        else if (ch == '\r')
+        {
+            adwEolnCount[EOLN_CR]++;
+        }
+
+        bPrevCR = (ch == L'\r');
+    }
+
+    /* Choose the newline code */
+    if (adwEolnCount[EOLN_CR] > adwEolnCount[EOLN_CRLF])
+        iEoln = EOLN_CR;
+    else if (adwEolnCount[EOLN_LF] > adwEolnCount[EOLN_CRLF])
+        iEoln = EOLN_LF;
+    else
+        iEoln = EOLN_CRLF;
+
+    cNonCRLFs = adwEolnCount[EOLN_CR] + adwEolnCount[EOLN_LF];
+    if (cNonCRLFs != 0)
+    {
+        /* Allocate a buffer for EM_SETHANDLE */
+        SIZE_T cchNew = cchText + cNonCRLFs;
+        HANDLE newText = HeapAlloc( hHeap, 0,
+                        pszText, (cchNew + 1) * sizeof(WCHAR));
+        if (!newText)
+            return FALSE; /* Failure */
+
+        ReplaceNewLines(newText, cchNew, pszText, cchText);
+
+        /* Replace with new data */;
+        *ppszText = newText;
+        *pcchText = cchNew;
+    }
+
+    *piEoln = iEoln;
+    return TRUE;
+}
+
+
+int CountNewLinesAndNulls(LPWSTR szText, int cchText)
+{
+    SIZE_T n_cr, n_lf, n_crlf;
+    n_cr = n_lf = n_crlf = 0;
+    BOOL bPrevCR = FALSE;
+
+    /* Replace '\0' with SPACE. Count newlines. */
+    for (int ich = 0; ich < cchText; ++ich)
+    {
+        WCHAR ch = szText[ich];
+        if (ch == UNICODE_NULL)
+            szText[ich] = L' ';
+
+        if (ch == L'\n')
+        {
+            if (bPrevCR)
+            {
+                n_cr--;
+                n_crlf++;
+            }
+            else
+                n_lf++;
+        }
+        else if (ch == '\r')
+            n_cr++;
+
+        bPrevCR = (ch == L'\r');
+    }
+
+    return n_cr + n_lf;
+}
+
+#endif
+#if 0
+            /* Get ready for ANSI-to-Wide conversion */
+            /*
+            cbContent = dwSize - dwPos;
+            cchText = 0;
+            if (cbContent > 0)
+            {
+                cchText = MultiByteToWideChar(iCodePage, 0, (LPCSTR)&pBytes[dwPos], (INT)cbContent, NULL, 0);
+                if (cchText == 0)
+                    goto done;
+            }
+
+
+
+            more_eol = CountNewLinesAndNulls(&pBytes[dwPos], cbContent);
+
+            /* Re-allocate the buffer for EM_SETHANDLE */
+            pszText = HeapReAlloc( hHeap, 0, pszText, (cchText + more_eol + 1) * sizeof(WCHAR));
+            if (pszText == NULL)
+                goto done;
+            *ppszText = pszText;
+
+            /* Do ANSI-to-Wide conversion */
+            if (cbContent > 0)
+            {
+                if (!MultiByteToWideChar(iCodePage, 0,
+                        (LPCSTR)&pBytes[dwPos], (INT)cbContent, pszText, (INT)cchText))
+                    goto done;
+            }
+#endif

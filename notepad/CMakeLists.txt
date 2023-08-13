@@ -12,7 +12,7 @@ list(APPEND SOURCE
     settings.c
     dialog.c
     file.c
-    text.c
+#    text.c
     printing.c
     
     notepad.h

@@ -13,17 +13,17 @@
 #include <commctrl.h>
 #include <RichEdit.h>
 #include <shellapi.h>
+#include <shlobj.h>
 
 #include <assert.h>
 #include <strsafe.h>
 
-static const TCHAR helpfile[] = _T("notepad.hlp");
-static const TCHAR szDefaultExt[] = _T("txt");
-static const TCHAR txt_files[] = _T("*.txt");
+static const WCHAR helpfile[] = L"notepad.hlp";
+static const WCHAR szDefaultSaveExt[] = L"txt";
 
 /* Status bar parts index */
 #define SBPART_CURPOS       0
-#define SBPART_READONLY     1
+#define SBPART_FILEMODE     1
 #define SBPART_EOLN         2
 #define SBPART_ENCODING     3
 #define SBPART_MAX          4    
@@ -47,9 +47,10 @@ static UINT EncToStrId[] = {
 static UINT FileModeToStrId[] = {
     STRING_FM_NORMAL,
     STRING_FM_READONLY,
+    STRING_FM_OUTDATE,
     STRING_FM_EDITING,
+    STRING_FM_CLASH,
 };
-
 
 #define     MAX_NTAB    9       // max number of tabs
 #define     XSP         3       // edit window border thickness
@@ -79,12 +80,12 @@ VOID UpdateWindowLayout(VOID)
         GetClientRect(Globals.hStatusBar, &rcStatusBar);
 
         parts[SBPART_CURPOS] = rcStatusBar.right - (defaultWidths[1] + defaultWidths[2] + defaultWidths[3] );
-        parts[SBPART_READONLY] = rcStatusBar.right - (defaultWidths[2] + defaultWidths[3] );
+        parts[SBPART_FILEMODE] = rcStatusBar.right - (defaultWidths[2] + defaultWidths[3] );
         parts[SBPART_EOLN] = rcStatusBar.right - defaultWidths[3];
         parts[SBPART_ENCODING] = -1; // the right edge of the status bar
 
         parts[SBPART_CURPOS] = max(parts[SBPART_CURPOS], defaultWidths[SBPART_CURPOS]);
-        parts[SBPART_READONLY] = max(parts[SBPART_READONLY], defaultWidths[0] + defaultWidths[1]);
+        parts[SBPART_FILEMODE] = max(parts[SBPART_FILEMODE], defaultWidths[0] + defaultWidths[1]);
 
         SendMessageW(Globals.hStatusBar, SB_SETPARTS, _countof(parts), (LPARAM)parts);
     }
@@ -135,21 +136,21 @@ VOID UpdateStatusBar(VOID)
 {
     StatusBarUpdateCaretPos();
 
-    SendMessageW(Globals.hStatusBar, SB_SETTEXTW, SBPART_READONLY,
-            (LPARAM) GETSTRING(FileModeToStrId[Globals.pEditInfo->Modified]));
+    SendMessageW(Globals.hStatusBar, SB_SETTEXTW, SBPART_FILEMODE,
+            (LPARAM) GETSTRING(FileModeToStrId[Globals.pEditInfo->FileMode]));
 
     SendMessageW(Globals.hStatusBar, SB_SETTEXTW, SBPART_EOLN,
             (LPARAM) GETSTRING(EolnToStrId[Globals.iEoln]));
 
     SendMessageW(Globals.hStatusBar, SB_SETTEXTW, SBPART_ENCODING,
-            (LPARAM) (Globals.encFile == ENCODING_AUTO ? _T("")
+            (LPARAM) (Globals.encFile == ENCODING_AUTO ? L""
                 : GETSTRING(EncToStrId[Globals.encFile])));
 }
 
 VOID StatusBarUpdateCaretPos(VOID)
 {
     int line, col;
-    TCHAR buff[MAX_PATH];
+    WCHAR buff[MAX_PATH];
     DWORD dwStart, dwSize;
 
     SendMessage(Globals.hEdit, EM_GETSEL, (WPARAM)&dwStart, (LPARAM)&dwSize);
@@ -169,8 +170,8 @@ VOID StatusBarUpdateCaretPos(VOID)
  */
 VOID UpdateWindowCaption(BOOL clearModifyAlert)
 {
-    TCHAR szCaption[STR_LONG];
-    TCHAR szFilename[MAX_PATH];
+    WCHAR szCaption[STR_LONG];
+    WCHAR szFilename[MAX_PATH];
     BOOL isModified;
 
     if (clearModifyAlert)
@@ -187,23 +188,21 @@ VOID UpdateWindowCaption(BOOL clearModifyAlert)
         if (isModified == Globals.bWasModified)
             return;
     }
-
     /* Remember the state for later calls */
     Globals.bWasModified = isModified;
-    if (isModified)
+    if (Globals.pEditInfo->FileMode == FM_NORMAL && isModified )
     {
-        Globals.pEditInfo->Modified = FM_EDITING;
-        SendMessageW(Globals.hStatusBar, SB_SETTEXTW, SBPART_READONLY,
-            (LPARAM) GETSTRING(FileModeToStrId[Globals.pEditInfo->Modified]));
+        Globals.pEditInfo->FileMode = FM_EDITING;
+        UpdateStatusBar();
     }
 
     /* Determine if the file has been saved or if this is a new file */
     StringCchCopy(szFilename, _countof(szFilename),
-        Globals.szFileTitle[0] ? Globals.szFileTitle : GETSTRING(STRING_UNTITLED));
+        STROK(Globals.szFileTitle) ? Globals.szFileTitle : GETSTRING(STRING_UNTITLED));
 
     /* Update the window caption based upon whether the user has modified the file or not */
-    StringCchPrintf(szCaption, _countof(szCaption), _T("%s%s - %s"),
-                   (isModified ? _T("*") : _T("")), szFilename, G_STR_NOTEPAD);
+    StringCchPrintf(szCaption, _countof(szCaption), L"%s%s - %s",
+                   (isModified ? L"*" : L""), szFilename, G_STR_NOTEPAD);
 
     SetWindowText(Globals.hMainWnd, szCaption);
 }
@@ -214,7 +213,6 @@ VOID UpdateWindowCaption(BOOL clearModifyAlert)
 
 #define EDIT_STYLE_WRAP (WS_CHILD | WS_VSCROLL | ES_AUTOVSCROLL | ES_MULTILINE | ES_NOHIDESEL)
 #define EDIT_STYLE      (EDIT_STYLE_WRAP | WS_HSCROLL | ES_AUTOHSCROLL)
-// #define EDIT_CLASS      _T("EDIT")
 #define EDIT_CLASS      MSFTEDIT_CLASS
 
 LRESULT CALLBACK EDIT_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -223,7 +221,7 @@ VOID DoCreateEditWindow(VOID)
 {
     DWORD dwStyle;
     int iSize;
-    LPTSTR pTemp = NULL;
+    LPWSTR pTemp = NULL;
     BOOL bModified = FALSE;
 
     iSize = 0;
@@ -236,7 +234,7 @@ VOID DoCreateEditWindow(VOID)
         if (iSize)
         {
             /* Allocates temporary buffer. */
-            pTemp = HeapAlloc(GetProcessHeap(), 0, (iSize + 1) * sizeof(TCHAR));
+            pTemp = HeapAlloc(GetProcessHeap(), 0, (iSize + 1) * sizeof(WCHAR));
             if (!pTemp)
             {
                 ShowLastError();
@@ -408,7 +406,7 @@ VOID OnTabChange(VOID)
     tab.cchTextMax = _countof(Globals.szFileTitle);
     Globals.szFileName[0] = Globals.szFileTitle[0] = L'0';
 
-    TabCtrl_GetItem(Globals.hwTabCtrl, iPage, (LPARAM) &tab);
+    BOOL xx = TabCtrl_GetItem(Globals.hwTabCtrl, iPage, (LPARAM) &tab);
 
     EDITINFO * pedi = (EDITINFO *) tab.lParam;
 
@@ -417,7 +415,7 @@ VOID OnTabChange(VOID)
     StringCchCopy( Globals.szFileName, _countof(Globals.szFileName), pedi->filePath );
     Globals.encFile = pedi->encFile;
     Globals.iEoln = pedi->iEoln;
-    Globals.bWasModified =  (pedi->Modified == FM_EDITING);; 
+    Globals.bWasModified =  (pedi->FileMode == FM_EDITING);; 
 
     Globals.pEditInfo = pedi;
 
@@ -457,26 +455,26 @@ int CloseTab(VOID)
 // Set tab header
 VOID SetTabHeader(VOID)
 {
-    TCHAR buf[MAX_PATH];
+    WCHAR buf[MAX_PATH];
     int len = _tcslen(Globals.szFileTitle);
 
     StringCchPrintf( buf, MAX_PATH, (len < 10 ? L"    %s    " : L"  %s  "), Globals.szFileTitle);
     ShortenPath(buf, 0);
 
     TCITEM tab;
-    ZEROMEM(tab);
-    tab.mask = TCIF_TEXT|TCIF_IMAGE;
-    tab.pszText = (LPTSTR) buf;
-    tab.iImage = -1;
-
     int iPage = TabCtrl_GetCurSel(Globals.hwTabCtrl);
+    TabCtrl_GetItem(Globals.hwTabCtrl, iPage, &tab);
+    tab.mask = TCIF_TEXT|TCIF_IMAGE;
+    tab.pszText = (LPWSTR) buf;
+    tab.iImage = -1;
     TabCtrl_SetItem(Globals.hwTabCtrl, iPage, &tab);
+    InvalidateRect(Globals.hwTabCtrl, NULL, FALSE);
 }
 
 // Check for file is duplicate (already editing)
 // Returns Tab index (zero-based) on matching duplicate file already loaed, -1 on not duplicate.
 // Caveats: very rudimentary path name comparison for match checking.
-int FindDupPathTab(LPCTSTR filePath)
+int FindDupPathTab(LPCWSTR filePath)
 {
     int ntab = TabCtrl_GetItemCount(Globals.hwTabCtrl);
 
@@ -501,6 +499,100 @@ int FindDupPathTab(LPCTSTR filePath)
 }
 
 /*********************************************************************/
+
+// Sets Global File Name.
+VOID SetFileName(LPCWSTR szFileName)
+{
+    if ( szFileName && szFileName[0])
+        StringCchCopy(Globals.szFileName, _countof(Globals.szFileName), szFileName);
+    else 
+        LOADSTRING( STRING_UNTITLED, Globals.szFileName );
+
+    Globals.szFileTitle[0] = 0;
+    GetFileTitle(szFileName, Globals.szFileTitle, _countof(Globals.szFileTitle));
+
+    if (STROK(szFileName))
+        SHAddToRecentDocs(SHARD_PATHW, szFileName);
+}
+
+VOID TryOpenFile(LPCWSTR szFileName, BOOL bNewFile)
+{
+    if ( STRNOT(szFileName))
+        return;
+
+    if ( bNewFile )     // create empty, writable file 
+    {   
+        HANDLE hFile;
+        hFile = CreateFile( szFileName, GENERIC_READ|GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                    NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (hFile == INVALID_HANDLE_VALUE)
+        {
+            ShowLastError();
+            return;
+        }
+        CloseHandle(hFile);
+    }
+
+    BOOL bReuseTab = FALSE;
+    if ( STROK(Globals.szFileName))
+    {
+        if ( FindDupPathTab(szFileName) >= 0)   // duplicate file
+        {
+            switch (Globals.pEditInfo->FileMode)
+            {
+            case FM_OUTDATE: case FM_CLASH: // reload, discarding editing 
+                bReuseTab = TRUE; break;
+            case FM_EDITING:    // Don't reload
+                break;
+            default:    // not edited, ignore duplcated
+                return;
+            }
+        }
+    }
+    else
+        bReuseTab = TRUE;       // current Untitled
+
+    SetFileName(szFileName);                   // new filename
+    if (bReuseTab)
+    {
+         SetTabHeader();       
+    }
+    else
+    {
+        AddNewEditTab();
+    }
+
+    StringCchCopy(Globals.pEditInfo->filePath, _countof(Globals.pEditInfo->filePath), szFileName);
+    Globals.pEditInfo->pathOK = TRUE;
+
+    if (!DoOpenFile(szFileName))
+    {
+        ShowLastError();
+        return;
+    }
+
+    SetFocus(Globals.hEdit);
+    MRU_Add(szFileName);
+
+    /*  If the file starts with .LOG, add a time/date at the end and set cursor after
+     *  See http://web.archive.org/web/20090627165105/http://support.microsoft.com/kb/260563
+     */
+    WCHAR log[5];
+    if (GetWindowText(Globals.hEdit, log, _countof(log)) && !_tcscmp(log, L".LOG"))
+    {
+        static const WCHAR lf[] = L"\r\n";
+        SendMessage(Globals.hEdit, EM_SETSEL, GetWindowTextLength(Globals.hEdit), -1);
+        SendMessage(Globals.hEdit, EM_REPLACESEL, TRUE, (LPARAM)lf);
+        DIALOG_EditTimeDate(TRUE);
+        SendMessage(Globals.hEdit, EM_REPLACESEL, TRUE, (LPARAM)lf);
+    }
+
+    UpdateWindowCaption(TRUE);
+    EnableSearchMenu();
+    UpdateStatusBar();
+}
+
+// --------------------------------------------------------------------
 //   File Open dialog
 
 VOID DIALOG_FileNew(VOID)
@@ -520,7 +612,7 @@ VOID DIALOG_FileNew(VOID)
 
 VOID DIALOG_FileNewWindow(VOID)
 {
-    TCHAR pszNotepadExe[MAX_PATH];
+    WCHAR pszNotepadExe[MAX_PATH];
     GetModuleFileName(NULL, pszNotepadExe, _countof(pszNotepadExe));
     ShellExecute(NULL, NULL, pszNotepadExe, NULL, NULL, SW_SHOWNORMAL);
 }
@@ -528,14 +620,9 @@ VOID DIALOG_FileNewWindow(VOID)
 VOID DIALOG_FileOpen(VOID)
 {
     OPENFILENAME openfilename;
-    TCHAR szPath[MAX_PATH];
+    WCHAR szPath[MAX_PATH] = {0};
 
     ZEROMEM(openfilename);
-
-    if (Globals.szFileName[0] == 0)
-        _tcscpy(szPath, txt_files);
-    else
-        _tcscpy(szPath, Globals.szFileName);
 
     openfilename.lStructSize = sizeof(openfilename);
     openfilename.hwndOwner = Globals.hMainWnd;
@@ -544,11 +631,11 @@ VOID DIALOG_FileOpen(VOID)
     openfilename.lpstrFile = szPath;
     openfilename.nMaxFile = _countof(szPath);
     openfilename.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_HIDEREADONLY;
-    openfilename.lpstrDefExt = szDefaultExt;
+    openfilename.lpstrDefExt = NULL;
 
     if (GetOpenFileName(&openfilename)) {
         if (FileExists(openfilename.lpstrFile))
-            DoOpenFile(openfilename.lpstrFile);
+            TryOpenFile(openfilename.lpstrFile, FALSE);
         else
             AlertFileNotFound(openfilename.lpstrFile);
     }
@@ -556,9 +643,8 @@ VOID DIALOG_FileOpen(VOID)
 
 VOID DIALOG_MenuRecent(int menu_id)
 {
-    const TCHAR *path = MRU_Enum( menu_id -MENU_RECENT -1);
-    if ( path && path[0])
-        DoOpenFile(path);
+    const WCHAR *path = MRU_Enum( menu_id -MENU_RECENT -1);
+    TryOpenFile(path, FALSE);
 }
 
 VOID DIALOG_EditWrap(VOID)
@@ -572,6 +658,67 @@ VOID DIALOG_EditWrap(VOID)
 }
 
 // --------------------------------------------------------------------
+
+BOOL TrySaveFile(VOID)
+{
+    DWORD cchText;
+
+
+    if ( Globals.pEditInfo->FileMode == FM_READONLY
+        || GetWindowLong(Globals.hEdit, GWL_STYLE) & ES_READONLY)
+        return FALSE;    // Read-only file
+
+    cchText = GetWindowTextLengthW(Globals.hEdit);
+    if (cchText <= 0)
+        return FALSE;
+
+    if ( Globals.encFile == ENCODING_ANSIOEM)
+    {
+        WCHAR testbuf[100000];
+        int cctxt = GetWindowTextW(Globals.hEdit, testbuf, min(cchText, _countof(testbuf)));
+        if (!cctxt)
+         {
+            ShowLastError();
+            return FALSE;
+        }
+
+        // test for conversion error to ANSI/OEM CP
+        int conv_error;
+        WideCharToMultiByte(CP_OEMCP, WC_NO_BEST_FIT_CHARS, testbuf, cctxt,
+            NULL, 0, NULL, &conv_error);
+
+        if (conv_error )
+        {
+            int choice =  AlertUnicodeCharactersLost(Globals.szFileName);
+            if ( choice == IDRETRY)
+            {
+                return DIALOG_FileSaveAs();
+            }
+            else if ( choice == IDABORT)
+                return FALSE;
+        }
+    }
+
+    if (DoSaveFile())
+    {
+        SetFileName(Globals.szFileName);
+        Globals.pEditInfo->FileMode = FM_NORMAL;
+    }
+    else
+    {
+        SetFileName(NULSTR);
+        ShowLastError();
+        return FALSE;
+    }
+
+    // TODO: BUG!!!!! 
+    SetTabHeader();
+    UpdateWindowCaption(TRUE);
+    UpdateStatusBar();
+    return TRUE;
+}
+
+// --------------------------------------------------------------------
 //    File Save dialog
 BOOL DIALOG_FileSave(VOID)
 {
@@ -579,12 +726,8 @@ BOOL DIALOG_FileSave(VOID)
     {
         return DIALOG_FileSaveAs();
     }
-    else if (DoSaveFile())
-    {
-        UpdateWindowCaption(TRUE);
-        return TRUE;
-    }
-    return FALSE;
+
+    return TrySaveFile();
 }
 
 static UINT_PTR
@@ -640,13 +783,13 @@ DIALOG_FileSaveAs_Hook(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 BOOL DIALOG_FileSaveAs(VOID)
 {
     OPENFILENAME saveas;
-    TCHAR szPath[MAX_PATH];
+    WCHAR szPath[MAX_PATH];
 
     ZEROMEM(saveas);
 
-    if (STRBAD(Globals.szFileName))
+    if (STRNOT(Globals.szFileName))
     { 
-        TCHAR *p = szPath + LOADSTRING(STRING_UNTITLED, szPath);;
+        WCHAR *p = szPath + LOADSTRING(STRING_UNTITLED, szPath);;
         time_t t = time(NULL);
         _tcsftime(p, MAX_PATH, L"-%m%d%H%M.txt", localtime(&t));
     }
@@ -661,33 +804,71 @@ BOOL DIALOG_FileSaveAs(VOID)
     saveas.nMaxFile = _countof(szPath);
     saveas.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_HIDEREADONLY |
                    OFN_EXPLORER | OFN_ENABLETEMPLATE | OFN_ENABLEHOOK;
-    saveas.lpstrDefExt = szDefaultExt;
+    saveas.lpstrDefExt = szDefaultSaveExt;
     saveas.lpTemplateName = MAKEINTRESOURCE(DIALOG_ENCODING);
     saveas.lpfnHook = DIALOG_FileSaveAs_Hook;
 
-    if (GetSaveFileName(&saveas))
-    {
-        /* HACK: Because in ROS, Save-As boxes don't check the validity
-         * of file names and thus, here, szPath can be invalid !! We only
-         * see its validity when we call DoSaveFile()... */
-        SetFileName(szPath);
-        if (DoSaveFile())
-        {
-            SetTabHeader();
-            UpdateWindowCaption(TRUE);
-            UpdateStatusBar();
-            return TRUE;
-        }
-        else
-        {
-            SetFileName(NULSTR);
-            return FALSE;
-        }
-    }
-    else
-    {
+    if (!GetSaveFileName(&saveas))
         return FALSE;
+
+    /* HACK: Because in ROS, Save-As boxes don't check the validity
+        * of file names and thus, here, szPath can be invalid !! We only
+        * see its validity when we call DoSaveFile()... */
+    SetFileName(szPath);
+
+    return TrySaveFile();
+}
+
+/**
+ * Returns:
+ *   TRUE  - User agreed to close (both save/don't save)
+ *   FALSE - User cancelled close by selecting "Cancel"
+ */
+BOOL DoCloseFile(VOID)
+{
+    int nResult;
+
+    if (SendMessage(Globals.hEdit, EM_GETMODIFY, 0, 0))
+    {
+        /* prompt user to save changes */
+        nResult = AlertFileNotSaved(Globals.szFileName);
+        switch (nResult)
+        {
+            case IDYES:
+                if(!DIALOG_FileSave())
+                    return FALSE;
+                break;
+
+            case IDNO:
+                break;
+
+            case IDCANCEL:
+            default:
+                return FALSE;
+        }
     }
+
+    SetFileName(NULSTR);
+    UpdateWindowCaption(TRUE);
+
+    if (CloseTab() == 0)
+        PostMessage(Globals.hMainWnd, WM_CLOSE, 0, 0);
+
+    return TRUE;
+}
+
+// Cloase all open files and ask to save unsaved files.
+BOOL DoCloseAllFiles(VOID)
+{
+    int ntab = TabCtrl_GetItemCount(Globals.hwTabCtrl);
+    while ( ntab-- > 0)
+    {
+        TabCtrl_SetCurSel(Globals.hwTabCtrl, 0);
+        OnTabChange();
+        if (!DoCloseFile())
+            return FALSE;  // user canceled close all
+    }
+    return TRUE;
 }
 
 // Close current file and tab. Delete the tab.
@@ -701,6 +882,38 @@ VOID DIALOG_FileExit(VOID)
 {
     if (DoCloseAllFiles())
         PostMessage(Globals.hMainWnd, WM_CLOSE, 0, 0);
+}
+
+VOID CheckFileModeChange(VOID)
+{
+    if (STRNOT(Globals.szFileName))
+        return;
+
+    WIN32_FILE_ATTRIBUTE_DATA fileInfo;
+    if (!GetFileAttributesEx( Globals.szFileName, GetFileExInfoStandard, &fileInfo))
+    {
+        if (Globals.pEditInfo->FileMode == FM_CLASH )
+            Globals.pEditInfo->FileMode = FM_EDITING;
+        else if ( Globals.pEditInfo->FileMode == FM_READONLY)
+        Globals.pEditInfo->FileMode = FM_NORMAL;
+    }
+    else {
+        if (FileTimeCompare( &fileInfo.ftLastWriteTime, &(Globals.pEditInfo->FileTime)))
+        {
+            // file is modified externally! Reload and refresh it.
+            if (!SendMessage(Globals.hEdit, EM_GETMODIFY, 0, 0))
+            {
+                DoOpenFile(Globals.szFileName);
+            }
+            else if ( Globals.pEditInfo->FileMode == FM_EDITING )
+            {
+                Globals.pEditInfo->FileMode = FM_CLASH;
+            }
+            MessageBeep(MB_ICONASTERISK);
+        }
+    }
+
+    UpdateStatusBar();
 }
 
 // --------------------------------------------------------------------
@@ -736,23 +949,33 @@ VOID DIALOG_EditSelectAll(VOID)
     SendMessage(Globals.hEdit, EM_SETSEL, 0, -1);
 }
 
+
 VOID DIALOG_EditTimeDate(BOOL isotime)
 {
-    SYSTEMTIME st;
-    TCHAR  szTime[STR_SHORT], szDate[STR_SHORT];
-    TCHAR szText[STR_LONG];
-
-    GetLocalTime(&st);
-
-    GetTimeFormat(LOCALE_USER_DEFAULT, TIME_NOSECONDS, &st, NULL, szTime, STR_SHORT);
-    GetDateFormat(LOCALE_USER_DEFAULT, DATE_SHORTDATE, &st, NULL, szDate, STR_SHORT);
-
-    BOOL datefirst = FALSE;  // date time order like ISO 8601
-    switch(GetUserDefaultLangID()) {
-    case 0x0411:  case 0x0412: case 0x0404:  case 0x0804: // CJKT LCID
-        datefirst = TRUE;
+    WCHAR szText[STR_SHORT];
+    if (isotime)
+    {    // isotime in UTC/GMT (Zulu) time.
+        time_t t = time(NULL);
+        struct tm *my_tm = gmtime(&t);
+        wcsftime(szText, STR_SHORT, L"%Y-%m-%d %H:%M:%SZ", my_tm);
     }
-    _stprintf(szText, L"%s %s", datefirst ? szDate : szTime, datefirst ?  szTime: szDate);     
+    else
+    {   // local time
+        SYSTEMTIME st;
+        WCHAR  szTime[STR_SHORT], szDate[STR_SHORT];
+
+        GetLocalTime(&st);
+
+        GetTimeFormat(LOCALE_USER_DEFAULT, TIME_NOSECONDS, &st, NULL, szTime, STR_SHORT);
+        GetDateFormat(LOCALE_USER_DEFAULT, DATE_SHORTDATE, &st, NULL, szDate, STR_SHORT);
+
+        BOOL datefirst = FALSE;  // date time order like ISO 8601
+        switch(GetUserDefaultLangID()) {
+        case 0x0411:  case 0x0412: case 0x0404:  case 0x0804: // CJKT LCID
+            datefirst = TRUE;
+        }
+        _stprintf(szText, L"%s %s", datefirst ? szDate : szTime, datefirst ?  szTime: szDate);
+    }
 
     SendMessage(Globals.hEdit, EM_REPLACESEL, TRUE, (LPARAM)szText);
 }
@@ -955,41 +1178,41 @@ VOID ShowLastError(VOID)
     if (error == NO_ERROR)
         return;
 
-    LPTSTR lpMsgBuf = NULL;
+    LPWSTR lpMsgBuf = NULL;
 
     FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
-                    NULL, error, 0, (LPTSTR) &lpMsgBuf, 0, NULL);
+                    NULL, error, 0, (LPWSTR) &lpMsgBuf, 0, NULL);
 
     MessageBox(Globals.hMainWnd, lpMsgBuf, GETSTRING(STRING_ERROR), MB_OK | MB_ICONERROR);
     LocalFree(lpMsgBuf);
 }
 
-int StringMsgBox( int formatId, LPCTSTR szString, DWORD dwFlags)
+int StringMsgBox( int formatId, LPCWSTR szString, DWORD dwFlags)
 {
-    TCHAR szMessage[STR_LONG];
+    WCHAR szMessage[STR_LONG];
 
     /* Load and format szMessage */;
     _sntprintf(szMessage, _countof(szMessage), GETSTRING(formatId), szString);
          
-    LPCTSTR title = ((dwFlags & MB_ICONMASK) == MB_ICONEXCLAMATION)
+    LPCWSTR title = ((dwFlags & MB_ICONMASK) == MB_ICONEXCLAMATION)
         ? GETSTRING(STRING_ERROR) : G_STR_NOTEPAD;
     return MessageBox(Globals.hMainWnd, szMessage, title, dwFlags);
 }
 
-VOID AlertFileNotFound(LPCTSTR szFileName)
+VOID AlertFileNotFound(LPCWSTR szFileName)
 {
     StringMsgBox(STRING_NOTFOUND, szFileName, MB_ICONEXCLAMATION | MB_OK);
 }
 
 // file not exist, create? Y/N
-int AlertFileNotExist(LPCTSTR szFileName)
+int AlertFileNotExist(LPCWSTR szFileName)
 {
     return StringMsgBox(STRING_DOESNOTEXIST,
                 szFileName, MB_ICONEXCLAMATION | MB_YESNO);
 }
 
 // file not saved, save? Y/N/Cancel
-int AlertFileNotSaved(LPCTSTR szFileName)
+int AlertFileNotSaved(LPCWSTR szFileName)
 {
     return StringMsgBox(STRING_NOTSAVED,
             szFileName[0] ? szFileName : GETSTRING(STRING_UNTITLED),
@@ -999,8 +1222,8 @@ int AlertFileNotSaved(LPCTSTR szFileName)
 // Ansi data loss, abort/retry/cancel
 int AlertUnicodeCharactersLost(LPCWSTR szFileName)
 {
-    TCHAR szEnc[STR_SHORT];
-    TCHAR* szMsg;
+    WCHAR szEnc[STR_SHORT];
+    WCHAR* szMsg;
     DWORD_PTR args[2];
     int rc;
 
