@@ -32,10 +32,21 @@ MAIN_ACCEL ACCELERATORS
 /* @makedep: winhelp.ico */
 IDI_WINHELP ICON "res/winhelp.ico"
 
-#include <reactos/manifest_exe.rc>
+// #include <reactos/manifest_exe.rc>
 
 /* UTF-8 */
 #pragma code_page(65001)
+
+#define APP_PRODUCTNAME		        "XWinHelp"
+#define APP_PRODVERMINOR	        1,0
+#define APP_PRODVERMINOR_STR	    "1.0"
+#define APP_FILEVERMINOR	        1,5
+#define APP_FILEDESCRIPTION	        "WinHlp32 app"
+#define APP_INTERNALNAME	        "xwinhelp"
+#define APP_ORIGINALFILENAME	    "xwinhelp.exe"
+
+// app version info resouce
+#include "../version.rc"
 
 #ifdef LANGUAGE_BG_BG
     #include "lang/Bg.rc"

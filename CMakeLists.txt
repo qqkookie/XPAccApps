@@ -3,8 +3,8 @@
 cmake_minimum_required(VERSION 3.13)
 project(XPAccApps)
 
-add_compile_definitions(_AMD64_ _WIN64)
-add_compile_definitions(_UNICODE UNICODE)
+add_definitions(-D_AMD64_ -D_WIN64)
+add_definitions(-D_UNICODE -DUNICODE)
 
 # common setting ini file in ~/AppData/Local
 add_compile_definitions( PRIVATEPROFILE_INI="XPAccApps.ini")
@@ -35,3 +35,4 @@ add_subdirectory(clipbrd)
 add_subdirectory(wordpad)
 add_subdirectory(winmine)
 add_subdirectory(clock)
+add_subdirectory(winhlp32)

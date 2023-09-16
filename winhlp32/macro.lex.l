@@ -23,7 +23,7 @@
 %option noinput nounput never-interactive 8bit
 %x quote
 %{
-#include "config.h"
+// #include "config.h"
 #include <assert.h>
 #include <stdarg.h>
 
@@ -34,7 +34,7 @@
 #include "winuser.h"
 #include "winhelp.h"
 
-#include "wine/debug.h"
+#include "../debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(winhelp);
 

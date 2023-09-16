@@ -28,7 +28,7 @@
 #include "shellapi.h"
 #include "winhelp.h"
 
-#include "wine/debug.h"
+#include "../debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(winhelp);
 

@@ -188,3 +188,6 @@ extern const char STRING_DIALOG_TEST[];
 
 /* Buttons */
 #define WH_FIRST_BUTTON     500
+
+#define ARRAY_SIZE(a)   (sizeof(a)/sizeof(a[0]))
+#define strcasecmp      stricmp

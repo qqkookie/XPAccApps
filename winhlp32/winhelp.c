@@ -40,8 +40,9 @@
 #include "shellapi.h"
 #include "richedit.h"
 #include "commctrl.h"
+#include <prsht.h>
 
-#include "wine/debug.h"
+#include "../debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(winhelp);
 
@@ -50,6 +51,7 @@ WINHELP_GLOBALS Globals = {3, NULL, TRUE, NULL, NULL, NULL, NULL, NULL, {{{NULL,
 #define CTL_ID_BUTTON   0x700
 #define CTL_ID_TEXT     0x701
 
+int ScreenDpi;
 
 /***********************************************************************
  *
@@ -815,7 +817,7 @@ BOOL WINHELP_CreateHelpWindow(WINHELP_WNDPAGE* wpage, int nCmdShow, BOOL remembe
             CreateWindowA(BUTTON_BOX_WIN_CLASS_NAME, "", WS_CHILD | WS_VISIBLE,
                          0, 0, 0, 0, win->hMainWnd, (HMENU)CTL_ID_BUTTON, Globals.hInstance, NULL);
 
-        hTextWnd = CreateWindowA(RICHEDIT_CLASS20A, NULL,
+        hTextWnd = CreateWindow(RICHEDIT_CLASS, NULL,
                                 ES_MULTILINE | ES_READONLY | WS_CHILD | WS_HSCROLL | WS_VSCROLL | WS_VISIBLE,
                                 0, 0, 0, 0, win->hMainWnd, (HMENU)CTL_ID_TEXT, Globals.hInstance, NULL);
         SendMessageW(hTextWnd, EM_SETEVENTMASK, 0,
@@ -868,6 +870,7 @@ BOOL WINHELP_CreateHelpWindow(WINHELP_WNDPAGE* wpage, int nCmdShow, BOOL remembe
         ShowWindow(win->hMainWnd, nCmdShow);
     }
 
+    ScreenDpi = GetDpiForWindow(win->hMainWnd);
     return TRUE;
 }
 

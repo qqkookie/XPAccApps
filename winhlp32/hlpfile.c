@@ -30,7 +30,9 @@
 #include "winuser.h"
 #include "winhelp.h"
 
-#include "wine/debug.h"
+#include "../debug.h"
+
+#include<WinNls.h>
 
 WINE_DEFAULT_DEBUG_CHANNEL(winhelp);
 
@@ -1735,7 +1737,7 @@ BOOL    HLPFILE_BrowsePage(HLPFILE_PAGE* page, struct RtfData* rd,
     case BALTIC_CHARSET:        cpg = 1257; break;
     case VIETNAMESE_CHARSET:    cpg = 1258; break;
     case RUSSIAN_CHARSET:       cpg = 1251; break;
-    case EE_CHARSET:            cpg = 1250; break;
+    case EASTEUROPE_CHARSET:    cpg = 1250; break;
     case THAI_CHARSET:          cpg = 874; break;
     case JOHAB_CHARSET:         cpg = 1361; break;
     case MAC_CHARSET:           ck = "mac"; break;
@@ -1750,6 +1752,15 @@ BOOL    HLPFILE_BrowsePage(HLPFILE_PAGE* page, struct RtfData* rd,
     }
     else
     {
+    /*
+        SetLocaleInfoA(MAKELCID(LANG_ENGLISH, SUBLANG_DEFAULT),  LOCALE_ALL, NULL);
+        int lcid = GetThreadLocale();
+        if (cpg == 1252)
+            SetThreadLocale(MAKELCID(LANG_ENGLISH, SUBLANG_DEFAULT));
+
+        int lcid2 = GetThreadLocale();
+        int lcid3 = MAKELCID(LANG_ENGLISH, SUBLANG_DEFAULT);
+    */
         sprintf(tmp, "{\\rtf1\\ansi\\ansicpg%d\\deff0", cpg);
         if (!HLPFILE_RtfAddControl(rd, tmp)) return FALSE;
     }
@@ -1905,7 +1916,14 @@ static BOOL HLPFILE_ReadFont(HLPFILE* hlpfile)
         flag = ref[dscr_offset + i * 11 + 0];
         family = ref[dscr_offset + i * 11 + 2];
 
-        hlpfile->fonts[i].LogFont.lfHeight = ref[dscr_offset + i * 11 + 1];
+        int fh2 = ref[dscr_offset + i * 11 + 1];
+        if (fh2 == 0)
+            fh2 = 24; // BUG FIX: missing font height: default to 12 point.
+        extern int ScreenDpi;
+        if (ScreenDpi)
+            fh2 = -MulDiv(fh2, ScreenDpi, 96);
+
+        hlpfile->fonts[i].LogFont.lfHeight = fh2;
         hlpfile->fonts[i].LogFont.lfWidth = 0;
         hlpfile->fonts[i].LogFont.lfEscapement = 0;
         hlpfile->fonts[i].LogFont.lfOrientation = 0;
